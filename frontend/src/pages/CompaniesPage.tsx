@@ -6,12 +6,17 @@ import { toast } from 'sonner';
 import api from '../api/axios';
 import { CompanyForm, type CompanyFormData } from '../components/CompanyForm';
 import { CompaniesFilterDrawer } from '../components/CompaniesFilterDrawer';
-import { Pagination } from '../components/Pagination'; // 👈 Asegúrate de importar tu componente
+import { Pagination } from '../components/Pagination';
 import {
-    Plus, Edit2, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download
+    Plus, Edit2, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download, FileText
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+
+// Importación de React PDF
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { CompaniesPDFDocument } from '../components/CompaniesPDFDocument';
+import { CompanySheetPDFDocument } from '../components/CompanySheetPDFDocument';
 
 interface Company {
     _id: string;
@@ -37,7 +42,7 @@ export const CompaniesPage = () => {
     const [companies, setCompanies] = useState<Company[]>([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
-    const [tipoVista, setTipoVista] = useState<'tabla' | 'cards'>('cards');
+    const [tipoVista, setTipoVista] = useState<'tabla' | 'cards'>('tabla');
 
     // Estados para Paginación
     const [currentPage, setCurrentPage] = useState<number>(1);
@@ -68,7 +73,7 @@ export const CompaniesPage = () => {
             setLoading(true);
             const res = await api.get('/companies', { params: { busqueda: search } });
             setCompanies(res.data);
-            setCurrentPage(1); // Reiniciar a la primera página si cambia la búsqueda
+            setCurrentPage(1);
         } catch (err) {
             console.error('Error al cargar empresas:', err);
         } finally {
@@ -76,7 +81,6 @@ export const CompaniesPage = () => {
         }
     };
 
-    // Listas dinámicas únicas para Estados y Municipios
     const opcionesEstados = useMemo(() => {
         const estados = companies
             .map((c) => c.ubicacion?.estado)
@@ -95,9 +99,8 @@ export const CompaniesPage = () => {
         return Array.from(new Set(municipios)).sort();
     }, [companies, selectedEstados]);
 
-    // Función para alternar la selección de un ítem en los filtros
     const toggleFilter = (item: string, currentList: string[], setList: (vals: string[]) => void) => {
-        setCurrentPage(1); // Reiniciar página al cambiar filtros
+        setCurrentPage(1);
         if (currentList.includes(item)) {
             setList(currentList.filter((i) => i !== item));
         } else {
@@ -123,7 +126,6 @@ export const CompaniesPage = () => {
         setCurrentPage(1);
     };
 
-    // 1. Filtrado local múltiple
     const filteredCompanies = useMemo(() => {
         return companies.filter((comp) => {
             const matchTamano = selectedTamanos.length === 0 || selectedTamanos.includes(comp.tamanoEmpresa);
@@ -139,7 +141,6 @@ export const CompaniesPage = () => {
         });
     }, [companies, selectedTamanos, selectedEstados, selectedMunicipios, selectedEstatus]);
 
-    // 2. Recorte de items según la paginación
     const paginatedCompanies = useMemo(() => {
         if (pageSize === 'all') return filteredCompanies;
 
@@ -169,9 +170,7 @@ export const CompaniesPage = () => {
 
     const handleFormSubmit = async (formData: CompanyFormData) => {
         const operacionesArray = formData.etiquetas
-            ? formData.etiquetas
-                .split(',')
-                .map((op) => op.trim())
+            ? formData.etiquetas.split(',').map((op) => op.trim())
             : [];
 
         const tipoOperacionesFinal = operacionesArray.length > 0 ? operacionesArray : ['Servicios'];
@@ -327,9 +326,9 @@ export const CompaniesPage = () => {
         <>
             {/* BARRA SUPERIOR DE ACCIONES */}
             <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 mb-4">
-                <div className="flex items-center gap-3 w-full xl:w-auto">
+                <div className="flex items-center gap-3 w-full xl:w-auto flex-wrap">
                     {/* Buscador General por Nombre/RFC */}
-                    <div className="relative flex-1 sm:w-72">
+                    <div className="relative flex-1 sm:w-72 min-w-[200px]">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                             type="text"
@@ -340,7 +339,7 @@ export const CompaniesPage = () => {
                         />
                     </div>
 
-                    {/* Botón Principal para Abrir el Drawer de Filtros */}
+                    {/* Botón para Abrir Drawer de Filtros */}
                     <button
                         onClick={() => setIsFilterDrawerOpen(true)}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${totalFiltrosActivos > 0
@@ -356,15 +355,51 @@ export const CompaniesPage = () => {
                             </span>
                         )}
                     </button>
+
+                    {/* BOTONES DE EXPORTACIÓN */}
                     {filteredCompanies.length > 0 && (
-                        <button
-                            type="button"
-                            onClick={handleExportExcel}
-                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
-                        >
-                            <Download className="w-4 h-4" />
-                            Exportar Excel
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {/* Exportar Excel */}
+                            <button
+                                type="button"
+                                onClick={handleExportExcel}
+                                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
+                            >
+                                <Download className="w-4 h-4" />
+                                Exportar Excel
+                            </button>
+
+                            {/* Descargar PDF (React PDF) */}
+                            {/* Descargar PDF Dinámico (Tabla o Fichas) */}
+                            {/* Botón de Descarga PDF Dinámico */}
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    const { pdf } = await import('@react-pdf/renderer');
+
+                                    // 1. Elegir el documento adecuado
+                                    const doc = tipoVista === 'tabla'
+                                        ? <CompaniesPDFDocument companies={filteredCompanies} />
+                                        : <CompanySheetPDFDocument companies={filteredCompanies} />;
+
+                                    // 2. Generar el Blob en demanda
+                                    const blob = await pdf(doc).toBlob();
+
+                                    // 3. Descargar el archivo
+                                    const nombreArchivo = tipoVista === 'tabla'
+                                        ? `Reporte_Empresas_Tabla_${new Date().toISOString().split('T')[0]}.pdf`
+                                        : `Fichas_Tecnicas_Empresas_${new Date().toISOString().split('T')[0]}.pdf`;
+
+                                    saveAs(blob, nombreArchivo);
+                                }}
+                                className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
+                            >
+                                <FileText className="w-4 h-4" />
+                                <span>
+                                    {tipoVista === 'tabla' ? 'Descargar PDF' : 'Descargar Fichas PDF'}
+                                </span>
+                            </button>
+                        </div>
                     )}
                 </div>
 
@@ -409,7 +444,7 @@ export const CompaniesPage = () => {
                 </div>
             </div>
 
-            {/* BARRA DE CHIPS / BADGES (FILTROS ACTIVOS) */}
+            {/* RESTO DEL COMPONENTE (CHIPS DE FILTRO, VISTAS, PAGINACIÓN, MODALES...) */}
             {totalFiltrosActivos > 0 && (
                 <div className="flex items-center gap-2 mb-6 flex-wrap bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
                     <span className="text-xs text-slate-400 font-medium">Filtros aplicados:</span>
@@ -468,7 +503,7 @@ export const CompaniesPage = () => {
                 </div>
             )}
 
-            {/* TABLA O TARJETAS DE EMPRESAS */}
+            {/* TABLA O TARJETAS */}
             {loading ? (
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
                     Cargando datos...
@@ -652,7 +687,7 @@ export const CompaniesPage = () => {
                 </>
             )}
 
-            {/* DRAWER LATERAL DE FILTROS */}
+            {/* DRAWER DE FILTROS */}
             <CompaniesFilterDrawer
                 isOpen={isFilterDrawerOpen}
                 onClose={() => setIsFilterDrawerOpen(false)}
@@ -783,7 +818,31 @@ export const CompaniesPage = () => {
                             </div>
                         </div>
 
-                        <div className="p-4 border-t border-slate-700 bg-slate-900/40 text-right">
+                        {/* PIE DEL MODAL CON BOTÓN DE FICHA TÉCNICA PDF */}
+                        <div className="p-4 border-t border-slate-700 bg-slate-900/40 flex items-center justify-between">
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    const { pdf } = await import('@react-pdf/renderer');
+
+                                    // 1. Generar el documento PDF para la empresa actual
+                                    const doc = <CompanySheetPDFDocument company={viewingCompany} />;
+
+                                    // 2. Obtener el Blob bajo demanda
+                                    const blob = await pdf(doc).toBlob();
+
+                                    // 3. Descargar el archivo limpiando caracteres especiales del nombre
+                                    const nombreLimpio = viewingCompany.nombreComercial
+                                        .replace(/[^a-zA-Z0-9_-]/g, '_');
+
+                                    saveAs(blob, `Ficha_Tecnica_${nombreLimpio}.pdf`);
+                                }}
+                                className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
+                            >
+                                <FileText className="w-4 h-4" />
+                                <span>Descargar Ficha Técnica PDF</span>
+                            </button>
+
                             <button
                                 onClick={closeViewModal}
                                 className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
