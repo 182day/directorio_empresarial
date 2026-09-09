@@ -8,7 +8,7 @@ export interface ICompany extends Document {
   tamanoEmpresa: string;
   anioInicio: number;
   sitioWeb?: string;
-  tipoOperaciones: string[];
+  etiquetas: string[];
   tipoSuministro: ('Directo' | 'Indirecto')[];
   ubicacion: {
     estado: string;
@@ -32,7 +32,7 @@ const CompanySchema = new Schema<ICompany>(
     tamanoEmpresa: { type: String, required: true },
     anioInicio: { type: Number, required: true },
     sitioWeb: { type: String, trim: true, default: '' },
-    tipoOperaciones: [{ type: String, trim: true }],
+    etiquetas: [{ type: String, trim: true }],
     tipoSuministro: [{ type: String, enum: ['Directo', 'Indirecto'] }],
     ubicacion: {
       estado: { type: String, required: true },

@@ -13,7 +13,7 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
       tamanoEmpresa,
       anioInicio,
       sitioWeb,
-      tipoOperaciones,
+      etiquetas,
       estado,
       municipio
     } = req.body;
@@ -29,12 +29,12 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
       }
     }
 
-    // 2. Normalizar tipoOperaciones (si viene como string separado por comas, convertirlo a Array)
+    // 2. Normalizar etiquetas (si viene como string separado por comas, convertirlo a Array)
     let operacionesArray: string[] = [];
-    if (typeof tipoOperaciones === 'string' && tipoOperaciones.trim() !== '') {
-      operacionesArray = tipoOperaciones.split(',').map((o) => o.trim());
-    } else if (Array.isArray(tipoOperaciones)) {
-      operacionesArray = tipoOperaciones;
+    if (typeof etiquetas === 'string' && etiquetas.trim() !== '') {
+      operacionesArray = etiquetas.split(',').map((o) => o.trim());
+    } else if (Array.isArray(etiquetas)) {
+      operacionesArray = etiquetas;
     }
 
     // 3. Mapear datos a la estructura exacta del esquema de Mongoose
@@ -45,7 +45,7 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
       tamanoEmpresa: tamanoEmpresa || 'Micro',
       anioInicio: Number(anioInicio) || new Date().getFullYear(),
       sitioWeb: sitioWeb || '',
-      tipoOperaciones: operacionesArray,
+      etiquetas: operacionesArray,
       tipoSuministro: [], // Campo opcional o por defecto
       ubicacion: {
         estado: estado || '',
@@ -118,7 +118,7 @@ export const getCompanies = async (req: AuthRequest, res: Response): Promise<voi
     // Filtros específicos
     if (estado) query['ubicacion.estadoId'] = estado;
     if (municipio) query['ubicacion.municipioId'] = municipio;
-    if (tipoOperacion) query.tipoOperaciones = tipoOperacion;
+    if (tipoOperacion) query.etiquetas = tipoOperacion;
 
     const companies = await Company.find(query).sort({ nombreComercial: 1 });
     res.json(companies);
@@ -144,9 +144,20 @@ export const getCompanyById = async (req: Request, res: Response): Promise<void>
 // POST: Crear una nueva empresa (Ruta protegida)
 export const createCompany = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { rfc } = req.body;
+    const {
+      nombreComercial,
+      razonSocial,
+      rfc,
+      tamanoEmpresa,
+      anioInicio,
+      sitioWeb,
+      etiquetas,
+      estado,
+      municipio,
+      activa
+    } = req.body;
 
-    // 1. Verificación previa en la base de datos
+    // 1. Verificación previa de RFC duplicado
     if (rfc) {
       const rfcExistente = await Company.findOne({ rfc: rfc.toUpperCase().trim() });
       if (rfcExistente) {
@@ -157,12 +168,41 @@ export const createCompany = async (req: Request, res: Response): Promise<void> 
       }
     }
 
-    const newCompany = new Company(req.body);
-    const savedCompany = await newCompany.save();
+    // 2. Normalizar etiquetas
+    let operacionesArray: string[] = [];
+    if (typeof etiquetas === 'string' && etiquetas.trim() !== '') {
+      operacionesArray = etiquetas.split(',').map((o) => o.trim());
+    } else if (Array.isArray(etiquetas)) {
+      operacionesArray = etiquetas;
+    }
 
+    // 3. Mapear datos estructurando la ubicación correctamente
+    const newCompany = new Company({
+      nombreComercial,
+      razonSocial,
+      rfc: rfc?.toUpperCase().trim(),
+      tamanoEmpresa: tamanoEmpresa || 'Micro',
+      anioInicio: Number(anioInicio) || new Date().getFullYear(),
+      sitioWeb: sitioWeb || '',
+      etiquetas: operacionesArray,
+      tipoSuministro: ['Directo'],
+      ubicacion: {
+        estado: estado || '',
+        municipio: municipio || '',
+        direccion: req.body.direccion || 'Sin dirección registrada',
+        colonia: req.body.colonia || 'Sin colonia',
+        codigoPostal: req.body.codigoPostal || '00000',
+        parqueIndustrial: req.body.parqueIndustrial || ''
+      },
+      activa: activa !== undefined ? activa : true // Por defecto activa si la crea un Admin
+    });
+
+    const savedCompany = await newCompany.save();
     res.status(201).json(savedCompany);
+
   } catch (error: any) {
-    // 2. Manejo de error de índice único en MongoDB (Código 11000)
+    console.error('Error al crear empresa:', error);
+
     if (error?.code === 11000 && error?.keyPattern?.rfc) {
       res.status(400).json({
         message: 'El RFC ya se encuentra registrado en el sistema.'
@@ -170,9 +210,17 @@ export const createCompany = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
+    if (error?.name === 'ValidationError') {
+      res.status(400).json({
+        message: 'Error de validación en los datos enviados.',
+        detalles: error.message
+      });
+      return;
+    }
+
     res.status(500).json({
       message: 'Error interno del servidor al crear la empresa.',
-      error
+      error: error?.message || error
     });
   }
 };
@@ -181,15 +229,25 @@ export const createCompany = async (req: Request, res: Response): Promise<void> 
 export const updateCompany = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { rfc } = req.body;
+    const {
+      nombreComercial,
+      razonSocial,
+      rfc,
+      tamanoEmpresa,
+      anioInicio,
+      sitioWeb,
+      etiquetas,
+      estado,
+      municipio,
+      activa
+    } = req.body;
 
-    // 1. Validar si el RFC ya pertenece a OTRA empresa registrada
+    // 1. Validar si el RFC pertenece a otra empresa
     if (rfc) {
       const rfcLimpio = rfc.toUpperCase().trim();
-
       const empresaConMismoRfc = await Company.findOne({
         rfc: rfcLimpio,
-        _id: { $ne: id } // $ne = Not Equal (Que no sea la misma empresa que estamos editando)
+        _id: { $ne: id }
       });
 
       if (empresaConMismoRfc) {
@@ -200,11 +258,35 @@ export const updateCompany = async (req: Request, res: Response): Promise<void> 
       }
     }
 
-    // 2. Si pasa la validación, actualizar el registro
+    // 2. Normalizar etiquetas
+    let operacionesArray: string[] = [];
+    if (typeof etiquetas === 'string' && etiquetas.trim() !== '') {
+      operacionesArray = etiquetas.split(',').map((o) => o.trim());
+    } else if (Array.isArray(etiquetas)) {
+      operacionesArray = etiquetas;
+    }
+
+    // 3. Estructurar el objeto de actualización de forma plana/anidada para Mongoose
+    const updateData: any = {
+      nombreComercial,
+      razonSocial,
+      rfc: rfc?.toUpperCase().trim(),
+      tamanoEmpresa,
+      anioInicio: Number(anioInicio),
+      sitioWeb,
+      etiquetas: operacionesArray,
+      'ubicacion.estado': estado,
+      'ubicacion.municipio': municipio
+    };
+
+    if (activa !== undefined) {
+      updateData.activa = activa;
+    }
+
     const companyUpdated = await Company.findByIdAndUpdate(
       id,
-      req.body,
-      { new: true, runValidators: true } // runValidators asegura que cumpla el Esquema Mongoose
+      { $set: updateData },
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!companyUpdated) {
@@ -216,7 +298,6 @@ export const updateCompany = async (req: Request, res: Response): Promise<void> 
   } catch (error: any) {
     console.error('Error al actualizar empresa:', error);
 
-    // Captura del error de índice duplicado de MongoDB (código 11000) por si falla a nivel BD
     if (error?.code === 11000) {
       res.status(400).json({
         message: 'El RFC ya se encuentra registrado en el sistema.'

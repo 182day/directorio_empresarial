@@ -1,6 +1,6 @@
 // src/components/CompanyForm.tsx
-import { useState, useEffect } from 'react';
-import { CheckCircle } from 'lucide-react';
+import { useState, useEffect, type KeyboardEvent } from 'react';
+import { CheckCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { ESTADOS_MEXICO, getMunicipiosByEstado } from '../data/locationCatalog';
 
@@ -14,10 +14,10 @@ export interface CompanyFormData {
     tamanoEmpresa: string;
     anioInicio: number;
     sitioWeb: string;
-    tipoOperaciones: string;
+    etiquetas: string;
     estado: string;
     municipio: string;
-    activo?: boolean; // 👈 Campo de estado activo/inactivo
+    activo?: boolean;
 }
 
 interface CompanyFormProps {
@@ -39,7 +39,6 @@ export const CompanyForm = ({
     onCancel,
     submitButtonText
 }: CompanyFormProps) => {
-    // Tomamos la que venga (priorizando initialValues)
     const baseData = initialValues || initialData;
 
     const [formData, setFormData] = useState<CompanyFormData>({
@@ -49,23 +48,37 @@ export const CompanyForm = ({
         tamanoEmpresa: 'Micro',
         anioInicio: new Date().getFullYear(),
         sitioWeb: '',
-        tipoOperaciones: '',
+        etiquetas: '',
         estado: '',
         municipio: '',
-        activo: true, // 👈 Valor inicial por defecto
+        activo: true,
         ...baseData
     });
+
+    // Estado local para la lista de etiquetas renderizadas como badges
+    const [tagList, setTagList] = useState<string[]>([]);
+    // Estado local para el texto que el usuario está escribiendo en el textarea
+    const [tagInput, setTagInput] = useState<string>('');
 
     const [errors, setErrors] = useState<Record<string, boolean>>({});
     const [loading, setLoading] = useState(false);
 
+    // Inicializar etiquetas desde initialData o baseData
     useEffect(() => {
         if (baseData) {
-            setFormData((prev) => ({ 
-                ...prev, 
+            setFormData((prev) => ({
+                ...prev,
                 ...baseData,
-                activo: baseData.activo ?? prev.activo ?? true 
+                activo: baseData.activo ?? prev.activo ?? true
             }));
+
+            if (baseData.etiquetas) {
+                const initialTags = baseData.etiquetas
+                    .split(',')
+                    .map((t) => t.trim())
+                    .filter((t) => t !== '');
+                setTagList(initialTags);
+            }
         }
     }, [baseData]);
 
@@ -92,6 +105,35 @@ export const CompanyForm = ({
         }
     };
 
+    // Función para agregar etiqueta al presionar coma o Enter
+    const addTag = (value: string) => {
+        const cleanTag = value.replace(/,/g, '').trim();
+        if (cleanTag && !tagList.some((t) => t.toLowerCase() === cleanTag.toLowerCase())) {
+            setTagList((prev) => [...prev, cleanTag]);
+        }
+        setTagInput('');
+    };
+
+    const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addTag(tagInput);
+        }
+    };
+
+    const handleTagInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const val = e.target.value;
+        if (val.includes(',')) {
+            addTag(val);
+        } else {
+            setTagInput(val);
+        }
+    };
+
+    const removeTag = (indexToRemove: number) => {
+        setTagList((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    };
+
     const validateForm = (): boolean => {
         const newErrors: Record<string, boolean> = {};
 
@@ -103,6 +145,7 @@ export const CompanyForm = ({
         }
 
         if (!formData.estado.trim()) newErrors.estado = true;
+        if (!formData.municipio.trim()) newErrors.municipio = true;
         if (!formData.anioInicio) newErrors.anioInicio = true;
 
         setErrors(newErrors);
@@ -125,37 +168,46 @@ export const CompanyForm = ({
 
         if (!validateForm()) return;
 
+        // Si quedó algo sin convertir en el textarea al hacer submit, lo agregamos
+        let finalTags = [...tagList];
+        if (tagInput.trim()) {
+            const extraTag = tagInput.replace(/,/g, '').trim();
+            if (extraTag && !finalTags.some((t) => t.toLowerCase() === extraTag.toLowerCase())) {
+                finalTags.push(extraTag);
+            }
+        }
+
+        // Ordenar alfabéticamente ignorando mayúsculas/minúsculas
+        finalTags.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+        const updatedFormData: CompanyFormData = {
+            ...formData,
+            etiquetas: finalTags.join(', ')
+        };
+
         try {
             setLoading(true);
-            await onSubmit(formData);
+            await onSubmit(updatedFormData);
 
             toast.success(
                 isPublicRegistration
                     ? 'Solicitud enviada. Pendiente de aprobación.'
                     : isEditing
-                    ? 'Empresa actualizada exitosamente'
-                    : 'Empresa creada exitosamente'
+                        ? 'Empresa actualizada exitosamente'
+                        : 'Empresa creada exitosamente'
             );
         } catch (error: any) {
             console.log('Datos devueltos por la API:', error.response?.data);
-
             const responseData = error.response?.data;
 
             if (responseData?.errors && Array.isArray(responseData.errors)) {
-                console.group('Errores de express-validator:');
-
                 const newErrorsState: Record<string, boolean> = {};
-
                 responseData.errors.forEach((err: { field: string; message: string }) => {
-                    console.log(`Campo: "${err.field}" -> ${err.message}`);
                     toast.error(err.message);
-
                     if (err.field) {
                         newErrorsState[err.field] = true;
                     }
                 });
-
-                console.groupEnd();
                 setErrors((prev) => ({ ...prev, ...newErrorsState }));
             } else {
                 const mensajeError = responseData?.message || error.message || 'Error al procesar la solicitud.';
@@ -294,38 +346,72 @@ export const CompanyForm = ({
                 />
             </div>
 
-            <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Tipos de Operaciones / Servicios (separados por comas)
-                </label>
-                <input
-                    type="text"
-                    placeholder="Manufactura, Logística, Exportación"
-                    value={formData.tipoOperaciones}
-                    onChange={(e) => handleChange('tipoOperaciones', e.target.value)}
-                    className={getInputClass('tipoOperaciones')}
-                />
-            </div>
 
-            {/* 👈 Botón de Estado (Solo visible en el panel interno/administrador) */}
+
+
             {!isPublicRegistration && (
-                <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">
-                        Estado de la Cuenta
-                    </label>
-                    <button
-                        type="button"
-                        onClick={() => handleChange('activo', !formData.activo)}
-                        className={`w-full py-2 px-3 rounded-lg text-xs font-medium border flex items-center justify-center gap-2 transition-colors ${
-                            formData.activo
-                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
-                                : 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
-                        }`}
-                    >
-                        <span className={`w-2 h-2 rounded-full ${formData.activo ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-                        {formData.activo ? 'Cuenta Activa' : 'Cuenta Inactiva'}
-                    </button>
-                </div>
+                <>
+                    {/* Campo de Etiquetas interactivo con Badges y TextArea */}
+                    <div className="md:col-span-2">
+                        <label className="block text-xs font-medium text-slate-400 mb-1">
+                            Etiquetas
+                        </label>
+                        <div className="bg-slate-900 border border-slate-700 rounded-lg p-2.5 focus-within:border-blue-500 transition-colors">
+                            {/* Visualización de Badges/Chips */}
+                            {tagList.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                    {tagList.map((tag, idx) => (
+                                        <span
+                                            key={idx}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                                        >
+                                            {tag}
+                                            <button
+                                                type="button"
+                                                onClick={() => removeTag(idx)}
+                                                className="text-blue-300 hover:text-white transition-colors"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Area de texto para agregar etiquetas */}
+                            <textarea
+                                rows={2}
+                                placeholder="Escribe una etiqueta y presiona coma (,) o Enter..."
+                                value={tagInput}
+                                onChange={handleTagInputChange}
+                                onKeyDown={handleKeyDown}
+                                className="w-full bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none resize-y"
+                            />
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1">
+                            Separa las etiquetas mediante comas (,) o presionando la tecla Enter. Se ordenarán alfabéticamente al guardar.
+                        </p>
+                    </div>
+
+                    {/* Botón de Estado */}
+                    <div>
+                        <label className="block text-xs font-medium text-slate-300 mb-1">
+                            Estado de la Cuenta
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => handleChange('activo', !formData.activo)}
+                            className={`w-full py-2 px-3 rounded-lg text-xs font-medium border flex items-center justify-center gap-2 transition-colors ${formData.activo
+                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                                    : 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
+                                }`}
+                        >
+                            <span className={`w-2 h-2 rounded-full ${formData.activo ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                            {formData.activo ? 'Cuenta Activa' : 'Cuenta Inactiva'}
+                        </button>
+                    </div>
+                </>
+
             )}
 
             <div className="md:col-span-2 flex justify-end gap-3 mt-4">

@@ -5,10 +5,13 @@ import Swal from 'sweetalert2';
 import { toast } from 'sonner';
 import api from '../api/axios';
 import { CompanyForm, type CompanyFormData } from '../components/CompanyForm';
-import { CompaniesFilterDrawer } from '../components/CompaniesFilterDrawer'; // Ajusta la ruta relativa
+import { CompaniesFilterDrawer } from '../components/CompaniesFilterDrawer';
+import { Pagination } from '../components/Pagination'; // 👈 Asegúrate de importar tu componente
 import {
-    Plus, Edit2, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal
+    Plus, Edit2, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download
 } from 'lucide-react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 interface Company {
     _id: string;
@@ -18,7 +21,7 @@ interface Company {
     tamanoEmpresa: string;
     anioInicio: number;
     sitioWeb?: string;
-    tipoOperaciones: string[];
+    etiquetas: string[];
     ubicacion: {
         estado: string;
         municipio: string;
@@ -34,7 +37,11 @@ export const CompaniesPage = () => {
     const [companies, setCompanies] = useState<Company[]>([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
-    const [tipoVista, setTipoVista] = useState<'tabla' | 'cards'>('tabla');
+    const [tipoVista, setTipoVista] = useState<'tabla' | 'cards'>('cards');
+
+    // Estados para Paginación
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [pageSize, setPageSize] = useState<number | 'all'>(5);
 
     // Estado del Drawer de Filtros Lateral
     const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
@@ -61,6 +68,7 @@ export const CompaniesPage = () => {
             setLoading(true);
             const res = await api.get('/companies', { params: { busqueda: search } });
             setCompanies(res.data);
+            setCurrentPage(1); // Reiniciar a la primera página si cambia la búsqueda
         } catch (err) {
             console.error('Error al cargar empresas:', err);
         } finally {
@@ -89,6 +97,7 @@ export const CompaniesPage = () => {
 
     // Función para alternar la selección de un ítem en los filtros
     const toggleFilter = (item: string, currentList: string[], setList: (vals: string[]) => void) => {
+        setCurrentPage(1); // Reiniciar página al cambiar filtros
         if (currentList.includes(item)) {
             setList(currentList.filter((i) => i !== item));
         } else {
@@ -97,6 +106,7 @@ export const CompaniesPage = () => {
     };
 
     const handleToggleEstatus = (estatus: string) => {
+        setCurrentPage(1);
         setSelectedEstatus((prev) =>
             prev.includes(estatus)
                 ? prev.filter((item) => item !== estatus)
@@ -110,21 +120,32 @@ export const CompaniesPage = () => {
         setSelectedEstados([]);
         setSelectedMunicipios([]);
         setSelectedEstatus([]);
+        setCurrentPage(1);
     };
 
-    // Filtrado local múltiple
-    const filteredCompanies = companies.filter((comp) => {
-        const matchTamano = selectedTamanos.length === 0 || selectedTamanos.includes(comp.tamanoEmpresa);
-        const matchEstado = selectedEstados.length === 0 || selectedEstados.includes(comp.ubicacion?.estado);
-        const matchMunicipio = selectedMunicipios.length === 0 || selectedMunicipios.includes(comp.ubicacion?.municipio);
+    // 1. Filtrado local múltiple
+    const filteredCompanies = useMemo(() => {
+        return companies.filter((comp) => {
+            const matchTamano = selectedTamanos.length === 0 || selectedTamanos.includes(comp.tamanoEmpresa);
+            const matchEstado = selectedEstados.length === 0 || selectedEstados.includes(comp.ubicacion?.estado);
+            const matchMunicipio = selectedMunicipios.length === 0 || selectedMunicipios.includes(comp.ubicacion?.municipio);
 
-        const matchEstatus = selectedEstatus.length === 0 || (
-            (selectedEstatus.includes('Activo') && comp.activa) ||
-            (selectedEstatus.includes('Inactivo') && !comp.activa)
-        );
+            const matchEstatus = selectedEstatus.length === 0 || (
+                (selectedEstatus.includes('Activo') && comp.activa) ||
+                (selectedEstatus.includes('Inactivo') && !comp.activa)
+            );
 
-        return matchTamano && matchEstado && matchMunicipio && matchEstatus;
-    });
+            return matchTamano && matchEstado && matchMunicipio && matchEstatus;
+        });
+    }, [companies, selectedTamanos, selectedEstados, selectedMunicipios, selectedEstatus]);
+
+    // 2. Recorte de items según la paginación
+    const paginatedCompanies = useMemo(() => {
+        if (pageSize === 'all') return filteredCompanies;
+
+        const startIndex = (currentPage - 1) * pageSize;
+        return filteredCompanies.slice(startIndex, startIndex + pageSize);
+    }, [filteredCompanies, currentPage, pageSize]);
 
     const openModal = (company?: Company) => {
         setEditingCompany(company || null);
@@ -147,12 +168,10 @@ export const CompaniesPage = () => {
     };
 
     const handleFormSubmit = async (formData: CompanyFormData) => {
-        const operacionesValidas = ['Fabricante', 'Distribuidor', 'Servicios'];
-        const operacionesArray = formData.tipoOperaciones
-            ? formData.tipoOperaciones
+        const operacionesArray = formData.etiquetas
+            ? formData.etiquetas
                 .split(',')
                 .map((op) => op.trim())
-                .filter((op) => operacionesValidas.includes(op))
             : [];
 
         const tipoOperacionesFinal = operacionesArray.length > 0 ? operacionesArray : ['Servicios'];
@@ -164,16 +183,14 @@ export const CompaniesPage = () => {
             tamanoEmpresa: formData.tamanoEmpresa,
             anioInicio: Number(formData.anioInicio),
             sitioWeb: formData.sitioWeb || '',
-            tipoOperaciones: tipoOperacionesFinal,
+            etiquetas: tipoOperacionesFinal,
             tipoSuministro: ['Directo'],
-            ubicacion: {
-                estado: formData.estado,
-                municipio: formData.municipio,
-                direccion: 'Sin dirección registrada',
-                colonia: 'Sin colonia',
-                codigoPostal: '00000',
-                parqueIndustrial: ''
-            }
+            estado: formData.estado,
+            municipio: formData.municipio,
+            direccion: 'Sin dirección registrada',
+            colonia: 'Sin colonia',
+            codigoPostal: '00000',
+            parqueIndustrial: ''
         };
 
         try {
@@ -185,13 +202,8 @@ export const CompaniesPage = () => {
 
             closeModal();
             fetchCompanies();
-        } catch (err: any) {
-            const mensajeError =
-                err.response?.data?.message ||
-                err.response?.data?.error ||
-                'Error al procesar la solicitud en el servidor.';
-
-            throw new Error(mensajeError);
+        } catch (error: any) {
+            throw error;
         }
     };
 
@@ -230,6 +242,87 @@ export const CompaniesPage = () => {
         selectedMunicipios.length +
         selectedEstatus.length;
 
+    const handleExportExcel = async () => {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Reporte de Empresas');
+
+        worksheet.columns = [
+            { header: 'ID', key: 'id', width: 28 },
+            { header: 'Nombre Comercial', key: 'nombreComercial', width: 30 },
+            { header: 'Razón Social', key: 'razonSocial', width: 30 },
+            { header: 'RFC', key: 'rfc', width: 16 },
+            { header: 'Tamaño', key: 'tamanoEmpresa', width: 18 },
+            { header: 'Estado', key: 'estado', width: 22 },
+            { header: 'Municipio', key: 'municipio', width: 22 },
+            { header: 'Estatus', key: 'estatus', width: 15 },
+        ];
+
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFF' } };
+        headerRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: '1E3A8A' },
+        };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+        headerRow.height = 25;
+
+        filteredCompanies.forEach((company) => {
+            const estatusTexto = company.activa ? 'Activo' : 'Inactivo';
+
+            const row = worksheet.addRow({
+                id: company._id,
+                nombreComercial: company.nombreComercial,
+                razonSocial: company.razonSocial,
+                rfc: company.rfc,
+                tamanoEmpresa: company.tamanoEmpresa,
+                estado: company.ubicacion?.estado || '',
+                municipio: company.ubicacion?.municipio || '',
+                estatus: estatusTexto,
+            });
+
+            row.alignment = { vertical: 'middle' };
+
+            const statusCell = row.getCell('estatus');
+            statusCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            if (company.activa) {
+                statusCell.font = { color: { argb: '15803D' }, bold: true };
+                statusCell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'DCFCE7' },
+                };
+            } else {
+                statusCell.font = { color: { argb: 'B91C1C' }, bold: true };
+                statusCell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FEE2E2' },
+                };
+            }
+        });
+
+        worksheet.eachRow((row) => {
+            row.eachCell((cell) => {
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'E2E8F0' } },
+                    left: { style: 'thin', color: { argb: 'E2E8F0' } },
+                    bottom: { style: 'thin', color: { argb: 'E2E8F0' } },
+                    right: { style: 'thin', color: { argb: 'E2E8F0' } },
+                };
+            });
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        });
+
+        const fileName = `Reporte_Empresas_${new Date().toISOString().split('T')[0]}.xlsx`;
+        saveAs(blob, fileName);
+    };
+
     return (
         <>
             {/* BARRA SUPERIOR DE ACCIONES */}
@@ -263,6 +356,16 @@ export const CompaniesPage = () => {
                             </span>
                         )}
                     </button>
+                    {filteredCompanies.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={handleExportExcel}
+                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
+                        >
+                            <Download className="w-4 h-4" />
+                            Exportar Excel
+                        </button>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-3 justify-between xl:justify-end">
@@ -311,7 +414,6 @@ export const CompaniesPage = () => {
                 <div className="flex items-center gap-2 mb-6 flex-wrap bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
                     <span className="text-xs text-slate-400 font-medium">Filtros aplicados:</span>
 
-                    {/* Badge de Búsqueda */}
                     {search.trim() !== '' && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-400 text-xs rounded-lg border border-amber-500/20">
                             Búsqueda: "{search}"
@@ -321,7 +423,6 @@ export const CompaniesPage = () => {
                         </span>
                     )}
 
-                    {/* Badges de Tamaño */}
                     {selectedTamanos.map((tamano) => (
                         <span key={tamano} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20">
                             Tamaño: {tamano}
@@ -331,7 +432,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Badges de Estado */}
                     {selectedEstados.map((estado) => (
                         <span key={estado} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
                             Estado: {estado}
@@ -341,7 +441,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Badges de Municipio */}
                     {selectedMunicipios.map((muni) => (
                         <span key={muni} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-lg border border-purple-500/20">
                             Municipio: {muni}
@@ -351,7 +450,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Badges de Estatus */}
                     {canEdit && selectedEstatus.map((est) => (
                         <span key={est} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
                             Estatus: {est}
@@ -391,13 +489,12 @@ export const CompaniesPage = () => {
                                             <th className="px-6 py-4">RFC</th>
                                             <th className="px-6 py-4">Ubicación</th>
                                             <th className="px-6 py-4">Tamaño</th>
-                                            {/* 👈 Encabezado visible solo para Editor / Admin */}
                                             {canEdit && <th className="px-6 py-4">Estatus</th>}
                                             <th className="px-6 py-4 text-right">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-700/60">
-                                        {filteredCompanies.map((comp) => (
+                                        {paginatedCompanies.map((comp) => (
                                             <tr key={comp._id} className="hover:bg-slate-700/30 transition-colors">
                                                 <td className="px-6 py-4 font-medium text-white">
                                                     <div>{comp.nombreComercial}</div>
@@ -413,7 +510,6 @@ export const CompaniesPage = () => {
                                                     </span>
                                                 </td>
 
-                                                {/* 👈 Celda de Estatus visible solo para Editor / Admin */}
                                                 {canEdit && (
                                                     <td className="px-6 py-4">
                                                         <span
@@ -466,7 +562,7 @@ export const CompaniesPage = () => {
 
                     {tipoVista === 'cards' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredCompanies.map((comp) => (
+                            {paginatedCompanies.map((comp) => (
                                 <div
                                     key={comp._id}
                                     className="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-600 transition-colors"
@@ -482,7 +578,6 @@ export const CompaniesPage = () => {
                                                     {comp.tamanoEmpresa}
                                                 </span>
 
-                                                {/* 👈 Estatus en Cards visible solo para Editor / Admin */}
                                                 {canEdit && (
                                                     <span
                                                         className={`px-2 py-0.5 text-xs rounded border font-medium flex items-center gap-1.5 whitespace-nowrap ${comp.activa
@@ -545,6 +640,15 @@ export const CompaniesPage = () => {
                             ))}
                         </div>
                     )}
+
+                    {/* COMPONENTE DE PAGINACIÓN */}
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={filteredCompanies.length}
+                        pageSize={pageSize}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={setPageSize}
+                    />
                 </>
             )}
 
@@ -591,7 +695,7 @@ export const CompaniesPage = () => {
                                             tamanoEmpresa: editingCompany.tamanoEmpresa,
                                             anioInicio: editingCompany.anioInicio,
                                             sitioWeb: editingCompany.sitioWeb || '',
-                                            tipoOperaciones: editingCompany.tipoOperaciones?.join(', ') || '',
+                                            etiquetas: editingCompany.etiquetas?.join(', ') || '',
                                             estado: editingCompany.ubicacion?.estado || '',
                                             municipio: editingCompany.ubicacion?.municipio || ''
                                         }
@@ -640,7 +744,6 @@ export const CompaniesPage = () => {
                                     <p className="font-medium text-white">{viewingCompany.anioInicio}</p>
                                 </div>
 
-                                {/* 👈 Estatus: Visible únicamente para admin / editor (canEdit) */}
                                 {canEdit && (
                                     <div>
                                         <span className="text-xs text-slate-500 uppercase font-semibold block mb-1">Estatus</span>
@@ -671,7 +774,7 @@ export const CompaniesPage = () => {
                             <div>
                                 <span className="text-xs text-slate-500 uppercase font-semibold">Operaciones</span>
                                 <div className="flex gap-2 mt-1 flex-wrap">
-                                    {viewingCompany.tipoOperaciones?.map((op) => (
+                                    {viewingCompany.etiquetas?.map((op) => (
                                         <span key={op} className="px-2.5 py-0.5 bg-slate-700 text-slate-200 text-xs rounded-md">
                                             {op}
                                         </span>
