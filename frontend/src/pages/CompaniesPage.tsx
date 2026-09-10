@@ -8,13 +8,27 @@ import { CompanyForm, type CompanyFormData } from '../components/CompanyForm';
 import { CompaniesFilterDrawer } from '../components/CompaniesFilterDrawer';
 import { Pagination } from '../components/Pagination';
 import {
-    Plus, Edit2, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download, FileText
+    Plus, Edit2, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download, FileText, BarChart3
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
+// Importación de Recharts para las gráficas estadísticas
+import {
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+    PieChart,
+    Pie,
+    XAxis,
+    YAxis,
+    Tooltip,
+    CartesianGrid,
+    Cell,
+    Legend
+} from 'recharts';
+
 // Importación de React PDF
-//import { PDFDownloadLink } from '@react-pdf/renderer';
 import { CompaniesPDFDocument } from '../components/CompaniesPDFDocument';
 import { CompanySheetPDFDocument } from '../components/CompanySheetPDFDocument';
 
@@ -35,6 +49,7 @@ interface Company {
 }
 
 const OPCIONES_TAMANO = ['Micro', 'Pequeña', 'Mediana', 'Grande'];
+const COLORES_GRAFICA = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
 
 export const CompaniesPage = () => {
     const { user } = useContext(AuthContext);
@@ -50,6 +65,9 @@ export const CompaniesPage = () => {
 
     // Estado del Drawer de Filtros Lateral
     const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+
+    // Estado para el Modal de Gráficas Estadísticas
+    const [isChartsModalOpen, setIsChartsModalOpen] = useState(false);
 
     // Estados para Filtros Múltiples (DENTRO DEL DRAWER)
     const [selectedTamanos, setSelectedTamanos] = useState<string[]>([]);
@@ -141,6 +159,35 @@ export const CompaniesPage = () => {
         });
     }, [companies, selectedTamanos, selectedEstados, selectedMunicipios, selectedEstatus]);
 
+    // 📊 DATOS CALCULADOS PARA LAS GRÁFICAS (Basados en las empresas filtradas actualmente)
+    const dataTamanoGrafica = useMemo(() => {
+        const conteo: Record<string, number> = {};
+        filteredCompanies.forEach((c) => {
+            const tam = c.tamanoEmpresa || 'No especificado';
+            conteo[tam] = (conteo[tam] || 0) + 1;
+        });
+        return Object.keys(conteo).map((key) => ({ name: key, total: conteo[key] }));
+    }, [filteredCompanies]);
+
+    const dataEstadoGrafica = useMemo(() => {
+        const conteo: Record<string, number> = {};
+        filteredCompanies.forEach((c) => {
+            const estado = c.ubicacion?.estado || 'Sin estado';
+            conteo[estado] = (conteo[estado] || 0) + 1;
+        });
+        return Object.keys(conteo).map((key) => ({ name: key, total: conteo[key] }));
+    }, [filteredCompanies]);
+
+    const dataMunicipioGrafica = useMemo(() => {
+        if (selectedEstados.length === 0) return [];
+        const conteo: Record<string, number> = {};
+        filteredCompanies.forEach((c) => {
+            const muni = c.ubicacion?.municipio || 'Sin municipio';
+            conteo[muni] = (conteo[muni] || 0) + 1;
+        });
+        return Object.keys(conteo).map((key) => ({ name: key, total: conteo[key] }));
+    }, [filteredCompanies, selectedEstados]);
+
     const paginatedCompanies = useMemo(() => {
         if (pageSize === 'all') return filteredCompanies;
 
@@ -190,7 +237,7 @@ export const CompaniesPage = () => {
             colonia: 'Sin colonia',
             codigoPostal: '00000',
             parqueIndustrial: '',
-            activa: formData.activo // 👈 ¡AQUÍ! Se agrega para enviarlo al backend
+            activa: formData.activo
         };
 
         try {
@@ -357,36 +404,41 @@ export const CompaniesPage = () => {
                         )}
                     </button>
 
+                    {/* BOTÓN PARA ABRIR MODAL DE GRÁFICAS ESTADÍSTICAS */}
+                    {filteredCompanies.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setIsChartsModalOpen(true)}
+                            title="Ver Gráficas"
+                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
+                        >
+                            <BarChart3 className="w-4 h-4" />
+                            <span>Gráficas</span>
+                        </button>
+                    )}
+
                     {/* BOTONES DE EXPORTACIÓN */}
                     {filteredCompanies.length > 0 && (
                         <div className="flex items-center gap-2">
-                            {/* Exportar Excel */}
                             <button
                                 type="button"
                                 onClick={handleExportExcel}
+                                title="Exportar Excel"
                                 className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
                             >
                                 <Download className="w-4 h-4" />
-                                Exportar Excel
+                                Excel
                             </button>
 
-                            {/* Descargar PDF (React PDF) */}
-                            {/* Descargar PDF Dinámico (Tabla o Fichas) */}
-                            {/* Botón de Descarga PDF Dinámico */}
                             <button
                                 type="button"
                                 onClick={async () => {
                                     const { pdf } = await import('@react-pdf/renderer');
-
-                                    // 1. Elegir el documento adecuado
                                     const doc = tipoVista === 'tabla'
                                         ? <CompaniesPDFDocument companies={filteredCompanies} />
                                         : <CompanySheetPDFDocument companies={filteredCompanies} />;
 
-                                    // 2. Generar el Blob en demanda
                                     const blob = await pdf(doc).toBlob();
-
-                                    // 3. Descargar el archivo
                                     const nombreArchivo = tipoVista === 'tabla'
                                         ? `Reporte_Empresas_Tabla_${new Date().toISOString().split('T')[0]}.pdf`
                                         : `Fichas_Tecnicas_Empresas_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -397,7 +449,7 @@ export const CompaniesPage = () => {
                             >
                                 <FileText className="w-4 h-4" />
                                 <span>
-                                    {tipoVista === 'tabla' ? 'Descargar PDF' : 'Descargar Fichas PDF'}
+                                    {tipoVista === 'tabla' ? 'Reporte PDF' : 'Fichas PDF'}
                                 </span>
                             </button>
                         </div>
@@ -445,7 +497,7 @@ export const CompaniesPage = () => {
                 </div>
             </div>
 
-            {/* RESTO DEL COMPONENTE (CHIPS DE FILTRO, VISTAS, PAGINACIÓN, MODALES...) */}
+            {/* CHIPS DE FILTRO */}
             {totalFiltrosActivos > 0 && (
                 <div className="flex items-center gap-2 mb-6 flex-wrap bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
                     <span className="text-xs text-slate-400 font-medium">Filtros aplicados:</span>
@@ -688,6 +740,142 @@ export const CompaniesPage = () => {
                 </>
             )}
 
+            {/* 📊 MODAL DE GRÁFICAS ESTADÍSTICAS CON RECHARTS */}
+            {isChartsModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl my-8">
+                        {/* Cabecera del Modal */}
+                        <div className="p-6 border-b border-slate-700 flex items-center justify-between bg-slate-800/60">
+                            <div>
+                                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <BarChart3 className="w-5 h-5 text-indigo-400" />
+                                    <span>Análisis Estadístico de Empresas</span>
+                                </h2>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                    Visualización basada en los {filteredCompanies.length} registros filtrados actuales.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setIsChartsModalOpen(false)}
+                                className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-1.5 rounded-lg border border-slate-700"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Cuerpo de las Gráficas */}
+                        <div className="p-6 max-h-[75vh] overflow-y-auto space-y-8">
+                            {/* Gráfica 1: Tamaño de Empresa */}
+                            {/* Gráfica 1: Tamaño de Empresa (Pastel / Pie Chart) */}
+                            <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl p-5 shadow-md">
+                                <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                                    Distribución por Tamaño de Empresa
+                                </h3>
+                                <div className="h-64 w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={dataTamanoGrafica}
+                                                dataKey="total"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={80}
+                                                innerRadius={40} // Si lo quieres como dona (doughnut), déjalo en 40. Si lo quieres totalmente sólido, bórralo o ponlo en 0.
+                                                label={({ name, percent }) => {
+                                                    const itemName = name ?? 'Sin nombre';
+                                                    const itemPercent = percent ? (percent * 100).toFixed(0) : 0;
+                                                    return `${itemName}: ${itemPercent}%`;
+                                                }}
+                                                labelLine={false}
+                                            >
+                                                {dataTamanoGrafica.map((_, index) => (
+                                                    <Cell key={`cell-pie-${index}`} fill={COLORES_GRAFICA[index % COLORES_GRAFICA.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '0.5rem', color: '#fff' }}
+                                            />
+                                            <Legend
+                                                verticalAlign="bottom"
+                                                height={36}
+                                                formatter={(value) => <span className="text-xs text-slate-300">{value}</span>}
+                                            />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
+                            {/* Gráfica 2: Estados */}
+                            <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl p-5 shadow-md">
+                                <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                    Distribución por Estado
+                                </h3>
+                                <div className="h-64 w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={dataEstadoGrafica}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                                            <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} allowDecimals={false} />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '0.5rem', color: '#fff' }}
+                                            />
+                                            <Bar dataKey="total" fill="#10b981" radius={[4, 4, 0, 0]}>
+                                                {dataEstadoGrafica.map((_, index) => (
+                                                    <Cell key={`cell-est-${index}`} fill={COLORES_GRAFICA[(index + 1) % COLORES_GRAFICA.length]} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
+                            {/* Gráfica 3: Municipios (Solo se muestra si hay algún estado seleccionado) */}
+                            {selectedEstados.length > 0 && (
+                                <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl p-5 shadow-md animate-fade-in">
+                                    <h3 className="text-sm font-semibold text-slate-200 mb-1 flex items-center gap-2">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                                        Distribución por Municipio
+                                    </h3>
+                                    <p className="text-xs text-slate-400 mb-4">
+                                        Filtrado por los estados: <span className="text-indigo-400 font-medium">{selectedEstados.join(', ')}</span>
+                                    </p>
+                                    <div className="h-64 w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={dataMunicipioGrafica}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                                                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} allowDecimals={false} />
+                                                <Tooltip
+                                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '0.5rem', color: '#fff' }}
+                                                />
+                                                <Bar dataKey="total" fill="#8b5cf6" radius={[4, 4, 0, 0]}>
+                                                    {dataMunicipioGrafica.map((_, index) => (
+                                                        <Cell key={`cell-mun-${index}`} fill={COLORES_GRAFICA[(index + 2) % COLORES_GRAFICA.length]} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Pie del Modal */}
+                        <div className="p-4 border-t border-slate-700 bg-slate-800/60 flex justify-end">
+                            <button
+                                onClick={() => setIsChartsModalOpen(false)}
+                                className="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* DRAWER DE FILTROS */}
             <CompaniesFilterDrawer
                 isOpen={isFilterDrawerOpen}
@@ -734,7 +922,7 @@ export const CompaniesPage = () => {
                                             etiquetas: editingCompany.etiquetas?.join(', ') || '',
                                             estado: editingCompany.ubicacion?.estado || '',
                                             municipio: editingCompany.ubicacion?.municipio || '',
-                                            activo: editingCompany.activa // 👈 ¡AQUÍ! Le pasa el estado real de la BD al formulario
+                                            activo: editingCompany.activa
                                         }
                                         : undefined
                                 }
@@ -826,14 +1014,8 @@ export const CompaniesPage = () => {
                                 type="button"
                                 onClick={async () => {
                                     const { pdf } = await import('@react-pdf/renderer');
-
-                                    // 1. Generar el documento PDF para la empresa actual
                                     const doc = <CompanySheetPDFDocument company={viewingCompany} />;
-
-                                    // 2. Obtener el Blob bajo demanda
                                     const blob = await pdf(doc).toBlob();
-
-                                    // 3. Descargar el archivo limpiando caracteres especiales del nombre
                                     const nombreLimpio = viewingCompany.nombreComercial
                                         .replace(/[^a-zA-Z0-9_-]/g, '_');
 

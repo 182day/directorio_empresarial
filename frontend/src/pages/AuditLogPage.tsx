@@ -442,9 +442,9 @@ export const AuditLogPage = () => {
                                 </thead>
                                 <tbody className="divide-y divide-slate-700/60">
                                     {logs.map((log) => {
-                                        const detallesTexto = typeof log.detalles === 'object' && log.detalles !== null
-                                            ? JSON.stringify(log.detalles)
-                                            : (log.detalles || '-');
+                                        // const detallesTexto = typeof log.detalles === 'object' && log.detalles !== null
+                                        //     ? JSON.stringify(log.detalles)
+                                        //     : (log.detalles || '-');
 
                                         return (
                                             <tr key={log._id} className="hover:bg-slate-700/30 transition-colors">
