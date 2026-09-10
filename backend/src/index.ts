@@ -6,6 +6,7 @@ import { connectDB } from './config/db';
 import authRoutes from './routes/authRoutes';
 import companyRoutes from './routes/companyRoutes';
 import userRoutes from './routes/userRoutes';
+import auditLogRoutes from './routes/auditLogRoutes';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
 
 app.get('/', (req, res) => {
   res.send('API del Directorio Empresarial funcionando correctamente.');

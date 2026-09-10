@@ -1,9 +1,12 @@
 // src/controllers/companyController.ts
 import { Request, Response } from 'express';
+import { Types } from 'mongoose';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import { Company } from '../models/Company';
+import { AuditLog } from '../models/AuditLog';
+import { getClientIp } from '../utils/getClientIp';
 
-// POST: Registrar una empresa desde el formulario público (Inactiva por defecto)
+// POST: Registrar una empresa desde el formulario público
 export const createPublicCompany = async (req: Request, res: Response): Promise<void> => {
   try {
     const {
@@ -18,7 +21,6 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
       municipio
     } = req.body;
 
-    // 1. Verificación previa de RFC duplicado
     if (rfc) {
       const rfcExistente = await Company.findOne({ rfc: rfc.toUpperCase().trim() });
       if (rfcExistente) {
@@ -29,7 +31,6 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
       }
     }
 
-    // 2. Normalizar etiquetas (si viene como string separado por comas, convertirlo a Array)
     let operacionesArray: string[] = [];
     if (typeof etiquetas === 'string' && etiquetas.trim() !== '') {
       operacionesArray = etiquetas.split(',').map((o) => o.trim());
@@ -37,7 +38,6 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
       operacionesArray = etiquetas;
     }
 
-    // 3. Mapear datos a la estructura exacta del esquema de Mongoose
     const newCompany = new Company({
       nombreComercial,
       razonSocial,
@@ -46,7 +46,7 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
       anioInicio: Number(anioInicio) || new Date().getFullYear(),
       sitioWeb: sitioWeb || '',
       etiquetas: operacionesArray,
-      tipoSuministro: [], // Campo opcional o por defecto
+      tipoSuministro: [],
       ubicacion: {
         estado: estado || '',
         municipio: municipio || '',
@@ -55,19 +55,29 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
         codigoPostal: '',
         parqueIndustrial: ''
       },
-      activa: false // Permanece inactiva hasta ser aprobada por un Administrador
+      activa: false
     });
 
     const savedCompany = await newCompany.save();
+
+    // 📝 REGISTRO EN BITÁCORA (Registro Público - Sin usuarioId directo o con un valor por defecto si aplica)
+    await AuditLog.create({
+      accion: 'CREAR',
+      modulo: 'Empresas',
+      empresaId: savedCompany._id,
+      // usuarioId se omite o se asigna un usuario genérico público si tu esquema lo exige obligatorio,
+      // pero como ya hicimos empresaId opcional, asegurémonos que usuarioId no rompa si es requerido en el schema.
+      detalles: { origen: 'Formulario Público', estatusInicial: 'Inactiva' },
+      ip: getClientIp(req)
+    });
 
     res.status(201).json({
       message: 'Solicitud enviada con éxito. Tu empresa será revisada por un administrador.',
       data: savedCompany
     });
   } catch (error: any) {
-    console.error('Error al crear empresa pública:', error); // Permite ver el log en consola de Express
+    console.error('Error al crear empresa pública:', error);
 
-    // Captura de RFC duplicado a nivel Mongoose
     if (error?.code === 11000 && error?.keyPattern?.rfc) {
       res.status(400).json({
         message: 'El RFC ya se encuentra registrado en el sistema.'
@@ -75,7 +85,6 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
       return;
     }
 
-    // Error de validación de esquema en Mongoose
     if (error?.name === 'ValidationError') {
       res.status(400).json({
         message: 'Error de validación en los datos enviados.',
@@ -90,23 +99,20 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
     });
   }
 };
-// GET: Obtener todas las empresas (con soporte para búsqueda y filtros)
+
+// GET: Obtener todas las empresas
 export const getCompanies = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { busqueda, estado, municipio, tipoOperacion } = req.query;
-    //const query: any = { activa: true };
     const query: any = {};
 
-    // 👈 Verificar si el usuario tiene rol 'admin' o 'editor'
-    const userRole = req.user?.rol; // Ajusta 'rol' según como guardes la propiedad en tu JWT
+    const userRole = req.user?.rol;
     const canSeeAll = userRole === 'admin' || userRole === 'editor';
 
-    // Si NO es admin ni editor (lector o sin loguear), filtrar solo por empresas activas
     if (!canSeeAll) {
       query.activa = true;
     }
 
-    // Filtro de búsqueda general por nombre o RFC
     if (busqueda) {
       query.$or = [
         { nombreComercial: { $regex: busqueda, $options: 'i' } },
@@ -115,7 +121,6 @@ export const getCompanies = async (req: AuthRequest, res: Response): Promise<voi
       ];
     }
 
-    // Filtros específicos
     if (estado) query['ubicacion.estadoId'] = estado;
     if (municipio) query['ubicacion.municipioId'] = municipio;
     if (tipoOperacion) query.etiquetas = tipoOperacion;
@@ -127,7 +132,7 @@ export const getCompanies = async (req: AuthRequest, res: Response): Promise<voi
   }
 };
 
-// GET: Obtener una empresa por su ID
+// GET: Obtener una empresa por ID
 export const getCompanyById = async (req: Request, res: Response): Promise<void> => {
   try {
     const company = await Company.findById(req.params.id);
@@ -141,8 +146,8 @@ export const getCompanyById = async (req: Request, res: Response): Promise<void>
   }
 };
 
-// POST: Crear una nueva empresa (Ruta protegida)
-export const createCompany = async (req: Request, res: Response): Promise<void> => {
+// POST: Crear una nueva empresa (Administrador)
+export const createCompany = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const {
       nombreComercial,
@@ -157,7 +162,6 @@ export const createCompany = async (req: Request, res: Response): Promise<void> 
       activa
     } = req.body;
 
-    // 1. Verificación previa de RFC duplicado
     if (rfc) {
       const rfcExistente = await Company.findOne({ rfc: rfc.toUpperCase().trim() });
       if (rfcExistente) {
@@ -168,7 +172,6 @@ export const createCompany = async (req: Request, res: Response): Promise<void> 
       }
     }
 
-    // 2. Normalizar etiquetas
     let operacionesArray: string[] = [];
     if (typeof etiquetas === 'string' && etiquetas.trim() !== '') {
       operacionesArray = etiquetas.split(',').map((o) => o.trim());
@@ -176,7 +179,6 @@ export const createCompany = async (req: Request, res: Response): Promise<void> 
       operacionesArray = etiquetas;
     }
 
-    // 3. Mapear datos estructurando la ubicación correctamente
     const newCompany = new Company({
       nombreComercial,
       razonSocial,
@@ -194,12 +196,25 @@ export const createCompany = async (req: Request, res: Response): Promise<void> 
         codigoPostal: req.body.codigoPostal || '00000',
         parqueIndustrial: req.body.parqueIndustrial || ''
       },
-      activa: activa !== undefined ? activa : true // Por defecto activa si la crea un Admin
+      activa: activa !== undefined ? activa : true
     });
 
     const savedCompany = await newCompany.save();
-    res.status(201).json(savedCompany);
 
+    // 📝 REGISTRO EN BITÁCORA (Panel Administrador)
+    const userId = req.user?.id || req.user?._id;
+    if (userId) {
+      await AuditLog.create({
+        accion: 'CREAR',
+        modulo: 'Empresas',
+        empresaId: savedCompany._id,
+        usuarioId: new Types.ObjectId(userId as string),
+        detalles: { origen: 'Panel de Administración' },
+        ip: getClientIp(req) // 👈 IP capturada
+      });
+    }
+
+    res.status(201).json(savedCompany);
   } catch (error: any) {
     console.error('Error al crear empresa:', error);
 
@@ -225,8 +240,8 @@ export const createCompany = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-// PUT: Actualizar una empresa existente (Ruta protegida)
-export const updateCompany = async (req: Request, res: Response): Promise<void> => {
+// PUT: Actualizar una empresa existente
+export const updateCompany = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const {
@@ -242,7 +257,6 @@ export const updateCompany = async (req: Request, res: Response): Promise<void> 
       activa
     } = req.body;
 
-    // 1. Validar si el RFC pertenece a otra empresa
     if (rfc) {
       const rfcLimpio = rfc.toUpperCase().trim();
       const empresaConMismoRfc = await Company.findOne({
@@ -258,7 +272,6 @@ export const updateCompany = async (req: Request, res: Response): Promise<void> 
       }
     }
 
-    // 2. Normalizar etiquetas
     let operacionesArray: string[] = [];
     if (typeof etiquetas === 'string' && etiquetas.trim() !== '') {
       operacionesArray = etiquetas.split(',').map((o) => o.trim());
@@ -266,7 +279,6 @@ export const updateCompany = async (req: Request, res: Response): Promise<void> 
       operacionesArray = etiquetas;
     }
 
-    // 3. Estructurar el objeto de actualización de forma plana/anidada para Mongoose
     const updateData: any = {
       nombreComercial,
       razonSocial,
@@ -294,6 +306,19 @@ export const updateCompany = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
+    // 📝 REGISTRO EN BITÁCORA (Actualización)
+    const userId = req.user?.id || req.user?._id;
+    if (userId) {
+      await AuditLog.create({
+        accion: 'EDITAR',
+        modulo: 'Empresas',
+        empresaId: new Types.ObjectId(id as string),
+        usuarioId: new Types.ObjectId(userId as string),
+        detalles: { camposActualizados: updateData },
+        ip: getClientIp(req) // 👈 IP capturada
+      });
+    }
+
     res.status(200).json(companyUpdated);
   } catch (error: any) {
     console.error('Error al actualizar empresa:', error);
@@ -311,14 +336,31 @@ export const updateCompany = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-// DELETE: Eliminar una empresa (Ruta protegida)
-export const deleteCompany = async (req: Request, res: Response): Promise<void> => {
+// DELETE: Eliminar una empresa
+export const deleteCompany = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const deletedCompany = await Company.findByIdAndDelete(req.params.id);
     if (!deletedCompany) {
       res.status(404).json({ mensaje: 'Empresa no encontrada' });
       return;
     }
+
+    // 📝 REGISTRO EN BITÁCORA (Eliminación)
+    const userId = req.user?.id || req.user?._id;
+    if (userId) {
+      await AuditLog.create({
+        accion: 'ELIMINAR',
+        modulo: 'Empresas',
+        empresaId: new Types.ObjectId(req.params.id as string),
+        usuarioId: new Types.ObjectId(userId as string),
+        detalles: {
+          nombreEmpresaEliminada: deletedCompany.nombreComercial,
+          rfc: deletedCompany.rfc
+        },
+        ip: getClientIp(req) // 👈 IP capturada
+      });
+    }
+
     res.json({ mensaje: 'Empresa eliminada con éxito' });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al eliminar la empresa', error });

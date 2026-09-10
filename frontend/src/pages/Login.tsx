@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api/axios';
 import { Lock, Mail, LogIn, ShieldAlert, UserPlus, ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner'; // 👈 1. Importar toast
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -21,7 +22,13 @@ export const Login = () => {
 
     try {
       const response = await api.post('/auth/login', { email, password });
-      login(response.data.user, response.data.token);
+      
+      const usuario = response.data.user;
+      login(usuario, response.data.token);
+      
+      // 👈 2. Mostrar la notificación de bienvenida con el nombre
+      toast.success(`¡Bienvenido, ${usuario.nombre}!`);
+
       navigate('/admin'); // Redirige al panel CRUD tras autenticarse
     } catch (err: any) {
       setError(err.response?.data?.mensaje || 'Error al conectar con el servidor');
@@ -31,6 +38,7 @@ export const Login = () => {
   };
 
   return (
+    // ... tu código JSX actual se mantiene exactamente igual
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center items-center p-4 relative">
       {/* Botón Regresar al Inicio (Responsivo sin traslapes) */}
       <div className="w-full max-w-md mb-4 flex justify-start md:absolute md:top-6 md:left-6 md:mb-0">

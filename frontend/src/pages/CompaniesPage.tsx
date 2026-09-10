@@ -14,7 +14,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 // Importación de React PDF
-import { PDFDownloadLink } from '@react-pdf/renderer';
+//import { PDFDownloadLink } from '@react-pdf/renderer';
 import { CompaniesPDFDocument } from '../components/CompaniesPDFDocument';
 import { CompanySheetPDFDocument } from '../components/CompanySheetPDFDocument';
 
@@ -189,7 +189,8 @@ export const CompaniesPage = () => {
             direccion: 'Sin dirección registrada',
             colonia: 'Sin colonia',
             codigoPostal: '00000',
-            parqueIndustrial: ''
+            parqueIndustrial: '',
+            activa: formData.activo // 👈 ¡AQUÍ! Se agrega para enviarlo al backend
         };
 
         try {
@@ -732,7 +733,8 @@ export const CompaniesPage = () => {
                                             sitioWeb: editingCompany.sitioWeb || '',
                                             etiquetas: editingCompany.etiquetas?.join(', ') || '',
                                             estado: editingCompany.ubicacion?.estado || '',
-                                            municipio: editingCompany.ubicacion?.municipio || ''
+                                            municipio: editingCompany.ubicacion?.municipio || '',
+                                            activo: editingCompany.activa // 👈 ¡AQUÍ! Le pasa el estado real de la BD al formulario
                                         }
                                         : undefined
                                 }

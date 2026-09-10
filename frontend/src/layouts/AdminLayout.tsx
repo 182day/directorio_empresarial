@@ -5,7 +5,7 @@ import { Outlet, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Sidebar } from '../components/Sidebar';
 import { CompanyForm } from '../components/CompanyForm';
-import { FolderSearch, Building2, Users, Menu, X, LogOut, LogIn, LayoutDashboard } from 'lucide-react';
+import { FolderSearch, Building2, Users, Menu, X, LogOut, LogIn, LayoutDashboard, History } from 'lucide-react';
 //import { toast } from 'sonner';
 
 export const AdminLayout = () => {
@@ -32,10 +32,17 @@ export const AdminLayout = () => {
             };
         }
 
-        if (path.startsWith('/usuarios') || path.startsWith('/users')) {
+        if (path.startsWith('/usuarios')) {
             return {
                 title: 'Usuarios',
                 icon: <Users className="w-6 h-6" />,
+            };
+        }
+
+        if (path.startsWith('/auditoria')) {
+            return {
+                title: 'Auditoría',
+                icon: <History className="w-6 h-6" />,
             };
         }
 
@@ -52,6 +59,7 @@ export const AdminLayout = () => {
     try {
         // Axios usará la URL base del backend y el endpoint /empresas/public
         await api.post('/companies/public', formData);
+        setIsPublicRegisterOpen(false);
     } catch (error: any) {
         // Captura el mensaje de error retornado por Express
         

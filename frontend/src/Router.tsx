@@ -11,6 +11,7 @@ import { Login } from './pages/Login';
 import { AdminLayout } from './layouts/AdminLayout';
 import { CompaniesPage } from './pages/CompaniesPage';
 import { UsersPage } from './pages/UsersPage';
+import { AuditLogPage } from './pages/AuditLogPage'; // 👈 Importación de la Bitácora
 
 function Router() {
   return (
@@ -39,6 +40,15 @@ function Router() {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <UsersPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* 👈 Nueva Ruta de Bitácora / Auditoría */}
+            <Route
+              path="/auditoria"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AuditLogPage />
                 </ProtectedRoute>
               }
             />

@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Validación real contra la API para asegurar que el token sea legítimo
         const response = await api.get('/auth/verify');
         setUser(response.data.user || response.data);
-        console.log(response.data);
+        //console.log(response.data);
         
       } catch (error) {
         console.error('Sesión inválida o expirada:', error);

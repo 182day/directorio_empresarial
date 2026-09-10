@@ -1,6 +1,8 @@
 // src/controllers/authController.ts
 import { Request, Response } from 'express';
 import { User } from '../models/User';
+import { AuditLog } from '../models/AuditLog';
+import { getClientIp } from '../utils/getClientIp';
 import jwt from 'jsonwebtoken';
 
 const generateToken = (id: string, rol: string) => {
@@ -63,6 +65,18 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       res.status(403).json({ message: 'Tu cuenta ha sido desactivada. Contacta al administrador.' });
       return;
     }
+
+    // Dentro de tu función login:
+    const clientIp = getClientIp(req);
+
+    // 👇 2. Registrar el evento en la bitácora
+    await AuditLog.create({
+      accion: 'INICIO DE SESIÓN',
+      modulo: 'Auth',
+      usuarioId: user._id,
+      detalles: { mensaje: `El usuario ${user.nombre} inició sesión exitosamente.` },
+      ip: clientIp
+    });
 
     res.json({
       mensaje: 'Inicio de sesión exitoso',

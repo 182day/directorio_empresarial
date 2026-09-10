@@ -3,7 +3,7 @@ import { useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import {
-    FolderSearch, Building2, Users, BarChart2, ShieldCheck, Settings, X, ChevronRight
+    FolderSearch, Building2, Users, BarChart2, History, Settings, X, ChevronRight
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -43,7 +43,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         { 
             path: '/auditoria', 
             label: 'Auditoría', 
-            icon: ShieldCheck, 
+            icon: History, 
             allowedRoles: ['admin'] 
         },
         { 
