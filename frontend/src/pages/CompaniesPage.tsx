@@ -373,8 +373,8 @@ export const CompaniesPage = () => {
     return (
         <>
             {/* BARRA SUPERIOR DE ACCIONES */}
-            <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 mb-4">
-                <div className="flex items-center gap-3 w-full xl:w-auto flex-wrap">
+            <div className="flex flex-col 2xl:flex-row items-stretch 2xl:items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-3 w-full 2xl:w-auto flex-wrap">
                     {/* Buscador General por Nombre/RFC */}
                     <div className="relative flex-1 sm:w-72 min-w-[200px]">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -390,7 +390,7 @@ export const CompaniesPage = () => {
                     {/* Botón para Abrir Drawer de Filtros */}
                     <button
                         onClick={() => setIsFilterDrawerOpen(true)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${totalFiltrosActivos > 0
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all shrink-0 ${totalFiltrosActivos > 0
                             ? 'bg-blue-600/20 border-blue-500 text-blue-400 font-semibold'
                             : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:border-slate-600'
                             }`}
@@ -404,30 +404,28 @@ export const CompaniesPage = () => {
                         )}
                     </button>
 
-                    {/* BOTÓN PARA ABRIR MODAL DE GRÁFICAS ESTADÍSTICAS */}
+                    {/* GRUPO DE ACCIONES (Gráficas y Exportación) */}
                     {filteredCompanies.length > 0 && (
-                        <button
-                            type="button"
-                            onClick={() => setIsChartsModalOpen(true)}
-                            title="Ver Gráficas"
-                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
-                        >
-                            <BarChart3 className="w-4 h-4" />
-                            <span>Gráficas</span>
-                        </button>
-                    )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {/* BOTÓN PARA ABRIR MODAL DE GRÁFICAS ESTADÍSTICAS */}
+                            <button
+                                type="button"
+                                onClick={() => setIsChartsModalOpen(true)}
+                                title="Ver Gráficas"
+                                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0"
+                            >
+                                <BarChart3 className="w-4 h-4" />
+                                <span className="hidden sm:inline">Gráficas</span>
+                            </button>
 
-                    {/* BOTONES DE EXPORTACIÓN */}
-                    {filteredCompanies.length > 0 && (
-                        <div className="flex items-center gap-2">
                             <button
                                 type="button"
                                 onClick={handleExportExcel}
                                 title="Exportar Excel"
-                                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
+                                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0"
                             >
                                 <Download className="w-4 h-4" />
-                                Excel
+                                <span className="hidden sm:inline">Excel</span>
                             </button>
 
                             <button
@@ -445,18 +443,19 @@ export const CompaniesPage = () => {
 
                                     saveAs(blob, nombreArchivo);
                                 }}
-                                className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
+                                title={tipoVista === 'tabla' ? 'Descargar reporte en PDF' : 'Descargar fichas en PDF'}
+                                className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0"
                             >
                                 <FileText className="w-4 h-4" />
                                 <span>
-                                    {tipoVista === 'tabla' ? 'Reporte PDF' : 'Fichas PDF'}
+                                    PDF
                                 </span>
                             </button>
                         </div>
                     )}
                 </div>
 
-                <div className="flex items-center gap-3 justify-between xl:justify-end">
+                <div className="flex items-center gap-3 justify-between 2xl:justify-end shrink-0">
                     {companies.length > 0 && (
                         <div className="flex items-center bg-slate-800 p-1 rounded-lg border border-slate-700">
                             <button
@@ -488,7 +487,7 @@ export const CompaniesPage = () => {
                     {canEdit && (
                         <button
                             onClick={() => openModal()}
-                            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-lg"
+                            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-lg shrink-0"
                         >
                             <Plus className="w-4 h-4" />
                             <span>Nueva Empresa</span>
