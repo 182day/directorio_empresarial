@@ -74,6 +74,7 @@ export const CompaniesPage = () => {
     const [selectedEstados, setSelectedEstados] = useState<string[]>([]);
     const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
     const [selectedEstatus, setSelectedEstatus] = useState<string[]>([]);
+    const [selectedEtiquetas, setSelectedEtiquetas] = useState<string[]>([]);
 
     // Estados para Modales (Crear/Editar y Ver)
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -117,6 +118,16 @@ export const CompaniesPage = () => {
         return Array.from(new Set(municipios)).sort();
     }, [companies, selectedEstados]);
 
+    const opcionesEtiquetas = useMemo(() => {
+        const etiquetasSet = new Set<string>();
+        companies.forEach((c) => {
+            if (c.etiquetas && Array.isArray(c.etiquetas)) {
+                c.etiquetas.forEach((etiqueta) => etiquetasSet.add(etiqueta));
+            }
+        });
+        return Array.from(etiquetasSet).sort();
+    }, [companies]);
+
     const toggleFilter = (item: string, currentList: string[], setList: (vals: string[]) => void) => {
         setCurrentPage(1);
         if (currentList.includes(item)) {
@@ -141,6 +152,7 @@ export const CompaniesPage = () => {
         setSelectedEstados([]);
         setSelectedMunicipios([]);
         setSelectedEstatus([]);
+        setSelectedEtiquetas([]);
         setCurrentPage(1);
     };
 
@@ -155,9 +167,14 @@ export const CompaniesPage = () => {
                 (selectedEstatus.includes('Inactivo') && !comp.activa)
             );
 
-            return matchTamano && matchEstado && matchMunicipio && matchEstatus;
+            // --- CAMBIO AQUÍ: Usamos .some() en lugar de .every() para que sea un filtro tipo OR ---
+            const matchEtiquetas = selectedEtiquetas.length === 0 || (
+                comp.etiquetas && selectedEtiquetas.some((etq) => comp.etiquetas.includes(etq))
+            );
+
+            return matchTamano && matchEstado && matchMunicipio && matchEstatus && matchEtiquetas;
         });
-    }, [companies, selectedTamanos, selectedEstados, selectedMunicipios, selectedEstatus]);
+    }, [companies, selectedTamanos, selectedEstados, selectedMunicipios, selectedEstatus, selectedEtiquetas]);
 
     // 📊 DATOS CALCULADOS PARA LAS GRÁFICAS (Basados en las empresas filtradas actualmente)
     const dataTamanoGrafica = useMemo(() => {
@@ -287,7 +304,8 @@ export const CompaniesPage = () => {
         selectedTamanos.length +
         selectedEstados.length +
         selectedMunicipios.length +
-        selectedEstatus.length;
+        selectedEstatus.length +
+        selectedEtiquetas.length;
 
     const handleExportExcel = async () => {
         const workbook = new ExcelJS.Workbook();
@@ -541,6 +559,15 @@ export const CompaniesPage = () => {
                         <span key={est} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
                             Estatus: {est}
                             <button onClick={() => toggleFilter(est, selectedEstatus, setSelectedEstatus)} className="hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+
+                    {selectedEtiquetas.map((etq) => (
+                        <span key={etq} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 text-indigo-400 text-xs rounded-lg border border-indigo-500/20">
+                            Etiqueta: {etq}
+                            <button onClick={() => toggleFilter(etq, selectedEtiquetas, setSelectedEtiquetas)} className="hover:text-white">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
@@ -883,14 +910,17 @@ export const CompaniesPage = () => {
                 opcionesTamano={OPCIONES_TAMANO}
                 opcionesEstados={opcionesEstados}
                 opcionesMunicipios={opcionesMunicipios}
+                opcionesEtiquetas={opcionesEtiquetas}
                 selectedTamanos={selectedTamanos}
                 selectedEstados={selectedEstados}
                 selectedMunicipios={selectedMunicipios}
                 selectedEstatus={selectedEstatus}
+                selectedEtiquetas={selectedEtiquetas}
                 onToggleTamano={(val) => toggleFilter(val, selectedTamanos, setSelectedTamanos)}
                 onToggleEstado={(val) => toggleFilter(val, selectedEstados, setSelectedEstados)}
                 onToggleMunicipio={(val) => toggleFilter(val, selectedMunicipios, setSelectedMunicipios)}
                 onToggleEstatus={handleToggleEstatus}
+                onToggleEtiqueta={(val) => toggleFilter(val, selectedEtiquetas, setSelectedEtiquetas)}
                 onClearAll={clearAllFilters}
                 totalResultados={filteredCompanies.length}
             />
@@ -996,7 +1026,7 @@ export const CompaniesPage = () => {
                             )}
 
                             <div>
-                                <span className="text-xs text-slate-500 uppercase font-semibold">Operaciones</span>
+                                <span className="text-xs text-slate-500 uppercase font-semibold">Etiquetas</span>
                                 <div className="flex gap-2 mt-1 flex-wrap">
                                     {viewingCompany.etiquetas?.map((op) => (
                                         <span key={op} className="px-2.5 py-0.5 bg-slate-700 text-slate-200 text-xs rounded-md">

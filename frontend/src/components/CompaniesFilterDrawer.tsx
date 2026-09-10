@@ -5,21 +5,24 @@ import { Filter, X, ChevronDown, Check } from 'lucide-react';
 interface FilterDrawerProps {
     isOpen: boolean;
     onClose: () => void;
-    canEdit?: boolean; // 👈 Nueva prop para validar si es admin/editor
+    canEdit?: boolean;
     // Opciones
     opcionesTamano: string[];
     opcionesEstados: string[];
     opcionesMunicipios: string[];
+    opcionesEtiquetas: string[]; // 👈 NUEVO
     // Selecciones
     selectedTamanos: string[];
     selectedEstados: string[];
     selectedMunicipios: string[];
-    selectedEstatus?: string[]; // 👈 'Activo' | 'Inactivo'
+    selectedEstatus?: string[];
+    selectedEtiquetas: string[]; // 👈 NUEVO
     // Handlers
     onToggleTamano: (val: string) => void;
     onToggleEstado: (val: string) => void;
     onToggleMunicipio: (val: string) => void;
-    onToggleEstatus?: (val: string) => void; // 👈 Handler para alternar estatus
+    onToggleEstatus?: (val: string) => void;
+    onToggleEtiqueta: (val: string) => void; // 👈 NUEVO
     onClearAll: () => void;
     totalResultados: number;
 }
@@ -31,24 +34,28 @@ export const CompaniesFilterDrawer = ({
     opcionesTamano,
     opcionesEstados,
     opcionesMunicipios,
+    opcionesEtiquetas, // 👈 NUEVO
     selectedTamanos,
     selectedEstados,
     selectedMunicipios,
     selectedEstatus = [],
+    selectedEtiquetas, // 👈 NUEVO
     onToggleTamano,
     onToggleEstado,
     onToggleMunicipio,
     onToggleEstatus,
+    onToggleEtiqueta, // 👈 NUEVO
     onClearAll,
     totalResultados,
 }: FilterDrawerProps) => {
-    // Control del dropdown activo: 'tamano' | 'estado' | 'municipio' | 'estatus' | null
+    // Control del dropdown activo: 'tamano' | 'estado' | 'municipio' | 'estatus' | 'etiqueta' | null
     const [openFilterMenu, setOpenFilterMenu] = useState<string | null>(null);
 
     // Búsquedas internas
     const [searchTamano, setSearchTamano] = useState('');
     const [searchEstado, setSearchEstado] = useState('');
     const [searchMunicipio, setSearchMunicipio] = useState('');
+    const [searchEtiqueta, setSearchEtiqueta] = useState(''); // 👈 NUEVO
 
     if (!isOpen) return null;
 
@@ -283,6 +290,59 @@ export const CompaniesFilterDrawer = ({
                                                             }`}
                                                     >
                                                         <span>{muni}</span>
+                                                        {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
+                                                    </button>
+                                                );
+                                            })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Filtro Múltiple: Etiquetas (NUEVO) */}
+                        <div className="relative w-full">
+                            <button
+                                type="button"
+                                onClick={() => setOpenFilterMenu(openFilterMenu === 'etiqueta' ? null : 'etiqueta')}
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border transition-colors ${selectedEtiquetas.length > 0
+                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+                                    }`}
+                            >
+                                <span>
+                                    Etiquetas
+                                    {selectedEtiquetas.length > 0 && (
+                                        <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-600 text-white rounded-full font-bold">
+                                            {selectedEtiquetas.length}
+                                        </span>
+                                    )}
+                                </span>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${openFilterMenu === 'etiqueta' ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {openFilterMenu === 'etiqueta' && (
+                                <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar etiqueta..."
+                                        value={searchEtiqueta}
+                                        onChange={(e) => setSearchEtiqueta(e.target.value)}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                    />
+                                    <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
+                                        {opcionesEtiquetas
+                                            .filter((etq) => etq.toLowerCase().includes(searchEtiqueta.toLowerCase()))
+                                            .map((etq) => {
+                                                const isSelected = selectedEtiquetas.includes(etq);
+                                                return (
+                                                    <button
+                                                        key={etq}
+                                                        type="button"
+                                                        onClick={() => onToggleEtiqueta(etq)}
+                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
+                                                            }`}
+                                                    >
+                                                        <span>{etq}</span>
                                                         {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
                                                     </button>
                                                 );
