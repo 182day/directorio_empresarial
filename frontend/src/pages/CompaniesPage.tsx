@@ -233,42 +233,42 @@ export const CompaniesPage = () => {
     };
 
     const handleFormSubmit = async (formData: CompanyFormData) => {
-        const operacionesArray = formData.etiquetas
-            ? formData.etiquetas.split(',').map((op) => op.trim())
-            : [];
+        // const operacionesArray = formData.etiquetas
+        //     ? formData.etiquetas.split(',').map((op) => op.trim())
+        //     : [];
 
-        const tipoOperacionesFinal = operacionesArray.length > 0 ? operacionesArray : ['Servicios'];
+        // const tipoOperacionesFinal = operacionesArray.length > 0 ? operacionesArray : ['Servicios'];
 
-        const payload = {
-            nombreComercial: formData.nombreComercial,
-            razonSocial: formData.razonSocial,
-            rfc: formData.rfc,
-            tamanoEmpresa: formData.tamanoEmpresa,
-            anioInicio: Number(formData.anioInicio),
-            sitioWeb: formData.sitioWeb || '',
-            etiquetas: tipoOperacionesFinal,
-            tipoSuministro: ['Directo'],
-            estado: formData.estado,
-            municipio: formData.municipio,
-            direccion: 'Sin dirección registrada',
-            colonia: 'Sin colonia',
-            codigoPostal: '00000',
-            parqueIndustrial: '',
-            activa: formData.activo
-        };
+        // const payload = {
+        //     nombreComercial: formData.nombreComercial,
+        //     razonSocial: formData.razonSocial,
+        //     rfc: formData.rfc,
+        //     tamanoEmpresa: formData.tamanoEmpresa,
+        //     anioInicio: Number(formData.anioInicio),
+        //     sitioWeb: formData.sitioWeb || '',
+        //     etiquetas: tipoOperacionesFinal,
+        //     tipoSuministro: ['Directo'],
+        //     estado: formData.estado,
+        //     municipio: formData.municipio,
+        //     direccion: 'Sin dirección registrada',
+        //     colonia: 'Sin colonia',
+        //     codigoPostal: '00000',
+        //     parqueIndustrial: '',
+        //     activa: formData.activo
+        // };
 
-        try {
-            if (editingCompany) {
-                await api.put(`/companies/${editingCompany._id}`, payload);
-            } else {
-                await api.post('/companies', payload);
-            }
+        // try {
+        //     if (editingCompany) {
+        //         await api.put(`/companies/${editingCompany._id}`, payload);
+        //     } else {
+        //         await api.post('/companies', payload);
+        //     }
 
-            closeModal();
-            fetchCompanies();
-        } catch (error: any) {
-            throw error;
-        }
+        //     closeModal();
+        //     fetchCompanies();
+        // } catch (error: any) {
+        //     throw error;
+        // }
     };
 
     const handleDelete = (id: string, nombre: string) => {
@@ -939,22 +939,22 @@ export const CompaniesPage = () => {
                         </div>
                         <div className="p-6 max-h-[80vh] overflow-y-auto no-scrollbar">
                             <CompanyForm
-                                initialValues={
-                                    editingCompany
-                                        ? {
-                                            nombreComercial: editingCompany.nombreComercial,
-                                            razonSocial: editingCompany.razonSocial,
-                                            rfc: editingCompany.rfc,
-                                            tamanoEmpresa: editingCompany.tamanoEmpresa,
-                                            anioInicio: editingCompany.anioInicio,
-                                            sitioWeb: editingCompany.sitioWeb || '',
-                                            etiquetas: editingCompany.etiquetas?.join(', ') || '',
-                                            estado: editingCompany.ubicacion?.estado || '',
-                                            municipio: editingCompany.ubicacion?.municipio || '',
-                                            activo: editingCompany.activa
-                                        }
-                                        : undefined
-                                }
+                                // initialValues={
+                                //     editingCompany
+                                //         ? {
+                                //             nombreComercial: editingCompany.nombreComercial,
+                                //             razonSocial: editingCompany.razonSocial,
+                                //             rfc: editingCompany.rfc,
+                                //             tamanoEmpresa: editingCompany.tamanoEmpresa,
+                                //             anioInicio: editingCompany.anioInicio,
+                                //             sitioWeb: editingCompany.sitioWeb || '',
+                                //             etiquetas: editingCompany.etiquetas?.join(', ') || '',
+                                //             estado: editingCompany.ubicacion?.estado || '',
+                                //             municipio: editingCompany.ubicacion?.municipio || '',
+                                //             activo: editingCompany.activa
+                                //         }
+                                //         : undefined
+                                // }
                                 isPublicRegistration={false}
                                 isEditing={editingCompany ? true : false}
                                 onSubmit={handleFormSubmit}

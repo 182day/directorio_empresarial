@@ -10,6 +10,7 @@ import { getClientIp } from '../utils/getClientIp';
 export const createPublicCompany = async (req: Request, res: Response): Promise<void> => {
   try {
     const {
+      correoElectronico,
       nombreComercial,
       razonSocial,
       rfc,
@@ -17,10 +18,17 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
       anioInicio,
       sitioWeb,
       etiquetas,
-      estado,
-      municipio
+      tipoOperaciones,
+      tipoSuministro,
+      ubicacion,
+      contactos,
+      informacionEmpresa,
+      retosActuales,
+      apoyosYNecesidades,
+      presentacionComercial
     } = req.body;
 
+    // Validación de RFC duplicado
     if (rfc) {
       const rfcExistente = await Company.findOne({ rfc: rfc.toUpperCase().trim() });
       if (rfcExistente) {
@@ -31,42 +39,48 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
       }
     }
 
-    let operacionesArray: string[] = [];
-    if (typeof etiquetas === 'string' && etiquetas.trim() !== '') {
-      operacionesArray = etiquetas.split(',').map((o) => o.trim());
-    } else if (Array.isArray(etiquetas)) {
-      operacionesArray = etiquetas;
-    }
+    // Normalización de arreglos (etiquetas, tipoOperaciones, tipoSuministro)
+    const normalizarArreglo = (valor: any): string[] => {
+      if (typeof valor === 'string' && valor.trim() !== '') {
+        return valor.split(',').map((item) => item.trim());
+      }
+      return Array.isArray(valor) ? valor : [];
+    };
 
     const newCompany = new Company({
+      correoElectronico: correoElectronico?.trim().toLowerCase(),
       nombreComercial,
       razonSocial,
       rfc: rfc?.toUpperCase().trim(),
       tamanoEmpresa: tamanoEmpresa || 'Micro',
       anioInicio: Number(anioInicio) || new Date().getFullYear(),
       sitioWeb: sitioWeb || '',
-      etiquetas: operacionesArray,
-      tipoSuministro: [],
+      etiquetas: normalizarArreglo(etiquetas),
+      tipoOperaciones: normalizarArreglo(tipoOperaciones),
+      tipoSuministro: normalizarArreglo(tipoSuministro),
       ubicacion: {
-        estado: estado || '',
-        municipio: municipio || '',
-        direccion: '',
-        colonia: '',
-        codigoPostal: '',
-        parqueIndustrial: ''
+        estado: ubicacion?.estado || '',
+        municipio: ubicacion?.municipio || '',
+        direccion: ubicacion?.direccion || '',
+        colonia: ubicacion?.colonia || '',
+        codigoPostal: ubicacion?.codigoPostal || '',
+        parqueIndustrial: ubicacion?.parqueIndustrial || ''
       },
-      activa: false
+      contactos,
+      informacionEmpresa,
+      retosActuales,
+      apoyosYNecesidades,
+      presentacionComercial,
+      activa: false // Por defecto inactiva para solicitudes públicas
     });
 
     const savedCompany = await newCompany.save();
 
-    // 📝 REGISTRO EN BITÁCORA (Registro Público - Sin usuarioId directo o con un valor por defecto si aplica)
+    // 📝 Bitácora de auditoría
     await AuditLog.create({
       accion: 'CREAR',
       modulo: 'Empresas',
       empresaId: savedCompany._id,
-      // usuarioId se omite o se asigna un usuario genérico público si tu esquema lo exige obligatorio,
-      // pero como ya hicimos empresaId opcional, asegurémonos que usuarioId no rompa si es requerido en el schema.
       detalles: { origen: 'Formulario Público', estatusInicial: 'Inactiva' },
       ip: getClientIp(req)
     });
@@ -100,10 +114,10 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
   }
 };
 
-// GET: Obtener todas las empresas
+// GET: Obtener empresas con filtros opcionales
 export const getCompanies = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { busqueda, estado, municipio, tipoOperacion } = req.query;
+    const { busqueda, estado, municipio, tipoOperacion, sector } = req.query;
     const query: any = {};
 
     const userRole = req.user?.rol;
@@ -121,9 +135,10 @@ export const getCompanies = async (req: AuthRequest, res: Response): Promise<voi
       ];
     }
 
-    if (estado) query['ubicacion.estadoId'] = estado;
-    if (municipio) query['ubicacion.municipioId'] = municipio;
-    if (tipoOperacion) query.etiquetas = tipoOperacion;
+    if (estado) query['ubicacion.estado'] = estado;
+    if (municipio) query['ubicacion.municipio'] = municipio;
+    if (tipoOperacion) query.tipoOperaciones = tipoOperacion;
+    if (sector) query['informacionEmpresa.sectoresPertenece.lista'] = sector;
 
     const companies = await Company.find(query).sort({ nombreComercial: 1 });
     res.json(companies);
@@ -146,21 +161,10 @@ export const getCompanyById = async (req: Request, res: Response): Promise<void>
   }
 };
 
-// POST: Crear una nueva empresa (Administrador)
+// POST: Crear una empresa desde el panel de administración
 export const createCompany = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const {
-      nombreComercial,
-      razonSocial,
-      rfc,
-      tamanoEmpresa,
-      anioInicio,
-      sitioWeb,
-      etiquetas,
-      estado,
-      municipio,
-      activa
-    } = req.body;
+    const { rfc, activa } = req.body;
 
     if (rfc) {
       const rfcExistente = await Company.findOne({ rfc: rfc.toUpperCase().trim() });
@@ -172,36 +176,15 @@ export const createCompany = async (req: AuthRequest, res: Response): Promise<vo
       }
     }
 
-    let operacionesArray: string[] = [];
-    if (typeof etiquetas === 'string' && etiquetas.trim() !== '') {
-      operacionesArray = etiquetas.split(',').map((o) => o.trim());
-    } else if (Array.isArray(etiquetas)) {
-      operacionesArray = etiquetas;
-    }
-
     const newCompany = new Company({
-      nombreComercial,
-      razonSocial,
+      ...req.body,
       rfc: rfc?.toUpperCase().trim(),
-      tamanoEmpresa: tamanoEmpresa || 'Micro',
-      anioInicio: Number(anioInicio) || new Date().getFullYear(),
-      sitioWeb: sitioWeb || '',
-      etiquetas: operacionesArray,
-      tipoSuministro: ['Directo'],
-      ubicacion: {
-        estado: estado || '',
-        municipio: municipio || '',
-        direccion: req.body.direccion || 'Sin dirección registrada',
-        colonia: req.body.colonia || 'Sin colonia',
-        codigoPostal: req.body.codigoPostal || '00000',
-        parqueIndustrial: req.body.parqueIndustrial || ''
-      },
       activa: activa !== undefined ? activa : true
     });
 
     const savedCompany = await newCompany.save();
 
-    // 📝 REGISTRO EN BITÁCORA (Panel Administrador)
+    // 📝 Bitácora
     const userId = req.user?.id || req.user?._id;
     if (userId) {
       await AuditLog.create({
@@ -210,7 +193,7 @@ export const createCompany = async (req: AuthRequest, res: Response): Promise<vo
         empresaId: savedCompany._id,
         usuarioId: new Types.ObjectId(userId as string),
         detalles: { origen: 'Panel de Administración' },
-        ip: getClientIp(req) // 👈 IP capturada
+        ip: getClientIp(req)
       });
     }
 
@@ -244,21 +227,10 @@ export const createCompany = async (req: AuthRequest, res: Response): Promise<vo
 export const updateCompany = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const {
-      nombreComercial,
-      razonSocial,
-      rfc,
-      tamanoEmpresa,
-      anioInicio,
-      sitioWeb,
-      etiquetas,
-      estado,
-      municipio,
-      activa
-    } = req.body;
+    const updateData = { ...req.body };
 
-    if (rfc) {
-      const rfcLimpio = rfc.toUpperCase().trim();
+    if (updateData.rfc) {
+      const rfcLimpio = updateData.rfc.toUpperCase().trim();
       const empresaConMismoRfc = await Company.findOne({
         rfc: rfcLimpio,
         _id: { $ne: id }
@@ -270,29 +242,7 @@ export const updateCompany = async (req: AuthRequest, res: Response): Promise<vo
         });
         return;
       }
-    }
-
-    let operacionesArray: string[] = [];
-    if (typeof etiquetas === 'string' && etiquetas.trim() !== '') {
-      operacionesArray = etiquetas.split(',').map((o) => o.trim());
-    } else if (Array.isArray(etiquetas)) {
-      operacionesArray = etiquetas;
-    }
-
-    const updateData: any = {
-      nombreComercial,
-      razonSocial,
-      rfc: rfc?.toUpperCase().trim(),
-      tamanoEmpresa,
-      anioInicio: Number(anioInicio),
-      sitioWeb,
-      etiquetas: operacionesArray,
-      'ubicacion.estado': estado,
-      'ubicacion.municipio': municipio
-    };
-
-    if (activa !== undefined) {
-      updateData.activa = activa;
+      updateData.rfc = rfcLimpio;
     }
 
     const companyUpdated = await Company.findByIdAndUpdate(
@@ -306,7 +256,7 @@ export const updateCompany = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    // 📝 REGISTRO EN BITÁCORA (Actualización)
+    // 📝 Bitácora
     const userId = req.user?.id || req.user?._id;
     if (userId) {
       await AuditLog.create({
@@ -315,7 +265,7 @@ export const updateCompany = async (req: AuthRequest, res: Response): Promise<vo
         empresaId: new Types.ObjectId(id as string),
         usuarioId: new Types.ObjectId(userId as string),
         detalles: { camposActualizados: updateData },
-        ip: getClientIp(req) // 👈 IP capturada
+        ip: getClientIp(req)
       });
     }
 
@@ -345,7 +295,7 @@ export const deleteCompany = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    // 📝 REGISTRO EN BITÁCORA (Eliminación)
+    // 📝 Bitácora
     const userId = req.user?.id || req.user?._id;
     if (userId) {
       await AuditLog.create({
@@ -357,7 +307,7 @@ export const deleteCompany = async (req: AuthRequest, res: Response): Promise<vo
           nombreEmpresaEliminada: deletedCompany.nombreComercial,
           rfc: deletedCompany.rfc
         },
-        ip: getClientIp(req) // 👈 IP capturada
+        ip: getClientIp(req)
       });
     }
 
