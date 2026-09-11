@@ -1,5 +1,22 @@
 import { useState, useEffect, type KeyboardEvent } from 'react';
 import { CheckCircle, X, ChevronDown, Building2, MapPin, Users, Briefcase, HelpCircle, Copy } from 'lucide-react';
+import { SectorCheckboxGroup } from './SectorCheckboxGroup';
+import {
+    OPCIONES_OPERACIONES,
+    OPCIONES_SUMINISTRO,
+    OPCIONES_CERTIFICACIONES,
+    OPCIONES_SECTORES,
+    OPCIONES_SECTOR_PLASTICOS,
+    OPCIONES_SECTOR_METALMECANICO,
+    OPCIONES_SECTOR_ELECTRICA_ELECTRONICA,
+    OPCIONES_SECTOR_EMPAQUE,
+    OPCIONES_SECTOR_TI_I40,
+    OPCIONES_SECTOR_TEXTIL,
+    OPCIONES_SECTOR_SERVICIOS_ESPECIALIZADOS,
+    OPCIONES_SECTOR_MROS,
+    OPCIONES_SECTOR_MINERO,
+    OPCIONES_APOYOS
+} from '../data/companyCatalog';
 import { toast } from 'sonner';
 import { ESTADOS_MEXICO, getMunicipiosByEstado } from '../data/locationCatalog';
 
@@ -128,299 +145,90 @@ interface CompanyFormProps {
     submitButtonText?: string;
 }
 
-const OPCIONES_OPERACIONES = ['Fabricante', 'Distribuidor', 'Servicios'];
-const OPCIONES_SUMINISTRO = ['Directo', 'Indirecto'];
+type ColorTheme = 'blue' | 'purple' | 'amber' | 'emerald' | 'cyan' | 'rose' | 'indigo' | 'orange' | 'yellow';
 
-const OPCIONES_CERTIFICACIONES = [
-    'ISO 9001',
-    'ISO 14001',
-    'IATF 16949',
-    'AS 9100',
-    'OHSAS 18001',
-    'ISO/IEC 17025',
-    'Otro especifique'
-];
+interface SectorConfig {
+    id: string;
+    title: string;
+    colorTheme: ColorTheme;
+    options: string[];
+    keyName: keyof CompanyFormData['informacionEmpresa'];
+    matchSectores: string[];
+}
 
-const RAW_SECTORES = [
-    'Aeroespacial',
-    'Hospitalario',
-    'Servicios',
-    'TI e I4.0',
-    'Centro de investigación',
-    'Alimentos',
-    'Automotriz',
-    'Academia',
-    'Energético',
-    'Plásticos',
-    'Metalmecánico',
-    'Biotecnología',
-    'Eléctrica-Electrónica',
-    'Logística',
-    'Comercio',
-    'Empaque',
-    'Textil',
-    'Minero'
-];
-
-const OPCIONES_SECTORES = [
-    ...RAW_SECTORES.sort((a, b) => a.localeCompare(b, 'es')),
-    'Otro especifica'
-];
-
-const RAW_PLASTICOS = [
-    'Aplicación de pintura en piezas plásticas',
-    'Mangueras y otros materiales extruidos',
-    'Materias primas y aditivos',
-    'Materiales Compuestos',
-    'Películas plásticas (flexibles y rígidas)',
-    'Piezas de fibra de carbón',
-    'Piezas de fibra de vidrio',
-    'Piezas de foam (no usadas para empaque)',
-    'Piezas de hule',
-    'Piezas de otros materiales compuestos',
-    'Piezas fabricadas bajo moldeo por soplado',
-    'Piezas fabricadas por rotomoldeo',
-    'Piezas moldeadas (inyección de plástico)',
-    'Plásticos relacionados a tapicería y trimings',
-    'Recubrimientos plásticos sobre otros materiales (madera, metal, textiles)',
-    'Recubrimientos y acabados metálicos',
-    'Termoformados'
-];
-
-const OPCIONES_SECTOR_PLASTICOS = [
-    ...RAW_PLASTICOS.sort((a, b) => a.localeCompare(b, 'es')),
-    'Otro especifica'
-];
-
-const RAW_METALMECANICO = [
-    'Fabricación de piezas maquinadas para producción (no refacciones)',
-    'Fabricación de piezas troqueladas/estampadas',
-    'Fabricación de piezas por fine blanking',
-    'Fabricación de piezas roladas',
-    'Fabricación de piezas fundidas por die casting',
-    'Fabricación de piezas fundidas por sand casting',
-    'Fabricación de piezas fundidas por molde permanente y semi permanente',
-    'Fabricación de piezas fundidas por investment casting',
-    'Fabricación de piezas sinterizadas',
-    'Fabricación de piezas forja fría',
-    'Fabricación de piezas forja caliente',
-    'Fabricación de piezas forja tibia',
-    'Fabricación y mantenimiento de dados, moldes y troqueles',
-    'Fabricación de pailería ligera (sheet metal)',
-    'Tratamiento térmico de metales',
-    'Materias primas metálicas y accesorios',
-    'Fabricación/distribución de tornillería',
-    'Formas de alambre (resortes)',
-    'Recubrimientos y acabados (galvanoplastia)',
-    'Recubrimientos y acabados (pintura en polvo)',
-    'Recubrimientos y acabados (pintura liquida)',
-    'Habilitación de metales por corte (chorro de agua, laser, oxicorte, etc)',
-    'Manufactura Avanzada'
-];
-
-const OPCIONES_SECTOR_METALMECANICO = [
-    ...RAW_METALMECANICO.sort((a, b) => a.localeCompare(b, 'es')),
-    'Otro especifica'
-];
-
-const RAW_ELECTRICA_ELECTRONICA = [
-    'Componentes pasivos',
-    'Componentes activos',
-    'Instrumentación de control',
-    'Fibra óptica',
-    'Componentes electromecánicos',
-    'Arneses y conectores',
-    'Ensamble de tarjetas de circuito impreso (PCB)',
-    'Servicio de ensamble electrónico',
-    'Sensores',
-    'Focos y lámparas',
-    'Cable y alambre',
-    'Acumuladores (baterías)',
-    'Equipo y herramienta usada en procesos electrónicos',
-    'Dispositivos inalámbricos',
-    'Pantallas',
-    'Antenas',
-    'Cableado',
-    'Solenoides y bobinas',
-    'Consolas'
-];
-
-const OPCIONES_SECTOR_ELECTRICA_ELECTRONICA = [
-    ...RAW_ELECTRICA_ELECTRONICA.sort((a, b) => a.localeCompare(b, 'es')),
-    'Otro especifica'
-];
-
-const RAW_EMPAQUE = [
-    'Cartón corrugado (cajas, divisores, otros)',
-    'Cartón plano (liso, impreso, selección de color)',
-    'Bolsas y películas para empaque',
-    'Marbetes y etiquetas',
-    'Complementarios al empaque: manuales, boletas, otros productos de papel, etc.',
-    'Tarimas y contenedores rígidos',
-    'Artículos de foam utilizados para empaque',
-    'Empaque de burbuja y similares'
-];
-
-const OPCIONES_SECTOR_EMPAQUE = [
-    ...RAW_EMPAQUE.sort((a, b) => a.localeCompare(b, 'es')),
-    'Otro especifica'
-];
-
-const RAW_TI_I40 = [
-    'Desarrollo de aplicaciones administrativas',
-    'Industria 4.0',
-    'Desarrollo de aplicaciones de control de proceso',
-    'Desarrollo de aplicaciones integradas al producto',
-    'Servicio de consultoría en software (desarrollo e implementación)',
-    'Servicios de entrenamiento en software',
-    'Outsourcing de proyectos y servicios',
-    'Automatización de cómputo móvil (equipo de cómputo de fuerza de ventas)',
-    'Servicios en telecomunicaciones',
-    'Venta de hardware y software',
-    'Programación',
-    'Soluciones web',
-    'Desarrollo de soluciones en industria automotriz a la medida',
-    'Software embebido',
-    'Ciberseguridad',
-    'Fintech (Tecnología Financiera)',
-    'Realidad Extendida (VR/AR)',
-    'Analítica de Datos',
-    'Inteligencia Artificial y Machine Learning',
-    'Internet de las Cosas (IoT)',
-    'Data Centers'
-];
-
-const OPCIONES_SECTOR_TI_I40 = [
-    ...RAW_TI_I40.sort((a, b) => a.localeCompare(b, 'es')),
-    'Otro especifica'
-];
-
-const OPCIONES_APOYOS = [
-    'Financiamiento o inversión',
-    'Expansión de mercado: exportación internacional, entrada a nuevos mercados, distribuidores o socios comerciales',
-    'Crecimiento empresarial: escalar producción, apertura a nuevas sucursales, automatización de procesos, y/o mejora de productividad',
-    'Tecnología e innovación: transformación digital, implementación de software empresarial, inteligencia artificial, y/o comercio electrónico',
-    'Talento y recursos humanos: reclutamiento de talento especializado, capacitación de empleados y/o desarrollo de liderazgo',
-    'Marketing y ventas: estrategias de marketing digital y/o posicionamiento de marca',
-    'Operaciones: optimización logística, cadena de suministro y/o reducción de costos operativos',
-    'Regulación y apoyo institucional: trámites regulatorios y certificaciones',
-    'Orientación y consulta de los programas de medio ambiente: Programa Estatal para la Prevención y Gestión Integral de Residuos de Querétaro; Fondo para la Protección Ambiental y el Desarrollo Sustentable; Programa Estatal de Acción Ante el Cambio Climático; Verificación vehicular, entre otros',
-    'Otro especifique'
-];
-
-const RAW_TEXTIL = [
-    'Tela de fibras naturales (tejidas y no tejidas)',
-    'Tela de fibras sintéticas (tejidas y no tejidas)',
-    'Tela de fibras mezcladas (tejidas y no tejidas)',
-    'Hule espuma y otros materiales de relleno y acojinado',
-    'Alfombras',
-    'Cuero y piel',
-    'Hilo y cuerda',
-    'Teñido, blanqueado, mercerizado, impresión y otros acabados',
-    'Servicios de corte, costura, bordado y similares',
-    'Insumos asociados a la industria textil / confección (agujas, carretes, tintas, otros)'
-];
-
-const OPCIONES_SECTOR_TEXTIL = [
-    ...RAW_TEXTIL.sort((a, b) => a.localeCompare(b, 'es')),
-    'Otro especifica'
-];
-
-const RAW_SERVICIOS_ESPECIALIZADOS = [
-    'Certificación de productos, procesos y empresas',
-    'Servicios de planta (mantenimiento, reparación, otros)',
-    'Logística integrada / comercio exterior',
-    'Servicios de esterilizado',
-    'Servicios de sanitización',
-    'Servicios de automatización de procesos',
-    'Servicios de diseño grafico',
-    'Servicios de diseño de producto (ingeniería)',
-    'Servicios de inspección y prueba',
-    'Servicios de calibración',
-    'Servicio de laboratorio',
-    'Entrenamiento y consultoría técnica especializada',
-    'Traducción de documentos técnicos',
-    'Imprenta industrial',
-    'Tratamiento de residuos industriales',
-    'Servicios de tratamiento de agua',
-    'Facturación de cuentas',
-    'Construcción de almacenes y edificios',
-    'Leasing de equipos',
-    'Medios de comunicación',
-    'Alquiler de plataformas',
-    'Contratación de personal',
-    'Compañías de seguros',
-    'Consultoría Financiera',
-    'Consultoría Legal',
-    'Ingeniería Avanzada'
-];
-
-const OPCIONES_SECTOR_SERVICIOS_ESPECIALIZADOS = [
-    ...RAW_SERVICIOS_ESPECIALIZADOS.sort((a, b) => a.localeCompare(b, 'es')),
-    'Otro especifica'
-];
-
-const RAW_MROS = [
-    'Servicios de maquinado de piezas de mantenimiento',
-    'Checking fixtures',
-    'Montaduras',
-    'Calibradores',
-    'Pinturas y equipo para aplicación',
-    'Herramientas de mano',
-    'Herramientas eléctricas',
-    'Herramientas para maquinaria',
-    'Insertos / herramientas de corte',
-    'Químicos, ácidos, desengrases',
-    'Aceites, lubricantes',
-    'Material para limpieza',
-    'Racks para almacén y/o producción',
-    'Fletes',
-    'Diseño y comunicación visual',
-    'Abrasivos',
-    'Servicios de jardinería',
-    'Servicios financieros / bancarios',
-    'Dispositivos eléctricos',
-    'Dispositivos neumáticos e hidráulicos',
-    'Rodamientos, chumaceras, bandas',
-    'Papelería',
-    'Pailería de construcción',
-    'Obra civil (ampliaciones, naves, pailería de construcción)',
-    'Servicios de ingeniería y/o automatización',
-    'Productos de ferretería',
-    'Gases industriales',
-    'Suministro de gas',
-    'Servicios de personal de seguridad industrial',
-    'Filtros aire, aceite, etc',
-    'Uniformes',
-    'Calzado de seguridad',
-    'Equipo de protección personal',
-    'Equipo e instalación de sistemas de seguridad',
-    'Transporte de personal',
-    'Comedor'
-];
-
-const OPCIONES_SECTOR_MROS = [
-    ...RAW_MROS.sort((a, b) => a.localeCompare(b, 'es')),
-    'Otro especifica'
-];
-
-const RAW_MINERO = [
-    'Minerales metálicos',
-    'Minerales no metálicos',
-    'Mármol y piedra natural',
-    'Canteras',
-    'Piedra caliza',
-    'Agregados para construcción',
-    'Procesamiento de minerales',
-    'Comercialización de minerales',
-    'Servicios para minería',
-    'Equipos y suministros mineros',
-    'Servicio de molienda'
-];
-
-const OPCIONES_SECTOR_MINERO = [
-    ...RAW_MINERO.sort((a, b) => a.localeCompare(b, 'es')),
-    'Otro especifica'
+const SECTORES_CONFIG: SectorConfig[] = [
+    {
+        id: 'plasticos',
+        title: 'Sector Plásticos',
+        colorTheme: 'blue',
+        options: OPCIONES_SECTOR_PLASTICOS,
+        keyName: 'sectorPlasticos',
+        matchSectores: ['Plásticos'],
+    },
+    {
+        id: 'metalmecanico',
+        title: 'Sector Metalmecánico',
+        colorTheme: 'purple',
+        options: OPCIONES_SECTOR_METALMECANICO,
+        keyName: 'sectorMetalmecanico',
+        matchSectores: ['Metalmecánico'],
+    },
+    {
+        id: 'electricaElectronica',
+        title: 'Sector eléctrica-electrónica',
+        colorTheme: 'amber',
+        options: OPCIONES_SECTOR_ELECTRICA_ELECTRONICA,
+        keyName: 'sectorElectricaElectronica',
+        matchSectores: ['Eléctrica-Electrónica'],
+    },
+    {
+        id: 'empaque',
+        title: 'Sector empaque',
+        colorTheme: 'emerald',
+        options: OPCIONES_SECTOR_EMPAQUE,
+        keyName: 'sectorEmpaque',
+        matchSectores: ['Empaque'],
+    },
+    {
+        id: 'tiI40',
+        title: 'Sector de tecnologías e información',
+        colorTheme: 'cyan',
+        options: OPCIONES_SECTOR_TI_I40,
+        keyName: 'sectorTiI40',
+        matchSectores: ['TI e I4.0'],
+    },
+    {
+        id: 'textil',
+        title: 'Sector textil',
+        colorTheme: 'rose',
+        options: OPCIONES_SECTOR_TEXTIL,
+        keyName: 'sectorTextil',
+        matchSectores: ['Textil'],
+    },
+    {
+        id: 'serviciosEspecializados',
+        title: 'Sector servicios especializados',
+        colorTheme: 'indigo',
+        options: OPCIONES_SECTOR_SERVICIOS_ESPECIALIZADOS,
+        keyName: 'sectorServiciosEspecializados',
+        matchSectores: ['Servicios', 'Hospitalario', 'Biotecnología', 'Logística'],
+    },
+    {
+        id: 'mros',
+        title: 'Sector MROS',
+        colorTheme: 'orange',
+        options: OPCIONES_SECTOR_MROS,
+        keyName: 'sectorMros',
+        matchSectores: ['Aeroespacial', 'Automotriz', 'Energético'],
+    },
+    {
+        id: 'minero',
+        title: 'Sector minero',
+        colorTheme: 'yellow',
+        options: OPCIONES_SECTOR_MINERO,
+        keyName: 'sectorMinero',
+        matchSectores: ['Minero'],
+    },
 ];
 
 export const CompanyForm = ({
@@ -1610,7 +1418,7 @@ export const CompanyForm = ({
                                                     type="checkbox"
                                                     checked={isChecked}
                                                     onChange={() => toggleArrayItem('informacionEmpresa.certificaciones.lista', cert)}
-                                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer [color-scheme:dark]"
+                                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer scheme-dark"
                                                 />
                                                 <span>{cert}</span>
                                             </label>
@@ -1647,7 +1455,7 @@ export const CompanyForm = ({
                                                     type="checkbox"
                                                     checked={isChecked}
                                                     onChange={() => toggleArrayItem('informacionEmpresa.sectoresPertenece.lista', sec)}
-                                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer [color-scheme:dark]"
+                                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer scheme-dark"
                                                 />
                                                 <span>{sec}</span>
                                             </label>
@@ -1711,376 +1519,55 @@ export const CompanyForm = ({
             </div>
 
             {/* 5. Productos o Servicios */}
-            {(sectoresSeleccionados.length>0) && (
-                    <div className="border border-slate-700/80 rounded-lg overflow-hidden bg-slate-900/40">
-                        <button
-                            type="button"
-                            onClick={() => toggleSection('productos')}
-                            className="w-full flex items-center justify-between p-3.5 bg-slate-800/60 hover:bg-slate-800 transition-colors text-left"
-                        >
-                            <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                                <HelpCircle className="w-4 h-4 text-blue-400" />
-                                <span>Información de los productos o servicios que ofrecen</span>
-                            </div>
-                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openSections.productos ? 'rotate-180' : ''}`} />
-                        </button>
-                        {openSections.productos && (
-                            <div className="p-4 space-y-4 border-t border-slate-700/50">
-                                {/* CAMPO CONDICIONAL: SECTOR PLÁSTICOS */}
-                                {esSectorPlasticosSeleccionado && (
-                                    <div className="md:col-span-2 border-l-2 border-blue-500 pl-4 py-1 my-2 bg-blue-500/5 rounded-r-lg">
-                                        <label className="block text-xs font-medium text-blue-300 mb-2">
-                                            Sector Plásticos: <span className="text-red-400">*</span>
-                                        </label>
-                                        <div className="space-y-2 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
-                                            {OPCIONES_SECTOR_PLASTICOS.map((item) => {
-                                                const isChecked = formData.informacionEmpresa.sectorPlasticos.lista.includes(item);
-                                                return (
-                                                    <div key={item} className="flex flex-col gap-2">
-                                                        <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer select-none hover:text-white transition-colors">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isChecked}
-                                                                onChange={() => toggleArrayItem('informacionEmpresa.sectorPlasticos.lista', item)}
-                                                                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer [color-scheme:dark]"
-                                                            />
-                                                            <span>{item}</span>
-                                                        </label>
+            {(sectoresSeleccionados.length > 0) && (
+                <div className="border border-slate-700/80 rounded-lg overflow-hidden bg-slate-900/40">
+                    <button
+                        type="button"
+                        onClick={() => toggleSection('productos')}
+                        className="w-full flex items-center justify-between p-3.5 bg-slate-800/60 hover:bg-slate-800 transition-colors text-left"
+                    >
+                        <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                            <HelpCircle className="w-4 h-4 text-blue-400" />
+                            <span>Información de los productos o servicios que ofrecen</span>
+                        </div>
+                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openSections.productos ? 'rotate-180' : ''}`} />
+                    </button>
+                    {openSections.productos && (
+                        <div className="p-4 space-y-4 border-t border-slate-700/50">
+                            {/* 5. Productos o Servicios - Renderizado Dinámico */}
+                            {SECTORES_CONFIG.map((sector) => {
+                                // Verifica si alguno de los sectores seleccionados coincide con este bloque
+                                const isVisible = sector.matchSectores.some((s) => sectoresSeleccionados.includes(s));
 
-                                                        {item === 'Otro especifica' && isChecked && (
-                                                            <div className="ml-7 mt-1">
-                                                                <textarea
-                                                                    rows={2}
-                                                                    placeholder="Por favor, especifique la opción de plásticos..."
-                                                                    value={formData.informacionEmpresa.sectorPlasticos.otroEspecifique || ''}
-                                                                    onChange={(e) => handleChange('informacionEmpresa.sectorPlasticos.otroEspecifique', e.target.value)}
-                                                                    className={getInputClass('informacionEmpresa.sectorPlasticos.otroEspecifique')}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
+                                if (!isVisible) return null;
 
-                                {/* CAMPO CONDICIONAL: SECTOR METALMECÁNICO */}
-                                {esSectorMetalmecanicoSeleccionado && (
-                                    <div className="md:col-span-2 border-l-2 border-purple-500 pl-4 py-1 my-2 bg-purple-500/5 rounded-r-lg">
-                                        <label className="block text-xs font-medium text-purple-300 mb-2">
-                                            Sector Metalmecánico: <span className="text-red-400">*</span>
-                                        </label>
-                                        <div className="space-y-2 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
-                                            {OPCIONES_SECTOR_METALMECANICO.map((item) => {
-                                                const isChecked = formData.informacionEmpresa.sectorMetalmecanico.lista.includes(item);
-                                                return (
-                                                    <div key={item} className="flex flex-col gap-2">
-                                                        <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer select-none hover:text-white transition-colors">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isChecked}
-                                                                onChange={() => toggleArrayItem('informacionEmpresa.sectorMetalmecanico.lista', item)}
-                                                                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer [color-scheme:dark]"
-                                                            />
-                                                            <span>{item}</span>
-                                                        </label>
+                                const sectorData = formData.informacionEmpresa[sector.keyName] as {
+                                    lista: string[];
+                                    otroEspecifique?: string;
+                                };
 
-                                                        {item === 'Otro especifica' && isChecked && (
-                                                            <div className="ml-7 mt-1">
-                                                                <textarea
-                                                                    rows={2}
-                                                                    placeholder="Por favor, especifique la opción metalmecánica..."
-                                                                    value={formData.informacionEmpresa.sectorMetalmecanico.otroEspecifique || ''}
-                                                                    onChange={(e) => handleChange('informacionEmpresa.sectorMetalmecanico.otroEspecifique', e.target.value)}
-                                                                    className={getInputClass('informacionEmpresa.sectorMetalmecanico.otroEspecifique')}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
+                                return (
+                                    <SectorCheckboxGroup
+                                        key={sector.id}
+                                        isVisible={true}
+                                        title={sector.title}
+                                        colorTheme={sector.colorTheme}
+                                        options={sector.options}
+                                        selectedItems={sectorData.lista}
+                                        otherValue={sectorData.otroEspecifique}
+                                        listPath={`informacionEmpresa.${sector.keyName}.lista`}
+                                        otherPath={`informacionEmpresa.${sector.keyName}.otroEspecifique`}
+                                        onToggle={toggleArrayItem}
+                                        onChange={handleChange}
+                                        getInputClass={getInputClass}
+                                    />
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
 
-                                {/* CAMPO CONDICIONAL: SECTOR ELÉCTRICA-ELECTRÓNICA */}
-                                {esSectorElectricaElectronicaSeleccionado && (
-                                    <div className="md:col-span-2 border-l-2 border-amber-500 pl-4 py-1 my-2 bg-amber-500/5 rounded-r-lg">
-                                        <label className="block text-xs font-medium text-amber-300 mb-2">
-                                            Sector eléctrica-electrónica: <span className="text-red-400">*</span>
-                                        </label>
-                                        <div className="space-y-2 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
-                                            {OPCIONES_SECTOR_ELECTRICA_ELECTRONICA.map((item) => {
-                                                const isChecked = formData.informacionEmpresa.sectorElectricaElectronica.lista.includes(item);
-                                                return (
-                                                    <div key={item} className="flex flex-col gap-2">
-                                                        <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer select-none hover:text-white transition-colors">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isChecked}
-                                                                onChange={() => toggleArrayItem('informacionEmpresa.sectorElectricaElectronica.lista', item)}
-                                                                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer [color-scheme:dark]"
-                                                            />
-                                                            <span>{item}</span>
-                                                        </label>
-
-                                                        {item === 'Otro especifica' && isChecked && (
-                                                            <div className="ml-7 mt-1">
-                                                                <textarea
-                                                                    rows={2}
-                                                                    placeholder="Por favor, especifique la opción de eléctrica-electrónica..."
-                                                                    value={formData.informacionEmpresa.sectorElectricaElectronica.otroEspecifique || ''}
-                                                                    onChange={(e) => handleChange('informacionEmpresa.sectorElectricaElectronica.otroEspecifique', e.target.value)}
-                                                                    className={getInputClass('informacionEmpresa.sectorElectricaElectronica.otroEspecifique')}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* CAMPO CONDICIONAL: SECTOR EMPAQUE */}
-                                {esSectorEmpaqueSeleccionado && (
-                                    <div className="md:col-span-2 border-l-2 border-emerald-500 pl-4 py-1 my-2 bg-emerald-500/5 rounded-r-lg">
-                                        <label className="block text-xs font-medium text-emerald-300 mb-2">
-                                            Sector empaque: <span className="text-red-400">*</span>
-                                        </label>
-                                        <div className="space-y-2 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
-                                            {OPCIONES_SECTOR_EMPAQUE.map((item) => {
-                                                const isChecked = formData.informacionEmpresa.sectorEmpaque.lista.includes(item);
-                                                return (
-                                                    <div key={item} className="flex flex-col gap-2">
-                                                        <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer select-none hover:text-white transition-colors">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isChecked}
-                                                                onChange={() => toggleArrayItem('informacionEmpresa.sectorEmpaque.lista', item)}
-                                                                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer [color-scheme:dark]"
-                                                            />
-                                                            <span>{item}</span>
-                                                        </label>
-
-                                                        {item === 'Otro especifica' && isChecked && (
-                                                            <div className="ml-7 mt-1">
-                                                                <textarea
-                                                                    rows={2}
-                                                                    placeholder="Por favor, especifique la opción de empaque..."
-                                                                    value={formData.informacionEmpresa.sectorEmpaque.otroEspecifique || ''}
-                                                                    onChange={(e) => handleChange('informacionEmpresa.sectorEmpaque.otroEspecifique', e.target.value)}
-                                                                    className={getInputClass('informacionEmpresa.sectorEmpaque.otroEspecifique')}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* CAMPO CONDICIONAL: SECTOR TI E I4.0 */}
-                                {esSectorTiI40Seleccionado && (
-                                    <div className="md:col-span-2 border-l-2 border-cyan-500 pl-4 py-1 my-2 bg-cyan-500/5 rounded-r-lg">
-                                        <label className="block text-xs font-medium text-cyan-300 mb-2">
-                                            Sector de tecnologías e información: <span className="text-red-400">*</span>
-                                        </label>
-                                        <div className="space-y-2 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
-                                            {OPCIONES_SECTOR_TI_I40.map((item) => {
-                                                const isChecked = formData.informacionEmpresa.sectorTiI40.lista.includes(item);
-                                                return (
-                                                    <div key={item} className="flex flex-col gap-2">
-                                                        <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer select-none hover:text-white transition-colors">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isChecked}
-                                                                onChange={() => toggleArrayItem('informacionEmpresa.sectorTiI40.lista', item)}
-                                                                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer [color-scheme:dark]"
-                                                            />
-                                                            <span>{item}</span>
-                                                        </label>
-
-                                                        {item === 'Otro especifica' && isChecked && (
-                                                            <div className="ml-7 mt-1">
-                                                                <textarea
-                                                                    rows={2}
-                                                                    placeholder="Por favor, especifique la opción de tecnologías e información..."
-                                                                    value={formData.informacionEmpresa.sectorTiI40.otroEspecifique || ''}
-                                                                    onChange={(e) => handleChange('informacionEmpresa.sectorTiI40.otroEspecifique', e.target.value)}
-                                                                    className={getInputClass('informacionEmpresa.sectorTiI40.otroEspecifique')}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* CAMPO CONDICIONAL: SECTOR TEXTIL */}
-                                {esSectorTextilSeleccionado && (
-                                    <div className="md:col-span-2 border-l-2 border-rose-500 pl-4 py-1 my-2 bg-rose-500/5 rounded-r-lg">
-                                        <label className="block text-xs font-medium text-rose-300 mb-2">
-                                            Sector textil: <span className="text-red-400">*</span>
-                                        </label>
-                                        <div className="space-y-2 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
-                                            {OPCIONES_SECTOR_TEXTIL.map((item) => {
-                                                const isChecked = formData.informacionEmpresa.sectorTextil.lista.includes(item);
-                                                return (
-                                                    <div key={item} className="flex flex-col gap-2">
-                                                        <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer select-none hover:text-white transition-colors">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isChecked}
-                                                                onChange={() => toggleArrayItem('informacionEmpresa.sectorTextil.lista', item)}
-                                                                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer [color-scheme:dark]"
-                                                            />
-                                                            <span>{item}</span>
-                                                        </label>
-
-                                                        {item === 'Otro especifica' && isChecked && (
-                                                            <div className="ml-7 mt-1">
-                                                                <textarea
-                                                                    rows={2}
-                                                                    placeholder="Por favor, especifique la opción textil..."
-                                                                    value={formData.informacionEmpresa.sectorTextil.otroEspecifique || ''}
-                                                                    onChange={(e) => handleChange('informacionEmpresa.sectorTextil.otroEspecifique', e.target.value)}
-                                                                    className={getInputClass('informacionEmpresa.sectorTextil.otroEspecifique')}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* CAMPO CONDICIONAL: SECTOR SERVICIOS ESPECIALIZADOS */}
-                                {esSectorServiciosEspecializadosSeleccionado && (
-                                    <div className="md:col-span-2 border-l-2 border-indigo-500 pl-4 py-1 my-2 bg-indigo-500/5 rounded-r-lg">
-                                        <label className="block text-xs font-medium text-indigo-300 mb-2">
-                                            Sector servicios especializados: <span className="text-red-400">*</span>
-                                        </label>
-                                        <div className="space-y-2 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
-                                            {OPCIONES_SECTOR_SERVICIOS_ESPECIALIZADOS.map((item) => {
-                                                const isChecked = formData.informacionEmpresa.sectorServiciosEspecializados.lista.includes(item);
-                                                return (
-                                                    <div key={item} className="flex flex-col gap-2">
-                                                        <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer select-none hover:text-white transition-colors">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isChecked}
-                                                                onChange={() => toggleArrayItem('informacionEmpresa.sectorServiciosEspecializados.lista', item)}
-                                                                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer [color-scheme:dark]"
-                                                            />
-                                                            <span>{item}</span>
-                                                        </label>
-
-                                                        {item === 'Otro especifica' && isChecked && (
-                                                            <div className="ml-7 mt-1">
-                                                                <textarea
-                                                                    rows={2}
-                                                                    placeholder="Por favor, especifique la opción de servicios especializados..."
-                                                                    value={formData.informacionEmpresa.sectorServiciosEspecializados.otroEspecifique || ''}
-                                                                    onChange={(e) => handleChange('informacionEmpresa.sectorServiciosEspecializados.otroEspecifique', e.target.value)}
-                                                                    className={getInputClass('informacionEmpresa.sectorServiciosEspecializados.otroEspecifique')}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* CAMPO CONDICIONAL: SECTOR MROS */}
-                                {esSectorMrosSeleccionado && (
-                                    <div className="md:col-span-2 border-l-2 border-orange-500 pl-4 py-1 my-2 bg-orange-500/5 rounded-r-lg">
-                                        <label className="block text-xs font-medium text-orange-300 mb-2">
-                                            Sector MROS: <span className="text-red-400">*</span>
-                                        </label>
-                                        <div className="space-y-2 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
-                                            {OPCIONES_SECTOR_MROS.map((item) => {
-                                                const isChecked = formData.informacionEmpresa.sectorMros.lista.includes(item);
-                                                return (
-                                                    <div key={item} className="flex flex-col gap-2">
-                                                        <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer select-none hover:text-white transition-colors">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isChecked}
-                                                                onChange={() => toggleArrayItem('informacionEmpresa.sectorMros.lista', item)}
-                                                                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer [color-scheme:dark]"
-                                                            />
-                                                            <span>{item}</span>
-                                                        </label>
-
-                                                        {item === 'Otro especifica' && isChecked && (
-                                                            <div className="ml-7 mt-1">
-                                                                <textarea
-                                                                    rows={2}
-                                                                    placeholder="Por favor, especifique la opción MROS..."
-                                                                    value={formData.informacionEmpresa.sectorMros.otroEspecifique || ''}
-                                                                    onChange={(e) => handleChange('informacionEmpresa.sectorMros.otroEspecifique', e.target.value)}
-                                                                    className={getInputClass('informacionEmpresa.sectorMros.otroEspecifique')}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* CAMPO CONDICIONAL: SECTOR MINERO */}
-                                {esSectorMineroSeleccionado && (
-                                    <div className="md:col-span-2 border-l-2 border-yellow-600 pl-4 py-1 my-2 bg-yellow-600/5 rounded-r-lg">
-                                        <label className="block text-xs font-medium text-yellow-300 mb-2">
-                                            Sector minero: <span className="text-red-400">*</span>
-                                        </label>
-                                        <div className="space-y-2 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
-                                            {OPCIONES_SECTOR_MINERO.map((item) => {
-                                                const isChecked = formData.informacionEmpresa.sectorMinero.lista.includes(item);
-                                                return (
-                                                    <div key={item} className="flex flex-col gap-2">
-                                                        <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer select-none hover:text-white transition-colors">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isChecked}
-                                                                onChange={() => toggleArrayItem('informacionEmpresa.sectorMinero.lista', item)}
-                                                                className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer [color-scheme:dark]"
-                                                            />
-                                                            <span>{item}</span>
-                                                        </label>
-
-                                                        {item === 'Otro especifica' && isChecked && (
-                                                            <div className="ml-7 mt-1">
-                                                                <textarea
-                                                                    rows={2}
-                                                                    placeholder="Por favor, especifique la opción minera..."
-                                                                    value={formData.informacionEmpresa.sectorMinero.otroEspecifique || ''}
-                                                                    onChange={(e) => handleChange('informacionEmpresa.sectorMinero.otroEspecifique', e.target.value)}
-                                                                    className={getInputClass('informacionEmpresa.sectorMinero.otroEspecifique')}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                )}
+            )}
 
             {/* 6. SECCIÓN: RETOS Y APOYOS */}
             <div className="border border-slate-700/80 rounded-lg overflow-hidden bg-slate-900/40">
