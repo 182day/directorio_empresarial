@@ -1,5 +1,5 @@
 import { useState, useEffect, type KeyboardEvent } from 'react';
-import { CheckCircle, X, ChevronDown, Building2, MapPin, Users, Briefcase, HelpCircle, Copy } from 'lucide-react';
+import { CheckCircle, X, ChevronDown, Building2, MapPin, Users, Briefcase, HelpCircle, Copy, Check } from 'lucide-react';
 import { SectorCheckboxGroup } from './SectorCheckboxGroup';
 import {
     OPCIONES_OPERACIONES,
@@ -18,11 +18,15 @@ import {
     OPCIONES_APOYOS
 } from '../data/companyCatalog';
 import { toast } from 'sonner';
+import { OPCIONES_PAISES } from '../data/countryCatalog';
 import { ESTADOS_MEXICO, getMunicipiosByEstado } from '../data/locationCatalog';
-
-const RFC_REGEX = /^([A-ZÑ&]{3,4})([0-9]{2})(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])([A-Z0-9]{3})$/i;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_REGEX = /^\d{10}$/;
+import {
+    RFC_REGEX,
+    EMAIL_REGEX,
+    PHONE_REGEX,
+    normalizeText,
+    sanitizePhoneNumber
+} from '../utils/validators';
 
 export interface CompanyFormData {
     correoElectronico: string;
@@ -76,6 +80,7 @@ export interface CompanyFormData {
         productosFabrica: string;
         principalesClientes: string;
         paisOrigen: string;
+        paisOrigenOtro?: string;
         porcentajeInversionNacional: number | '';
         porcentajeInversionExtranjero: number | '';
         certificaciones: {
@@ -313,6 +318,10 @@ export const CompanyForm = ({
     const [errors, setErrors] = useState<Record<string, boolean>>({});
     const [loading, setLoading] = useState(false);
 
+    // Estados para el Typeahead de Destino de Exportaciones
+    const [countrySearch, setCountrySearch] = useState('');
+    const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+
     useEffect(() => {
         if (baseData) {
             setFormData((prev) => ({
@@ -421,7 +430,7 @@ export const CompanyForm = ({
     };
 
     const handlePhoneInput = (path: string, rawValue: string) => {
-        const cleaned = rawValue.replace(/\D/g, '').slice(0, 10);
+        const cleaned = sanitizePhoneNumber(rawValue, 10);
         handleChange(path, cleaned);
     };
 
@@ -450,6 +459,28 @@ export const CompanyForm = ({
             setErrors((prev) => ({ ...prev, [field]: false }));
         }
     };
+
+    const toggleExportDestination = (countryName: string) => {
+        const currentDestinations = formData.informacionEmpresa.destinoExportaciones || [];
+        const updated = currentDestinations.includes(countryName)
+            ? currentDestinations.filter((c) => c !== countryName)
+            : [...currentDestinations, countryName];
+
+        handleChange('informacionEmpresa.destinoExportaciones', updated);
+    };
+
+    // Función helper para eliminar acentos y convertir a minúsculas
+    const selectedDestinations = formData.informacionEmpresa.destinoExportaciones || [];
+
+    const filteredCountries = OPCIONES_PAISES.filter((pais) => {
+        // 1. Excluir si ya fue seleccionado previamente
+        const isAlreadySelected = selectedDestinations.includes(pais.nombre);
+
+        // 2. Coincidir con la búsqueda insensible a acentos
+        const matchesSearch = normalizeText(pais.nombre).includes(normalizeText(countrySearch));
+
+        return !isAlreadySelected && matchesSearch;
+    });
 
     const copyDirectorData = (targetArea: 'compras' | 'ventas' | 'recursosHumanos') => {
         const director = formData.contactos.directorGeneral;
@@ -1271,11 +1302,11 @@ export const CompanyForm = ({
             </div>
 
             {/* 4. SECCIÓN: INFORMACIÓN ACERCA DE LA EMPRESA */}
-            <div className="border border-slate-700/80 rounded-lg overflow-hidden bg-slate-900/40">
+            <div className={`border border-slate-700/80 rounded-lg bg-slate-900/40 ${openSections.operacion ? 'overflow-visible' : 'overflow-hidden'}`}>
                 <button
                     type="button"
                     onClick={() => toggleSection('operacion')}
-                    className="w-full flex items-center justify-between p-3.5 bg-slate-800/60 hover:bg-slate-800 transition-colors text-left"
+                    className="w-full flex items-center justify-between p-3.5 bg-slate-800/60 hover:bg-slate-800 transition-colors text-left rounded-t-lg"
                 >
                     <div className="flex items-center gap-2 text-sm font-semibold text-white">
                         <Briefcase className="w-4 h-4 text-blue-400" />
@@ -1285,7 +1316,7 @@ export const CompanyForm = ({
                 </button>
 
                 {openSections.operacion && (
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-700/50">
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-700/50 overflow-visible">
                         {/* Tipo de Operaciones */}
                         <div>
                             <label className="block text-xs font-medium text-slate-400 mb-2">
@@ -1356,16 +1387,40 @@ export const CompanyForm = ({
                         </div>
 
                         {/* País de Origen */}
-                        <div className="md:col-span-2">
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                País de Origen <span className="text-red-400">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.informacionEmpresa.paisOrigen}
-                                onChange={(e) => handleChange('informacionEmpresa.paisOrigen', e.target.value)}
-                                className={getInputClass('informacionEmpresa.paisOrigen')}
-                            />
+                        <div className="md:col-span-2 space-y-3">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-400 mb-1">
+                                    País de Origen <span className="text-red-400">*</span>
+                                </label>
+                                <select
+                                    value={formData.informacionEmpresa.paisOrigen}
+                                    onChange={(e) => handleChange('informacionEmpresa.paisOrigen', e.target.value)}
+                                    className={getInputClass('informacionEmpresa.paisOrigen')}
+                                >
+                                    <option value="">Selecciona un país</option>
+                                    {OPCIONES_PAISES.map((pais) => (
+                                        <option key={pais.iso2} value={pais.nombre}>
+                                            {pais.nombre}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Campo condicional para especificar el país si eligen "Otro" */}
+                            {formData.informacionEmpresa.paisOrigen === 'Otro' && (
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                                        Especifique el País de Origen <span className="text-red-400">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Escribe el país de origen"
+                                        value={formData.informacionEmpresa.paisOrigenOtro || ''}
+                                        onChange={(e) => handleChange('informacionEmpresa.paisOrigenOtro', e.target.value)}
+                                        className={getInputClass('informacionEmpresa.paisOrigenOtro')}
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         {/* Porcentajes de Inversión */}
@@ -1513,6 +1568,94 @@ export const CompanyForm = ({
                                 onChange={(e) => handlePercentageInput('informacionEmpresa.porcentajeExportaciones', e.target.value)}
                                 className={getInputClass('informacionEmpresa.porcentajeExportaciones')}
                             />
+                        </div>
+
+                        {/* NUEVO CAMPO: Favor de especificar el destino de sus exportaciones (Typeahead Multi-select) */}
+                        <div className="md:col-span-2 relative z-30">
+                            <label className="block text-xs font-medium text-slate-400 mb-1">
+                                Favor de especificar el destino de sus exportaciones:
+                            </label>
+                            <div className="relative">
+                                <div
+                                    className="w-full min-h-[42px] p-2 bg-slate-900 border border-slate-700 rounded-lg focus-within:border-blue-500 flex flex-wrap items-center gap-1.5 cursor-text transition-colors"
+                                    onClick={() => setIsCountryDropdownOpen(true)}
+                                >
+                                    {(formData.informacionEmpresa.destinoExportaciones || []).map((country) => (
+                                        <span
+                                            key={country}
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                                        >
+                                            {country}
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleExportDestination(country);
+                                                }}
+                                                className="hover:text-white transition-colors focus:outline-none"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </span>
+                                    ))}
+
+                                    <input
+                                        type="text"
+                                        className="flex-1 bg-transparent border-none p-1 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-0 min-w-[150px]"
+                                        placeholder={
+                                            (formData.informacionEmpresa.destinoExportaciones || []).length === 0
+                                                ? 'Buscar y seleccionar países...'
+                                                : 'Buscar otro país...'
+                                        }
+                                        value={countrySearch}
+                                        onChange={(e) => {
+                                            setCountrySearch(e.target.value);
+                                            setIsCountryDropdownOpen(true);
+                                        }}
+                                        onFocus={() => setIsCountryDropdownOpen(true)}
+                                    />
+
+                                    <ChevronDown className="w-4 h-4 text-slate-400 mr-1 pointer-events-none" />
+                                </div>
+
+                                {isCountryDropdownOpen && (
+                                    <>
+                                        {/* Backdrop transparente para cerrar al hacer clic afuera */}
+                                        <div
+                                            className="fixed inset-0 z-40"
+                                            onClick={() => setIsCountryDropdownOpen(false)}
+                                        />
+
+                                        {/* Desplegable flotante sobre los siguientes acordeones */}
+                                        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl max-h-48 overflow-y-auto custom-scrollbar">
+                                            {filteredCountries.length > 0 ? (
+                                                filteredCountries.map((pais) => {
+                                                    const isSelected = (formData.informacionEmpresa.destinoExportaciones || []).includes(pais.nombre);
+                                                    return (
+                                                        <button
+                                                            key={pais.iso2}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                toggleExportDestination(pais.nombre);
+                                                                setCountrySearch('');
+                                                            }}
+                                                            className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-medium' : 'text-slate-300'
+                                                                }`}
+                                                        >
+                                                            <span>{pais.nombre}</span>
+                                                            {isSelected && <Check className="w-4 h-4 text-blue-400" />}
+                                                        </button>
+                                                    );
+                                                })
+                                            ) : (
+                                                <div className="px-3 py-2 text-xs text-slate-500">
+                                                    No se encontraron países
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
