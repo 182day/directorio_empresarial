@@ -41,7 +41,7 @@ interface CompanyFormProps {
     submitButtonText?: string;
 }
 
-type ColorTheme = 'blue' | 'purple' | 'amber' | 'emerald' | 'cyan' | 'rose' | 'indigo' | 'orange' | 'yellow';
+export type ColorTheme = 'blue' | 'purple' | 'amber' | 'emerald' | 'cyan' | 'rose' | 'indigo' | 'orange' | 'yellow';
 
 interface SectorConfig {
     id: string;
@@ -52,7 +52,7 @@ interface SectorConfig {
     matchSectores: string[];
 }
 
-const SECTORES_CONFIG: SectorConfig[] = [
+export const SECTORES_CONFIG: SectorConfig[] = [
     {
         id: 'plasticos',
         title: 'Sector Plásticos',

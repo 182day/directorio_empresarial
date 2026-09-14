@@ -37,6 +37,20 @@ import { CompanySheetPDFDocument } from '../components/CompanySheetPDFDocument';
 const OPCIONES_TAMANO = ['Micro', 'Pequeña', 'Mediana', 'Grande'];
 const COLORES_GRAFICA = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
 
+// Los "Productos o Servicios" no viven en un campo único: cada empresa los guarda
+// dentro del sub-objeto del sector específico al que pertenece (ver SECTORES_CONFIG en CompanyForm.tsx)
+const SECTOR_PRODUCT_KEYS = [
+    'sectorPlasticos',
+    'sectorMetalmecanico',
+    'sectorElectricaElectronica',
+    'sectorEmpaque',
+    'sectorTiI40',
+    'sectorTextil',
+    'sectorServiciosEspecializados',
+    'sectorMros',
+    'sectorMinero',
+] as const;
+
 export const CompaniesPage = () => {
     const { user } = useContext(AuthContext);
     const canEdit = user?.rol === 'admin' || user?.rol === 'editor';
@@ -47,7 +61,7 @@ export const CompaniesPage = () => {
 
     // Estados para Paginación
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [pageSize, setPageSize] = useState<number | 'all'>(5);
+    const [pageSize, setPageSize] = useState<number | 'all'>(10);
 
     // Estado del Drawer de Filtros Lateral
     const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
@@ -61,6 +75,15 @@ export const CompaniesPage = () => {
     const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
     const [selectedEstatus, setSelectedEstatus] = useState<string[]>([]);
     const [selectedEtiquetas, setSelectedEtiquetas] = useState<string[]>([]);
+    const [selectedExporta, setSelectedExporta] = useState<string>(''); // '' | 'si' | 'no'
+    const [selectedPaisesDestino, setSelectedPaisesDestino] = useState<string[]>([]);
+    const [selectedCertificaciones, setSelectedCertificaciones] = useState<string[]>([]);
+    const [selectedApoyos, setSelectedApoyos] = useState<string[]>([]);
+    const [selectedTipoOperaciones, setSelectedTipoOperaciones] = useState<string[]>([]);
+    const [selectedTipoSuministro, setSelectedTipoSuministro] = useState<string[]>([]);
+    const [selectedPaisOrigen, setSelectedPaisOrigen] = useState<string[]>([]);
+    const [selectedSectores, setSelectedSectores] = useState<string[]>([]);
+    const [selectedProductos, setSelectedProductos] = useState<string[]>([]);
 
     // Estados para Modal Crear/Editar
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -68,7 +91,6 @@ export const CompaniesPage = () => {
 
     // Estados para Modal de Detalles
     const [viewingCompany, setViewingCompany] = useState<CompanyFormData | null>(null);
-    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
     const handleOpenDetails = (company: CompanyFormData) => {
         setViewingCompany(company);
@@ -79,6 +101,8 @@ export const CompaniesPage = () => {
         setViewingCompany(null);
         setIsDetailsOpen(false);
     };
+
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
     useEffect(() => {
         fetchCompanies();
@@ -125,6 +149,103 @@ export const CompaniesPage = () => {
         return Array.from(etiquetasSet).sort();
     }, [companies]);
 
+    const opcionesPaisesDestino = useMemo(() => {
+        const paisesSet = new Set<string>();
+        companies.forEach((c) => {
+            if (c.informacionEmpresa?.destinoExportaciones && Array.isArray(c.informacionEmpresa.destinoExportaciones)) {
+                c.informacionEmpresa.destinoExportaciones.forEach((p: string) => paisesSet.add(p));
+            }
+        });
+        return Array.from(paisesSet).sort();
+    }, [companies]);
+
+    const opcionesCertificaciones = useMemo(() => {
+        const certsSet = new Set<string>();
+        companies.forEach((c) => {
+            if (c.informacionEmpresa?.certificaciones?.lista && Array.isArray(c.informacionEmpresa.certificaciones.lista)) {
+                c.informacionEmpresa.certificaciones.lista.forEach((cert: string) => certsSet.add(cert));
+            }
+        });
+        return Array.from(certsSet).sort();
+    }, [companies]);
+
+    const opcionesApoyos = useMemo(() => {
+        const apoyosSet = new Set<string>();
+        companies.forEach((c) => {
+            if (c.apoyosYNecesidades?.tipos && Array.isArray(c.apoyosYNecesidades.tipos)) {
+                c.apoyosYNecesidades.tipos.forEach((a: string) => apoyosSet.add(a));
+            }
+        });
+        return Array.from(apoyosSet).sort();
+    }, [companies]);
+
+    const opcionesTipoOperaciones = useMemo(() => {
+        const set = new Set<string>();
+        companies.forEach((c) => {
+            if (c.tipoOperaciones && Array.isArray(c.tipoOperaciones)) {
+                c.tipoOperaciones.forEach((op: string) => set.add(op));
+            }
+        });
+        return Array.from(set).sort();
+    }, [companies]);
+
+    const opcionesTipoSuministro = useMemo(() => {
+        const set = new Set<string>();
+        companies.forEach((c) => {
+            if (c.tipoSuministro && Array.isArray(c.tipoSuministro)) {
+                c.tipoSuministro.forEach((sum: string) => set.add(sum));
+            }
+        });
+        return Array.from(set).sort();
+    }, [companies]);
+
+    const opcionesPaisOrigen = useMemo(() => {
+        const set = new Set<string>();
+        companies.forEach((c) => {
+            if (c.informacionEmpresa?.paisOrigen) {
+                set.add(c.informacionEmpresa.paisOrigen);
+            }
+        });
+        return Array.from(set).sort();
+    }, [companies]);
+
+    const opcionesSectores = useMemo(() => {
+        const set = new Set<string>();
+        companies.forEach((c) => {
+            if (c.informacionEmpresa?.sectoresPertenece?.lista && Array.isArray(c.informacionEmpresa.sectoresPertenece.lista)) {
+                c.informacionEmpresa.sectoresPertenece.lista.forEach((sec: string) => set.add(sec));
+            }
+        });
+        return Array.from(set).sort();
+    }, [companies]);
+
+    // Opciones dinámicas de Productos / Servicios según el sector seleccionado
+    const opcionesProductos = useMemo(() => {
+        const set = new Set<string>();
+        const empresasFiltradas = selectedSectores.length > 0
+            ? companies.filter((c) =>
+                c.informacionEmpresa?.sectoresPertenece?.lista &&
+                selectedSectores.some((s) => c.informacionEmpresa.sectoresPertenece.lista.includes(s))
+            )
+            : companies;
+
+        empresasFiltradas.forEach((c: any) => {
+            SECTOR_PRODUCT_KEYS.forEach((key) => {
+                const lista = c.informacionEmpresa?.[key]?.lista;
+                if (Array.isArray(lista)) {
+                    lista.forEach((prod: string) => set.add(prod));
+                }
+            });
+        });
+
+        return Array.from(set).sort();
+    }, [companies, selectedSectores]);
+
+    // Limpia productos no válidos cuando cambian las opciones disponibles
+    useEffect(() => {
+        setSelectedProductos((prev) => prev.filter((p) => opcionesProductos.includes(p)));
+    }, [opcionesProductos]);
+
     const toggleFilter = (item: string, currentList: string[], setList: (vals: string[]) => void) => {
         setCurrentPage(1);
         if (currentList.includes(item)) {
@@ -150,11 +271,20 @@ export const CompaniesPage = () => {
         setSelectedMunicipios([]);
         setSelectedEstatus([]);
         setSelectedEtiquetas([]);
+        setSelectedExporta('');
+        setSelectedPaisesDestino([]);
+        setSelectedCertificaciones([]);
+        setSelectedApoyos([]);
+        setSelectedTipoOperaciones([]);
+        setSelectedTipoSuministro([]);
+        setSelectedPaisOrigen([]);
+        setSelectedSectores([]);
+        setSelectedProductos([]);
         setCurrentPage(1);
     };
 
     const filteredCompanies = useMemo(() => {
-        return companies.filter((comp) => {
+        return companies.filter((comp: any) => {
             const matchTamano = selectedTamanos.length === 0 || selectedTamanos.includes(comp.tamanoEmpresa);
             const matchEstado = selectedEstados.length === 0 || selectedEstados.includes(comp.ubicacion?.estado);
             const matchMunicipio = selectedMunicipios.length === 0 || selectedMunicipios.includes(comp.ubicacion?.municipio);
@@ -168,9 +298,74 @@ export const CompaniesPage = () => {
                 comp.etiquetas && selectedEtiquetas.some((etq) => comp.etiquetas.includes(etq))
             );
 
-            return matchTamano && matchEstado && matchMunicipio && matchEstatus && matchEtiquetas;
+            // Exportación
+            const pctExp = Number(comp.informacionEmpresa?.porcentajeExportaciones) || 0;
+            const matchExporta =
+                selectedExporta === '' ||
+                (selectedExporta === 'si' && pctExp > 0) ||
+                (selectedExporta === 'no' && pctExp === 0);
+
+            // Países Destino
+            const matchPaises = selectedPaisesDestino.length === 0 || selectedExporta === 'no' || (
+                comp.informacionEmpresa?.destinoExportaciones &&
+                selectedPaisesDestino.some((p) => comp.informacionEmpresa.destinoExportaciones.includes(p))
+            );
+
+            // Certificaciones
+            const matchCert = selectedCertificaciones.length === 0 || (
+                comp.informacionEmpresa?.certificaciones?.lista &&
+                selectedCertificaciones.some((c) => comp.informacionEmpresa.certificaciones.lista.includes(c))
+            );
+
+            // Apoyos Requeridos
+            const matchApoyos = selectedApoyos.length === 0 || (
+                comp.apoyosYNecesidades?.tipos &&
+                selectedApoyos.some((a) => comp.apoyosYNecesidades.tipos.includes(a))
+            );
+
+            // Tipo Operaciones
+            const matchTipoOp = selectedTipoOperaciones.length === 0 || (
+                comp.tipoOperaciones &&
+                selectedTipoOperaciones.some((op) => comp.tipoOperaciones.includes(op))
+            );
+
+            // Tipo Suministro
+            const matchTipoSum = selectedTipoSuministro.length === 0 || (
+                comp.tipoSuministro &&
+                selectedTipoSuministro.some((sum) => comp.tipoSuministro.includes(sum))
+            );
+
+            // País de Origen
+            const matchPaisOrigen = selectedPaisOrigen.length === 0 || (
+                comp.informacionEmpresa?.paisOrigen &&
+                selectedPaisOrigen.includes(comp.informacionEmpresa.paisOrigen)
+            );
+
+            // Sectores
+            const matchSectores = selectedSectores.length === 0 || (
+                comp.informacionEmpresa?.sectoresPertenece?.lista &&
+                selectedSectores.some((s) => comp.informacionEmpresa.sectoresPertenece.lista.includes(s))
+            );
+
+            // Productos y Servicios
+            const productosEmpresa = SECTOR_PRODUCT_KEYS.flatMap(
+                (key) => comp.informacionEmpresa?.[key]?.lista || []
+            );
+            const matchProductos = selectedProductos.length === 0 ||
+                selectedProductos.some((p) => productosEmpresa.includes(p));
+
+            return matchTamano && matchEstado && matchMunicipio && matchEstatus &&
+                matchEtiquetas && matchExporta && matchPaises && matchCert &&
+                matchApoyos && matchTipoOp && matchTipoSum && matchPaisOrigen &&
+                matchSectores && matchProductos;
         });
-    }, [companies, selectedTamanos, selectedEstados, selectedMunicipios, selectedEstatus, selectedEtiquetas]);
+    }, [
+        companies, selectedTamanos, selectedEstados, selectedMunicipios,
+        selectedEstatus, selectedEtiquetas, selectedExporta,
+        selectedPaisesDestino, selectedCertificaciones, selectedApoyos,
+        selectedTipoOperaciones, selectedTipoSuministro, selectedPaisOrigen,
+        selectedSectores, selectedProductos
+    ]);
 
     // 📊 DATOS CALCULADOS PARA LAS GRÁFICAS
     const dataTamanoGrafica = useMemo(() => {
@@ -252,7 +447,16 @@ export const CompaniesPage = () => {
         selectedEstados.length +
         selectedMunicipios.length +
         selectedEstatus.length +
-        selectedEtiquetas.length;
+        selectedEtiquetas.length +
+        (selectedExporta !== '' ? 1 : 0) +
+        selectedPaisesDestino.length +
+        selectedCertificaciones.length +
+        selectedApoyos.length +
+        selectedTipoOperaciones.length +
+        selectedTipoSuministro.length +
+        selectedPaisOrigen.length +
+        selectedSectores.length +
+        selectedProductos.length;
 
     const handleExportExcel = async () => {
         const workbook = new ExcelJS.Workbook();
@@ -394,8 +598,6 @@ export const CompaniesPage = () => {
                                 onClick={async () => {
                                     const { pdf } = await import('@react-pdf/renderer');
 
-                                    // Si estamos en modo tabla -> CompanySheetPDFDocument (Modo Tabla)
-                                    // Si estamos en modo cards -> CompaniesPDFDocument (Fichas Técnicas)
                                     const doc = tipoVista === 'tabla'
                                         ? <CompanySheetPDFDocument companies={filteredCompanies} />
                                         : <CompaniesPDFDocument companies={filteredCompanies} />;
@@ -463,6 +665,7 @@ export const CompaniesPage = () => {
                 <div className="flex items-center gap-2 mb-6 flex-wrap bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
                     <span className="text-xs text-slate-400 font-medium">Filtros aplicados:</span>
 
+                    {/* Búsqueda */}
                     {search.trim() !== '' && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-400 text-xs rounded-lg border border-amber-500/20">
                             Búsqueda: "{search}"
@@ -472,33 +675,7 @@ export const CompaniesPage = () => {
                         </span>
                     )}
 
-                    {selectedTamanos.map((tamano) => (
-                        <span key={tamano} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20">
-                            Tamaño: {tamano}
-                            <button onClick={() => toggleFilter(tamano, selectedTamanos, setSelectedTamanos)} className="hover:text-white">
-                                <X className="w-3.5 h-3.5" />
-                            </button>
-                        </span>
-                    ))}
-
-                    {selectedEstados.map((estado) => (
-                        <span key={estado} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
-                            Estado: {estado}
-                            <button onClick={() => toggleFilter(estado, selectedEstados, setSelectedEstados)} className="hover:text-white">
-                                <X className="w-3.5 h-3.5" />
-                            </button>
-                        </span>
-                    ))}
-
-                    {selectedMunicipios.map((muni) => (
-                        <span key={muni} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-lg border border-purple-500/20">
-                            Municipio: {muni}
-                            <button onClick={() => toggleFilter(muni, selectedMunicipios, setSelectedMunicipios)} className="hover:text-white">
-                                <X className="w-3.5 h-3.5" />
-                            </button>
-                        </span>
-                    ))}
-
+                    {/* Estatus */}
                     {canEdit && selectedEstatus.map((est) => (
                         <span key={est} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
                             Estatus: {est}
@@ -508,9 +685,130 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
+                    {/* Tamaños */}
+                    {selectedTamanos.map((tamano) => (
+                        <span key={tamano} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20">
+                            Tamaño: {tamano}
+                            <button onClick={() => toggleFilter(tamano, selectedTamanos, setSelectedTamanos)} className="hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+
+                    {/* Sectores */}
+                    {selectedSectores.map((sec) => (
+                        <span key={sec} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 text-indigo-400 text-xs rounded-lg border border-indigo-500/20">
+                            Sector: {sec.toLowerCase().includes('otro especif') ? 'Otro' : sec}
+                            <button onClick={() => toggleFilter(sec, selectedSectores, setSelectedSectores)} className="hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+
+                    {/* Productos / Servicios */}
+                    {selectedProductos.map((prod) => (
+                        <span key={prod} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
+                            Producto/Servicio: {prod.toLowerCase().includes('otro especif') ? 'Otro' : prod}
+                            <button onClick={() => toggleFilter(prod, selectedProductos, setSelectedProductos)} className="hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+
+                    {/* Tipo Operaciones */}
+                    {selectedTipoOperaciones.map((op) => (
+                        <span key={op} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 text-cyan-400 text-xs rounded-lg border border-cyan-500/20">
+                            Operación: {op.toLowerCase().includes('otro especifique') ? 'Otro' : op}
+                            <button onClick={() => toggleFilter(op, selectedTipoOperaciones, setSelectedTipoOperaciones)} className="hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+
+                    {/* Tipo Suministro */}
+                    {selectedTipoSuministro.map((sum) => (
+                        <span key={sum} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-500/10 text-teal-400 text-xs rounded-lg border border-teal-500/20">
+                            Suministro: {sum.toLowerCase().includes('otro especifique') ? 'Otro' : sum}
+                            <button onClick={() => toggleFilter(sum, selectedTipoSuministro, setSelectedTipoSuministro)} className="hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+
+                    {/* País de Origen */}
+                    {selectedPaisOrigen.map((pais) => (
+                        <span key={pais} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-violet-500/10 text-violet-400 text-xs rounded-lg border border-violet-500/20">
+                            Origen: {pais.toLowerCase().includes('otro especifique') ? 'Otro' : pais}
+                            <button onClick={() => toggleFilter(pais, selectedPaisOrigen, setSelectedPaisOrigen)} className="hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+
+                    {/* Estados */}
+                    {selectedEstados.map((estado) => (
+                        <span key={estado} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
+                            Estado: {estado}
+                            <button onClick={() => toggleFilter(estado, selectedEstados, setSelectedEstados)} className="hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+
+                    {/* Municipios */}
+                    {selectedMunicipios.map((muni) => (
+                        <span key={muni} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-lg border border-purple-500/20">
+                            Municipio: {muni}
+                            <button onClick={() => toggleFilter(muni, selectedMunicipios, setSelectedMunicipios)} className="hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+
+                    {/* Exporta */}
+                    {selectedExporta !== '' && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-500/10 text-sky-400 text-xs rounded-lg border border-sky-500/20">
+                            Exporta: {selectedExporta === 'si' ? 'Sí' : 'No'}
+                            <button onClick={() => { setCurrentPage(1); setSelectedExporta(''); }} className="hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    )}
+
+                    {/* Países Destino */}
+                    {selectedPaisesDestino.map((pais) => (
+                        <span key={pais} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-fuchsia-500/10 text-fuchsia-400 text-xs rounded-lg border border-fuchsia-500/20">
+                            Destino: {pais.toLowerCase().includes('otro especifique') ? 'Otro' : pais}
+                            <button onClick={() => toggleFilter(pais, selectedPaisesDestino, setSelectedPaisesDestino)} className="hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+
+                    {/* Certificaciones */}
+                    {selectedCertificaciones.map((cert) => (
+                        <span key={cert} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-500/10 text-rose-400 text-xs rounded-lg border border-rose-500/20">
+                            Certificación: {cert.toLowerCase().includes('otro especifique') ? 'Otro' : cert}
+                            <button onClick={() => toggleFilter(cert, selectedCertificaciones, setSelectedCertificaciones)} className="hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+
+                    {/* Apoyos */}
+                    {selectedApoyos.map((apoyo) => (
+                        <span key={apoyo} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-500/10 text-orange-400 text-xs rounded-lg border border-orange-500/20">
+                            Apoyo: {apoyo.toLowerCase().includes('otro especifique') ? 'Otro' : apoyo}
+                            <button onClick={() => toggleFilter(apoyo, selectedApoyos, setSelectedApoyos)} className="hover:text-white">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+
+                    {/* Etiquetas */}
                     {selectedEtiquetas.map((etq) => (
                         <span key={etq} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 text-indigo-400 text-xs rounded-lg border border-indigo-500/20">
-                            Etiqueta: {etq}
+                            Etiqueta: {etq.toLowerCase().includes('otro especifique') ? 'Otro' : etq}
                             <button onClick={() => toggleFilter(etq, selectedEtiquetas, setSelectedEtiquetas)} className="hover:text-white">
                                 <X className="w-3.5 h-3.5" />
                             </button>
@@ -847,16 +1145,48 @@ export const CompaniesPage = () => {
                 opcionesEstados={opcionesEstados}
                 opcionesMunicipios={opcionesMunicipios}
                 opcionesEtiquetas={opcionesEtiquetas}
+                opcionesPaisesDestino={opcionesPaisesDestino}
+                opcionesCertificaciones={opcionesCertificaciones}
+                opcionesApoyos={opcionesApoyos}
+                opcionesTipoOperaciones={opcionesTipoOperaciones}
+                opcionesTipoSuministro={opcionesTipoSuministro}
+                opcionesPaisOrigen={opcionesPaisOrigen}
+                opcionesSectores={opcionesSectores}
+                opcionesProductos={opcionesProductos}
                 selectedTamanos={selectedTamanos}
                 selectedEstados={selectedEstados}
                 selectedMunicipios={selectedMunicipios}
                 selectedEstatus={selectedEstatus}
                 selectedEtiquetas={selectedEtiquetas}
+                selectedExporta={selectedExporta}
+                selectedPaisesDestino={selectedPaisesDestino}
+                selectedCertificaciones={selectedCertificaciones}
+                selectedApoyos={selectedApoyos}
+                selectedTipoOperaciones={selectedTipoOperaciones}
+                selectedTipoSuministro={selectedTipoSuministro}
+                selectedPaisOrigen={selectedPaisOrigen}
+                selectedSectores={selectedSectores}
+                selectedProductos={selectedProductos}
                 onToggleTamano={(val) => toggleFilter(val, selectedTamanos, setSelectedTamanos)}
                 onToggleEstado={(val) => toggleFilter(val, selectedEstados, setSelectedEstados)}
                 onToggleMunicipio={(val) => toggleFilter(val, selectedMunicipios, setSelectedMunicipios)}
                 onToggleEstatus={handleToggleEstatus}
                 onToggleEtiqueta={(val) => toggleFilter(val, selectedEtiquetas, setSelectedEtiquetas)}
+                onChangeExporta={(val) => {
+                    setCurrentPage(1);
+                    setSelectedExporta(val);
+                    if (val !== 'si') {
+                        setSelectedPaisesDestino([]);
+                    }
+                }}
+                onTogglePaisDestino={(val) => toggleFilter(val, selectedPaisesDestino, setSelectedPaisesDestino)}
+                onToggleCertificacion={(val) => toggleFilter(val, selectedCertificaciones, setSelectedCertificaciones)}
+                onToggleApoyo={(val) => toggleFilter(val, selectedApoyos, setSelectedApoyos)}
+                onToggleTipoOperacion={(val) => toggleFilter(val, selectedTipoOperaciones, setSelectedTipoOperaciones)}
+                onToggleTipoSuministro={(val) => toggleFilter(val, selectedTipoSuministro, setSelectedTipoSuministro)}
+                onTogglePaisOrigen={(val) => toggleFilter(val, selectedPaisOrigen, setSelectedPaisOrigen)}
+                onToggleSector={(val) => toggleFilter(val, selectedSectores, setSelectedSectores)}
+                onToggleProducto={(val) => toggleFilter(val, selectedProductos, setSelectedProductos)}
                 onClearAll={clearAllFilters}
                 totalResultados={filteredCompanies.length}
             />
@@ -905,6 +1235,8 @@ export const CompaniesPage = () => {
                 isOpen={isDetailsOpen}
                 company={viewingCompany}
                 onClose={handleCloseDetails}
+                onEdit={openModal}
+                onDelete={handleDelete}
             />
         </>
     );

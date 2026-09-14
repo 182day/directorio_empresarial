@@ -1,18 +1,35 @@
 // src/components/CompanyDetailsModal.tsx
 import React, { useContext } from 'react';
-import { X, Building2, MapPin, Phone, Mail, ShieldCheck, Tag, Users, Award, FileText, Calendar, Hash } from 'lucide-react';
+import { X, Building2, MapPin, Phone, Mail, ShieldCheck, Tag, Users, Award, FileText, Calendar, Hash, Edit2, Trash2 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { type CompanyFormData } from '../interfaces/company.interface';
 import { AuthContext } from '../context/AuthContext';
 import { CompaniesPDFDocument } from './CompaniesPDFDocument'; // Ajusta la ruta a tu componente PDF
+import { SECTORES_CONFIG, type ColorTheme } from './CompanyForm'; // Misma fuente de sectores/colores que el formulario
 
 interface CompanyDetailsModalProps {
     company: CompanyFormData | null;
     isOpen: boolean;
     onClose: () => void;
+    onEdit?: (company: CompanyFormData) => void;
+    onDelete?: (id: string, nombre: string) => void;
 }
 
-export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ company, isOpen, onClose }) => {
+// Clases de Tailwind estáticas (por color) para que el JIT las detecte en el build.
+// El colorTheme de cada sector viene de SECTORES_CONFIG en CompanyForm.tsx.
+const COLOR_CLASSES: Record<ColorTheme, string> = {
+    blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    cyan: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+    rose: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+    indigo: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+    orange: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+    yellow: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+};
+
+export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ company, isOpen, onClose, onEdit, onDelete }) => {
     const { user } = useContext(AuthContext);
 
     if (!isOpen || !company) return null;
@@ -39,6 +56,21 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
         apoyosYNecesidades,
         correoElectronico
     } = company;
+
+    // Junta los productos/servicios agrupados por sector (mismo origen/colores que CompanyForm.tsx),
+    // incluyendo "Otro" si lo especificaron
+    const productosPorSector = informacionEmpresa
+        ? SECTORES_CONFIG.map((sector) => {
+            const sectorData = (informacionEmpresa as any)[sector.keyName];
+            const lista: string[] = sectorData?.lista || [];
+            const otro: string[] = sectorData?.otroEspecifique ? [sectorData.otroEspecifique] : [];
+            return {
+                title: sector.title,
+                colorTheme: sector.colorTheme,
+                productos: [...lista, ...otro],
+            };
+        }).filter((grupo) => grupo.productos.length > 0)
+        : [];
 
     const handleDownloadPDF = async () => {
         try {
@@ -217,6 +249,46 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                 <p><strong className="text-slate-400">Principales Clientes:</strong> {informacionEmpresa.principalesClientes || 'N/A'}</p>
                                 <p><strong className="text-slate-400">Sector Principal:</strong> {informacionEmpresa.principalSectorAtiende || 'N/A'}</p>
 
+                                {/* Sectores a los que pertenece */}
+                                {informacionEmpresa.sectoresPertenece?.lista && informacionEmpresa.sectoresPertenece.lista.length > 0 && (
+                                    <div>
+                                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Sectores a los que pertenece</span>
+                                        <div className="flex flex-wrap gap-2 text-xs">
+                                            {informacionEmpresa.sectoresPertenece.lista.map((sec, idx) => (
+                                                <span key={idx} className="px-2.5 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-md">
+                                                    {sec}
+                                                </span>
+                                            ))}
+                                            {informacionEmpresa.sectoresPertenece.otroEspecifique && (
+                                                <span className="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md">
+                                                    Otro: {informacionEmpresa.sectoresPertenece.otroEspecifique}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Productos o Servicios (agrupados por sector, con el mismo color de cada sector) */}
+                                {productosPorSector.length > 0 && (
+                                    <div>
+                                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Productos o Servicios</span>
+                                        <div className="space-y-2.5">
+                                            {productosPorSector.map((grupo) => (
+                                                <div key={grupo.title}>
+                                                    <span className="text-[11px] font-medium text-slate-500 block mb-1">{grupo.title}</span>
+                                                    <div className="flex flex-wrap gap-2 text-xs">
+                                                        {grupo.productos.map((prod, idx) => (
+                                                            <span key={idx} className={`px-2.5 py-1 rounded-md border ${COLOR_CLASSES[grupo.colorTheme]}`}>
+                                                                {prod}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Certificaciones */}
                                 {informacionEmpresa.certificaciones?.lista && informacionEmpresa.certificaciones.lista.length > 0 && (
                                     <div>
@@ -289,7 +361,7 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
 
                 </div>
 
-                {/* PIE DEL MODAL CON BOTÓN DE FICHA TÉCNICA PDF Y CERRAR */}
+                {/* PIE DEL MODAL CON BOTÓN DE FICHA TÉCNICA PDF, EDITAR, ELIMINAR Y CERRAR */}
                 <div className="p-4 border-t border-slate-700 bg-slate-900/40 flex items-center justify-between">
                     <button
                         type="button"
@@ -300,12 +372,44 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                         <span>Descargar Ficha Técnica PDF</span>
                     </button>
 
-                    <button
-                        onClick={onClose}
-                        className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                    >
-                        Cerrar
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {canEdit && onEdit && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onClose();
+                                    onEdit(company);
+                                }}
+                                className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium px-4 py-2 rounded-lg text-sm transition-colors"
+                                title="Editar"
+                            >
+                                <Edit2 className="w-4 h-4" />
+                                <span>Editar</span>
+                            </button>
+                        )}
+
+                        {canEdit && onDelete && _id && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onClose();
+                                    onDelete(_id, nombreComercial);
+                                }}
+                                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 font-medium px-4 py-2 rounded-lg text-sm transition-colors"
+                                title="Eliminar"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                <span>Eliminar</span>
+                            </button>
+                        )}
+
+                        <button
+                            onClick={onClose}
+                            className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            Cerrar
+                        </button>
+                    </div>
                 </div>
 
             </div>
