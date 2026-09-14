@@ -29,3 +29,6 @@ Thumbs.db
 # Subidas de archivos por usuarios (si el backend guarda imágenes/archivos localmente)
 uploads/
 public/uploads/
+
+# Archivos
+*.rar

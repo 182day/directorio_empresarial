@@ -1,22 +1,10 @@
 // src/components/CompaniesPDFDocument.tsx
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-
-interface Company {
-    _id: string;
-    nombreComercial: string;
-    razonSocial: string;
-    rfc: string;
-    tamanoEmpresa: string;
-    ubicacion: {
-        estado: string;
-        municipio: string;
-    };
-    activa: boolean;
-}
+import { type CompanyFormData} from '../interfaces/company.interface';
 
 interface CompaniesPDFProps {
-    companies: Company[];
+    companies: CompanyFormData[];
 }
 
 // Estilos del documento PDF

@@ -1,3 +1,4 @@
+// src/components/SectorCheckboxGroup.tsx
 import React from 'react';
 
 interface SectorCheckboxGroupProps {
@@ -8,6 +9,7 @@ interface SectorCheckboxGroupProps {
     otherValue?: string;
     listPath: string;
     otherPath: string;
+    hasError?: boolean;
     colorTheme?: 'blue' | 'purple' | 'amber' | 'emerald' | 'cyan' | 'rose' | 'indigo' | 'orange' | 'yellow';
     onToggle: (path: string, value: string) => void;
     onChange: (path: string, value: string) => void;
@@ -34,6 +36,7 @@ export const SectorCheckboxGroup: React.FC<SectorCheckboxGroupProps> = ({
     otherValue = '',
     listPath,
     otherPath,
+    hasError = false,
     colorTheme = 'blue',
     onToggle,
     onChange,
@@ -48,7 +51,9 @@ export const SectorCheckboxGroup: React.FC<SectorCheckboxGroupProps> = ({
             <label className={`block text-xs font-medium ${theme.text} mb-2`}>
                 {title}: <span className="text-red-400">*</span>
             </label>
-            <div className="space-y-2 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+            <div className={`space-y-2 bg-slate-900/80 p-3 rounded-lg border transition-colors ${
+                hasError ? 'border-red-500 bg-red-500/5' : 'border-slate-800'
+            }`}>
                 {options.map((item) => {
                     const isChecked = selectedItems.includes(item);
                     return (
@@ -58,7 +63,7 @@ export const SectorCheckboxGroup: React.FC<SectorCheckboxGroupProps> = ({
                                     type="checkbox"
                                     checked={isChecked}
                                     onChange={() => onToggle(listPath, item)}
-                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer [color-scheme:dark]"
+                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer scheme-dark"
                                 />
                                 <span>{item}</span>
                             </label>

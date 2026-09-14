@@ -1,4 +1,6 @@
+// src/components/companyForm.tsx
 import { useState, useEffect, type KeyboardEvent } from 'react';
+import api from '../api/axios';
 import { CheckCircle, X, ChevronDown, Building2, MapPin, Users, Briefcase, HelpCircle, Copy, Check } from 'lucide-react';
 import { SectorCheckboxGroup } from './SectorCheckboxGroup';
 import {
@@ -27,118 +29,7 @@ import {
     normalizeText,
     sanitizePhoneNumber
 } from '../utils/validators';
-
-export interface CompanyFormData {
-    correoElectronico: string;
-    nombreComercial: string;
-    razonSocial: string;
-    rfc: string;
-    tamanoEmpresa: string;
-    anioInicio: number;
-    sitioWeb: string;
-    etiquetas: string;
-    tipoOperaciones: string[];
-    tipoSuministro: string[];
-    ubicacion: {
-        estado: string;
-        municipio: string;
-        direccion: string;
-        colonia: string;
-        codigoPostal: string;
-        parqueIndustrial?: string;
-    };
-    contactos: {
-        directorGeneral: {
-            nombreCompleto: string;
-            telefono: string;
-            celularWhatsapp: string;
-            correoElectronico: string;
-        };
-        compras: {
-            nombreCompleto: string;
-            cargo: string;
-            telefono: string;
-            celularWhatsapp: string;
-            correoElectronico: string;
-        };
-        ventas: {
-            nombreCompleto: string;
-            cargo: string;
-            telefono: string;
-            celularWhatsapp: string;
-            correoElectronico: string;
-        };
-        recursosHumanos: {
-            nombreCompleto: string;
-            cargo: string;
-            telefono: string;
-            celularWhatsapp: string;
-            correoElectronico: string;
-        };
-    };
-    informacionEmpresa: {
-        productosFabrica: string;
-        principalesClientes: string;
-        paisOrigen: string;
-        paisOrigenOtro?: string;
-        porcentajeInversionNacional: number | '';
-        porcentajeInversionExtranjero: number | '';
-        certificaciones: {
-            lista: string[];
-            otroEspecifique?: string;
-        };
-        sectoresPertenece: {
-            lista: string[];
-            otroEspecifique?: string;
-        };
-        sectorPlasticos: {
-            lista: string[];
-            otroEspecifique?: string;
-        };
-        sectorMetalmecanico: {
-            lista: string[];
-            otroEspecifique?: string;
-        };
-        sectorElectricaElectronica: {
-            lista: string[];
-            otroEspecifique?: string;
-        };
-        sectorEmpaque: {
-            lista: string[];
-            otroEspecifique?: string;
-        };
-        sectorTiI40: {
-            lista: string[];
-            otroEspecifique?: string;
-        };
-        sectorTextil: {
-            lista: string[];
-            otroEspecifique?: string;
-        };
-        sectorServiciosEspecializados: {
-            lista: string[];
-            otroEspecifique?: string;
-        };
-        sectorMros: {
-            lista: string[];
-            otroEspecifique?: string;
-        };
-        sectorMinero: {
-            lista: string[];
-            otroEspecifique?: string;
-        };
-        principalSectorAtiende: string;
-        porcentajeExportaciones: number | '';
-        destinoExportaciones: string[];
-    };
-    retosActuales: string;
-    apoyosYNecesidades: {
-        tipos: string[];
-        otroEspecifique?: string;
-    };
-    presentacionComercial: string;
-    activa?: boolean;
-}
+import { type CompanyFormData } from '../interfaces/company.interface';
 
 interface CompanyFormProps {
     initialValues?: Partial<CompanyFormData>;
@@ -264,7 +155,7 @@ export const CompanyForm = ({
         tamanoEmpresa: 'Micro',
         anioInicio: new Date().getFullYear(),
         sitioWeb: '',
-        etiquetas: '',
+        etiquetas: [],
         tipoOperaciones: [],
         tipoSuministro: [],
 
@@ -327,15 +218,49 @@ export const CompanyForm = ({
             setFormData((prev) => ({
                 ...prev,
                 ...baseData,
+                ubicacion: {
+                    ...prev.ubicacion,
+                    ...(baseData.ubicacion || {})
+                },
+                contactos: {
+                    directorGeneral: {
+                        ...prev.contactos?.directorGeneral,
+                        ...(baseData.contactos?.directorGeneral || {})
+                    },
+                    compras: {
+                        ...prev.contactos?.compras,
+                        ...(baseData.contactos?.compras || {})
+                    },
+                    ventas: {
+                        ...prev.contactos?.ventas,
+                        ...(baseData.contactos?.ventas || {})
+                    },
+                    recursosHumanos: {
+                        ...prev.contactos?.recursosHumanos,
+                        ...(baseData.contactos?.recursosHumanos || {})
+                    }
+                },
+                informacionEmpresa: {
+                    ...prev.informacionEmpresa,
+                    ...(baseData.informacionEmpresa || {}),
+                    certificaciones: {
+                        ...prev.informacionEmpresa?.certificaciones,
+                        ...(baseData.informacionEmpresa?.certificaciones || {})
+                    }
+                },
                 activa: baseData.activa ?? prev.activa ?? true
             }));
 
             if (baseData.etiquetas) {
-                const initialTags = baseData.etiquetas
-                    .split(',')
-                    .map((t) => t.trim())
-                    .filter((t) => t !== '');
-                setTagList(initialTags);
+                if (Array.isArray(baseData.etiquetas)) {
+                    setTagList(baseData.etiquetas);
+                } else if (typeof baseData.etiquetas === 'string') {
+                    const initialTags = (baseData.etiquetas as string)
+                        .split(',')
+                        .map((t) => t.trim())
+                        .filter((t) => t !== '');
+                    setTagList(initialTags);
+                }
             }
         }
     }, [baseData]);
@@ -469,16 +394,11 @@ export const CompanyForm = ({
         handleChange('informacionEmpresa.destinoExportaciones', updated);
     };
 
-    // Función helper para eliminar acentos y convertir a minúsculas
     const selectedDestinations = formData.informacionEmpresa.destinoExportaciones || [];
 
     const filteredCountries = OPCIONES_PAISES.filter((pais) => {
-        // 1. Excluir si ya fue seleccionado previamente
         const isAlreadySelected = selectedDestinations.includes(pais.nombre);
-
-        // 2. Coincidir con la búsqueda insensible a acentos
         const matchesSearch = normalizeText(pais.nombre).includes(normalizeText(countrySearch));
-
         return !isAlreadySelected && matchesSearch;
     });
 
@@ -553,18 +473,25 @@ export const CompanyForm = ({
             return prev;
         });
 
-        if (path === 'apoyosYNecesidades.tipos') {
-            setErrors((prev) => ({ ...prev, 'apoyosYNecesidades.tipos': false }));
-        }
-        if (path === 'informacionEmpresa.certificaciones.lista') {
-            setErrors((prev) => ({ ...prev, 'informacionEmpresa.certificaciones.lista': false }));
-        }
-        if (path === 'informacionEmpresa.sectoresPertenece.lista') {
-            setErrors((prev) => ({ ...prev, 'informacionEmpresa.sectoresPertenece.lista': false }));
-        }
-        if (path === 'informacionEmpresa.sectorPlasticos.lista') {
-            setErrors((prev) => ({ ...prev, 'informacionEmpresa.sectorPlasticos.lista': false }));
-        }
+        setErrors((prev: any) => {
+            const newErrors = { ...prev };
+            delete newErrors[path];
+
+            if (keys.length === 1) {
+                delete newErrors[keys[0]];
+            } else if (keys.length === 2 && newErrors[keys[0]]) {
+                newErrors[keys[0]] = { ...newErrors[keys[0]] };
+                delete newErrors[keys[0]][keys[1]];
+            } else if (keys.length === 3 && newErrors[keys[0]]?.[keys[1]]) {
+                newErrors[keys[0]] = {
+                    ...newErrors[keys[0]],
+                    [keys[1]]: { ...newErrors[keys[0]][keys[1]] }
+                };
+                delete newErrors[keys[0]][keys[1]][keys[2]];
+            }
+
+            return newErrors;
+        });
     };
 
     const selectSingleOption = (field: string, item: string) => {
@@ -700,7 +627,6 @@ export const CompanyForm = ({
             newErrors['informacionEmpresa.sectoresPertenece.otroEspecifique'] = true;
         }
 
-        // Validación condicional para el Sector Plásticos
         if (esSectorPlasticosSeleccionado) {
             if (formData.informacionEmpresa.sectorPlasticos.lista.length === 0) {
                 newErrors['informacionEmpresa.sectorPlasticos.lista'] = true;
@@ -713,7 +639,6 @@ export const CompanyForm = ({
             }
         }
 
-        // Validación condicional para el Sector Metalmecánico
         if (esSectorMetalmecanicoSeleccionado) {
             if (formData.informacionEmpresa.sectorMetalmecanico.lista.length === 0) {
                 newErrors['informacionEmpresa.sectorMetalmecanico.lista'] = true;
@@ -726,7 +651,6 @@ export const CompanyForm = ({
             }
         }
 
-        // Validación condicional para el Sector Eléctrica-Electrónica
         if (esSectorElectricaElectronicaSeleccionado) {
             if (formData.informacionEmpresa.sectorElectricaElectronica.lista.length === 0) {
                 newErrors['informacionEmpresa.sectorElectricaElectronica.lista'] = true;
@@ -739,7 +663,6 @@ export const CompanyForm = ({
             }
         }
 
-        // Validación condicional para el Sector Empaque
         if (esSectorEmpaqueSeleccionado) {
             if (formData.informacionEmpresa.sectorEmpaque.lista.length === 0) {
                 newErrors['informacionEmpresa.sectorEmpaque.lista'] = true;
@@ -752,7 +675,6 @@ export const CompanyForm = ({
             }
         }
 
-        // Validación condicional para el Sector TI e I4.0
         if (esSectorTiI40Seleccionado) {
             if (formData.informacionEmpresa.sectorTiI40.lista.length === 0) {
                 newErrors['informacionEmpresa.sectorTiI40.lista'] = true;
@@ -765,7 +687,6 @@ export const CompanyForm = ({
             }
         }
 
-        // Validación condicional para el Sector Textil
         if (esSectorTextilSeleccionado) {
             if (formData.informacionEmpresa.sectorTextil.lista.length === 0) {
                 newErrors['informacionEmpresa.sectorTextil.lista'] = true;
@@ -778,7 +699,6 @@ export const CompanyForm = ({
             }
         }
 
-        // Validación condicional para el Sector Servicios Especializados
         if (esSectorServiciosEspecializadosSeleccionado) {
             if (formData.informacionEmpresa.sectorServiciosEspecializados.lista.length === 0) {
                 newErrors['informacionEmpresa.sectorServiciosEspecializados.lista'] = true;
@@ -791,7 +711,6 @@ export const CompanyForm = ({
             }
         }
 
-        // Validación condicional para el Sector MROS
         if (esSectorMrosSeleccionado) {
             if (formData.informacionEmpresa.sectorMros.lista.length === 0) {
                 newErrors['informacionEmpresa.sectorMros.lista'] = true;
@@ -804,7 +723,6 @@ export const CompanyForm = ({
             }
         }
 
-        // Validación condicional para el Sector Minero
         if (esSectorMineroSeleccionado) {
             if (formData.informacionEmpresa.sectorMinero.lista.length === 0) {
                 newErrors['informacionEmpresa.sectorMinero.lista'] = true;
@@ -859,6 +777,9 @@ export const CompanyForm = ({
                     newErrors.porcentajeInversionSumaInvalid ||
                     newErrors['informacionEmpresa.certificaciones.otroEspecifique']
                 ),
+                productos: Object.keys(newErrors).some((key) =>
+                    key.startsWith('informacionEmpresa.sector') && key !== 'informacionEmpresa.sectoresPertenece.lista' && key !== 'informacionEmpresa.sectoresPertenece.otroEspecifique'
+                ),
                 retos: !!(newErrors.retosActuales || newErrors['apoyosYNecesidades.tipos'] || newErrors['apoyosYNecesidades.otroEspecifique'])
             });
 
@@ -890,26 +811,33 @@ export const CompanyForm = ({
 
         const updatedFormData: CompanyFormData = {
             ...formData,
-            etiquetas: finalTags.join(', ')
+            etiquetas: finalTags
         };
 
         try {
             setLoading(true);
-            await onSubmit(updatedFormData);
 
-            toast.success(
-                isPublicRegistration
-                    ? 'Solicitud enviada exitosamente. Se evaluará tu registro.'
-                    : isEditing
-                        ? 'Empresa actualizada exitosamente'
-                        : 'Empresa creada exitosamente'
-            );
+            if (onSubmit) {
+                await onSubmit(updatedFormData);
+            } else if (isPublicRegistration) {
+                await api.post('/companies/public', updatedFormData);
+            } else if (isEditing && baseData?._id) {
+                await api.put(`/companies/${(baseData as any)._id}`, updatedFormData);
+                toast.success('Empresa actualizada exitosamente');
+                if (onCancel) onCancel();
+            } else {
+                await api.post('/companies', updatedFormData);
+                toast.success('Empresa creada exitosamente');
+                if (onCancel) onCancel();
+            }
         } catch (error: any) {
             const responseData = error.response?.data;
             if (responseData?.errors && Array.isArray(responseData.errors)) {
                 const newErrorsState: Record<string, boolean> = {};
                 responseData.errors.forEach((err: { field: string; message: string }) => {
                     toast.error(err.message);
+                    console.log(err.message);
+
                     if (err.field) newErrorsState[err.field] = true;
                 });
                 setErrors((prev) => ({ ...prev, ...newErrorsState }));
@@ -1322,7 +1250,8 @@ export const CompanyForm = ({
                             <label className="block text-xs font-medium text-slate-400 mb-2">
                                 Tipo de Operaciones <span className="text-red-400">*</span>
                             </label>
-                            <div className="flex flex-wrap gap-2">
+                            <div className={`flex flex-wrap gap-2 p-2 rounded-lg border transition-colors ${errors.tipoOperaciones ? 'border-red-500 bg-red-500/5' : 'border-transparent'
+                                }`}>
                                 {OPCIONES_OPERACIONES.map((op) => (
                                     <button
                                         key={op}
@@ -1330,7 +1259,9 @@ export const CompanyForm = ({
                                         onClick={() => toggleArrayItem('tipoOperaciones', op)}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${formData.tipoOperaciones.includes(op)
                                             ? 'bg-blue-600 border-blue-500 text-white'
-                                            : 'bg-slate-900 border-slate-700 text-slate-400'
+                                            : errors.tipoOperaciones
+                                                ? 'bg-slate-900 border-red-500/50 text-slate-400'
+                                                : 'bg-slate-900 border-slate-700 text-slate-400'
                                             }`}
                                     >
                                         {op}
@@ -1344,7 +1275,8 @@ export const CompanyForm = ({
                             <label className="block text-xs font-medium text-slate-400 mb-2">
                                 Tipo de Suministro <span className="text-red-400">*</span>
                             </label>
-                            <div className="flex flex-wrap gap-2">
+                            <div className={`flex flex-wrap gap-2 p-2 rounded-lg border transition-colors ${errors.tipoSuministro ? 'border-red-500 bg-red-500/5' : 'border-transparent'
+                                }`}>
                                 {OPCIONES_SUMINISTRO.map((op) => (
                                     <button
                                         key={op}
@@ -1352,7 +1284,9 @@ export const CompanyForm = ({
                                         onClick={() => selectSingleOption('tipoSuministro', op)}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${formData.tipoSuministro.includes(op)
                                             ? 'bg-blue-600 border-blue-500 text-white'
-                                            : 'bg-slate-900 border-slate-700 text-slate-400'
+                                            : errors.tipoSuministro
+                                                ? 'bg-slate-900 border-red-500/50 text-slate-400'
+                                                : 'bg-slate-900 border-slate-700 text-slate-400'
                                             }`}
                                     >
                                         {op}
@@ -1500,7 +1434,10 @@ export const CompanyForm = ({
                             <label className="block text-xs font-medium text-slate-400 mb-2">
                                 Sector(es) al(los) que pertenece(n): <span className="text-red-400">*</span>
                             </label>
-                            <div className="space-y-2 bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                            <div className={`space-y-2 bg-slate-900/60 p-3 rounded-lg border transition-colors ${errors['informacionEmpresa.sectoresPertenece.lista']
+                                ? 'border-red-500 bg-red-500/5'
+                                : 'border-slate-800'
+                                }`}>
                                 {OPCIONES_SECTORES.map((sec) => {
                                     const isChecked = formData.informacionEmpresa.sectoresPertenece.lista.includes(sec);
                                     return (
@@ -1570,14 +1507,14 @@ export const CompanyForm = ({
                             />
                         </div>
 
-                        {/* NUEVO CAMPO: Favor de especificar el destino de sus exportaciones (Typeahead Multi-select) */}
+                        {/* Typeahead Multi-select: Destino de Exportaciones */}
                         <div className="md:col-span-2 relative z-30">
                             <label className="block text-xs font-medium text-slate-400 mb-1">
                                 Favor de especificar el destino de sus exportaciones:
                             </label>
                             <div className="relative">
                                 <div
-                                    className="w-full min-h-[42px] p-2 bg-slate-900 border border-slate-700 rounded-lg focus-within:border-blue-500 flex flex-wrap items-center gap-1.5 cursor-text transition-colors"
+                                    className="w-full min-h-10.5 p-2 bg-slate-900 border border-slate-700 rounded-lg focus-within:border-blue-500 flex flex-wrap items-center gap-1.5 cursor-text transition-colors"
                                     onClick={() => setIsCountryDropdownOpen(true)}
                                 >
                                     {(formData.informacionEmpresa.destinoExportaciones || []).map((country) => (
@@ -1601,7 +1538,7 @@ export const CompanyForm = ({
 
                                     <input
                                         type="text"
-                                        className="flex-1 bg-transparent border-none p-1 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-0 min-w-[150px]"
+                                        className="flex-1 bg-transparent border-none p-1 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-0 min-w-37.5"
                                         placeholder={
                                             (formData.informacionEmpresa.destinoExportaciones || []).length === 0
                                                 ? 'Buscar y seleccionar países...'
@@ -1620,13 +1557,11 @@ export const CompanyForm = ({
 
                                 {isCountryDropdownOpen && (
                                     <>
-                                        {/* Backdrop transparente para cerrar al hacer clic afuera */}
                                         <div
                                             className="fixed inset-0 z-40"
                                             onClick={() => setIsCountryDropdownOpen(false)}
                                         />
 
-                                        {/* Desplegable flotante sobre los siguientes acordeones */}
                                         <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl max-h-48 overflow-y-auto custom-scrollbar">
                                             {filteredCountries.length > 0 ? (
                                                 filteredCountries.map((pais) => {
@@ -1677,9 +1612,7 @@ export const CompanyForm = ({
                     </button>
                     {openSections.productos && (
                         <div className="p-4 space-y-4 border-t border-slate-700/50">
-                            {/* 5. Productos o Servicios - Renderizado Dinámico */}
                             {SECTORES_CONFIG.map((sector) => {
-                                // Verifica si alguno de los sectores seleccionados coincide con este bloque
                                 const isVisible = sector.matchSectores.some((s) => sectoresSeleccionados.includes(s));
 
                                 if (!isVisible) return null;
@@ -1700,6 +1633,7 @@ export const CompanyForm = ({
                                         otherValue={sectorData.otroEspecifique}
                                         listPath={`informacionEmpresa.${sector.keyName}.lista`}
                                         otherPath={`informacionEmpresa.${sector.keyName}.otroEspecifique`}
+                                        hasError={!!errors[`informacionEmpresa.${sector.keyName}.lista`]}
                                         onToggle={toggleArrayItem}
                                         onChange={handleChange}
                                         getInputClass={getInputClass}
@@ -1709,7 +1643,6 @@ export const CompanyForm = ({
                         </div>
                     )}
                 </div>
-
             )}
 
             {/* 6. SECCIÓN: RETOS Y APOYOS */}
@@ -1745,7 +1678,10 @@ export const CompanyForm = ({
                             <label className="block text-xs font-medium text-slate-400 mb-2">
                                 Apoyos y Necesidades Requeridos <span className="text-red-400">*</span>
                             </label>
-                            <div className="space-y-2.5 bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                            <div className={`space-y-2.5 bg-slate-900/60 p-3 rounded-lg border transition-colors ${errors['apoyosYNecesidades.tipos']
+                                ? 'border-red-500 bg-red-500/5'
+                                : 'border-slate-800'
+                                }`}>
                                 {OPCIONES_APOYOS.map((apoyo) => {
                                     const isChecked = formData.apoyosYNecesidades.tipos.includes(apoyo);
                                     return (
@@ -1755,7 +1691,7 @@ export const CompanyForm = ({
                                                     type="checkbox"
                                                     checked={isChecked}
                                                     onChange={() => toggleArrayItem('apoyosYNecesidades.tipos', apoyo)}
-                                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer [color-scheme:dark]"
+                                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer scheme-dark"
                                                 />
                                                 <span>{apoyo}</span>
                                             </label>

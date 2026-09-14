@@ -6,27 +6,19 @@ import { Company } from '../models/Company';
 import { AuditLog } from '../models/AuditLog';
 import { getClientIp } from '../utils/getClientIp';
 
+// Helper para procesar el string de etiquetas enviado por el frontend
+const processEtiquetas = (etiquetas: any): string[] => {
+  if (Array.isArray(etiquetas)) return etiquetas;
+  if (typeof etiquetas === 'string' && etiquetas.trim() !== '') {
+    return etiquetas.split(',').map((t) => t.trim()).filter((t) => t !== '');
+  }
+  return [];
+};
+
 // POST: Registrar una empresa desde el formulario público
 export const createPublicCompany = async (req: Request, res: Response): Promise<void> => {
   try {
-    const {
-      correoElectronico,
-      nombreComercial,
-      razonSocial,
-      rfc,
-      tamanoEmpresa,
-      anioInicio,
-      sitioWeb,
-      etiquetas,
-      tipoOperaciones,
-      tipoSuministro,
-      ubicacion,
-      contactos,
-      informacionEmpresa,
-      retosActuales,
-      apoyosYNecesidades,
-      presentacionComercial
-    } = req.body;
+    const { rfc, etiquetas } = req.body;
 
     // Validación de RFC duplicado
     if (rfc) {
@@ -39,41 +31,16 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
       }
     }
 
-    // Normalización de arreglos (etiquetas, tipoOperaciones, tipoSuministro)
-    const normalizarArreglo = (valor: any): string[] => {
-      if (typeof valor === 'string' && valor.trim() !== '') {
-        return valor.split(',').map((item) => item.trim());
-      }
-      return Array.isArray(valor) ? valor : [];
+    const payload = {
+      ...req.body,
+      correoElectronico: req.body.correoElectronico?.trim().toLowerCase(),
+      rfc: rfc?.toUpperCase().trim(),
+      //etiquetas: processEtiquetas(etiquetas),
+      etiquetas: [],
+      activa: false // Inactiva por defecto para revisión administrativa
     };
 
-    const newCompany = new Company({
-      correoElectronico: correoElectronico?.trim().toLowerCase(),
-      nombreComercial,
-      razonSocial,
-      rfc: rfc?.toUpperCase().trim(),
-      tamanoEmpresa: tamanoEmpresa || 'Micro',
-      anioInicio: Number(anioInicio) || new Date().getFullYear(),
-      sitioWeb: sitioWeb || '',
-      etiquetas: normalizarArreglo(etiquetas),
-      tipoOperaciones: normalizarArreglo(tipoOperaciones),
-      tipoSuministro: normalizarArreglo(tipoSuministro),
-      ubicacion: {
-        estado: ubicacion?.estado || '',
-        municipio: ubicacion?.municipio || '',
-        direccion: ubicacion?.direccion || '',
-        colonia: ubicacion?.colonia || '',
-        codigoPostal: ubicacion?.codigoPostal || '',
-        parqueIndustrial: ubicacion?.parqueIndustrial || ''
-      },
-      contactos,
-      informacionEmpresa,
-      retosActuales,
-      apoyosYNecesidades,
-      presentacionComercial,
-      activa: false // Por defecto inactiva para solicitudes públicas
-    });
-
+    const newCompany = new Company(payload);
     const savedCompany = await newCompany.save();
 
     // 📝 Bitácora de auditoría
@@ -91,6 +58,7 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
     });
   } catch (error: any) {
     console.error('Error al crear empresa pública:', error);
+    console.error('Error detallado al crear empresa pública:', JSON.stringify(error, null, 2));
 
     if (error?.code === 11000 && error?.keyPattern?.rfc) {
       res.status(400).json({
@@ -102,6 +70,7 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
     if (error?.name === 'ValidationError') {
       res.status(400).json({
         message: 'Error de validación en los datos enviados.',
+        errors: error.errors,
         detalles: error.message
       });
       return;
@@ -164,7 +133,7 @@ export const getCompanyById = async (req: Request, res: Response): Promise<void>
 // POST: Crear una empresa desde el panel de administración
 export const createCompany = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { rfc, activa } = req.body;
+    const { rfc, activa, etiquetas } = req.body;
 
     if (rfc) {
       const rfcExistente = await Company.findOne({ rfc: rfc.toUpperCase().trim() });
@@ -176,12 +145,14 @@ export const createCompany = async (req: AuthRequest, res: Response): Promise<vo
       }
     }
 
-    const newCompany = new Company({
+    const payload = {
       ...req.body,
       rfc: rfc?.toUpperCase().trim(),
+      etiquetas: processEtiquetas(etiquetas),
       activa: activa !== undefined ? activa : true
-    });
+    };
 
+    const newCompany = new Company(payload);
     const savedCompany = await newCompany.save();
 
     // 📝 Bitácora
@@ -243,6 +214,10 @@ export const updateCompany = async (req: AuthRequest, res: Response): Promise<vo
         return;
       }
       updateData.rfc = rfcLimpio;
+    }
+
+    if (updateData.etiquetas) {
+      updateData.etiquetas = processEtiquetas(updateData.etiquetas);
     }
 
     const companyUpdated = await Company.findByIdAndUpdate(

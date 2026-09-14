@@ -1,27 +1,12 @@
 // src/components/CompanySheetPDFDocument.tsx
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-
-interface Company {
-    _id: string;
-    nombreComercial: string;
-    razonSocial: string;
-    rfc: string;
-    tamanoEmpresa: string;
-    anioInicio: number;
-    sitioWeb?: string;
-    etiquetas: string[];
-    ubicacion: {
-        estado: string;
-        municipio: string;
-    };
-    activa: boolean;
-}
+import { type CompanyFormData} from '../interfaces/company.interface';
 
 interface CompanySheetProps {
     // Acepta una sola empresa O una lista de empresas
-    company?: Company;
-    companies?: Company[];
+    company?: CompanyFormData;
+    companies?: CompanyFormData[];
 }
 
 const styles = StyleSheet.create({

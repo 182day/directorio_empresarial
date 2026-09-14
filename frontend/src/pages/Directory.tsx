@@ -4,23 +4,7 @@ import api from '../api/axios';
 import { Search, Building2, MapPin, Globe, ShieldCheck, Layers, X } from 'lucide-react';
 import CountUpModule from 'react-countup';
 const CountUp = (CountUpModule as any).default || CountUpModule;
-
-interface Company {
-  _id: string;
-  nombreComercial: string;
-  razonSocial: string;
-  rfc: string;
-  tamanoEmpresa?: string;
-  tamanio?: string;
-  anioInicio: number;
-  sitioWeb?: string;
-  tipoOperaciones: string[];
-  ubicacion: {
-    estado: string;
-    municipio: string;
-  };
-  activa: boolean;
-}
+import { type DirectoryCompany as Company } from '../interfaces/company.interface';
 
 export const Directory = () => {
   const [companies, setCompanies] = useState<Company[]>([]);

@@ -1,6 +1,6 @@
 // src/layouts/AdminLayout.tsx
 import { useState, useContext } from 'react';
-import api from '../api/axios';
+//import api from '../api/axios';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Sidebar } from '../components/Sidebar';
@@ -55,20 +55,22 @@ export const AdminLayout = () => {
     const currentHeader = getHeaderInfo();
 
     // Handler para registrar la empresa mediante la API/Backend
-    const handlePublicRegistrationSubmit = async (formData: any) => {
-    try {
-        // Axios usará la URL base del backend y el endpoint /empresas/public
-        await api.post('/companies/public', formData);
-        setIsPublicRegisterOpen(false);
-    } catch (error: any) {
-        // Captura el mensaje de error retornado por Express
+    // const handlePublicRegistrationSubmit = async (formData: any) => {
+    //     console.log('hola');
         
-        //const mensaje = error.response?.data?.message || 'Error al enviar el registro';
-        //throw new Error(mensaje);
-        
-        throw error;
-    }
-};
+    //     try {
+    //         // Axios usará la URL base del backend y el endpoint /empresas/public
+    //         await api.post('/companies/public', formData);
+    //         //setIsPublicRegisterOpen(false);
+    //     } catch (error: any) {
+    //         // Captura el mensaje de error retornado por Express
+
+    //         //const mensaje = error.response?.data?.message || 'Error al enviar el registro';
+    //         //throw new Error(mensaje);
+
+    //         throw error;
+    //     }
+    // };
 
     // function closeModal(event: MouseEvent<HTMLButtonElement, MouseEvent>): void {
     //     throw new Error('Function not implemented.');
@@ -167,7 +169,7 @@ export const AdminLayout = () => {
                             <CompanyForm
                                 isPublicRegistration={true}
                                 onCancel={() => setIsPublicRegisterOpen(false)}
-                                onSubmit={handlePublicRegistrationSubmit}
+                                //onSubmit={handlePublicRegistrationSubmit}
                             />
                         </div>
                     </div>

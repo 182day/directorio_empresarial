@@ -4,7 +4,8 @@ import { AuthContext } from '../context/AuthContext';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
 import api from '../api/axios';
-import { CompanyForm, type CompanyFormData } from '../components/CompanyForm';
+import { CompanyForm } from '../components/CompanyForm'
+import { type CompanyFormData } from '../interfaces/company.interface';
 import { CompaniesFilterDrawer } from '../components/CompaniesFilterDrawer';
 import { Pagination } from '../components/Pagination';
 import {
@@ -32,21 +33,6 @@ import {
 import { CompaniesPDFDocument } from '../components/CompaniesPDFDocument';
 import { CompanySheetPDFDocument } from '../components/CompanySheetPDFDocument';
 
-interface Company {
-    _id: string;
-    nombreComercial: string;
-    razonSocial: string;
-    rfc: string;
-    tamanoEmpresa: string;
-    anioInicio: number;
-    sitioWeb?: string;
-    etiquetas: string[];
-    ubicacion: {
-        estado: string;
-        municipio: string;
-    };
-    activa: boolean;
-}
 
 const OPCIONES_TAMANO = ['Micro', 'Pequeña', 'Mediana', 'Grande'];
 const COLORES_GRAFICA = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
@@ -54,7 +40,7 @@ const COLORES_GRAFICA = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', 
 export const CompaniesPage = () => {
     const { user } = useContext(AuthContext);
     const canEdit = user?.rol === 'admin' || user?.rol === 'editor';
-    const [companies, setCompanies] = useState<Company[]>([]);
+    const [companies, setCompanies] = useState<CompanyFormData[]>([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
     const [tipoVista, setTipoVista] = useState<'tabla' | 'cards'>('tabla');
@@ -78,10 +64,10 @@ export const CompaniesPage = () => {
 
     // Estados para Modales (Crear/Editar y Ver)
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+    const [editingCompany, setEditingCompany] = useState<CompanyFormData | null>(null);
 
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-    const [viewingCompany, setViewingCompany] = useState<Company | null>(null);
+    const [viewingCompany, setViewingCompany] = useState<CompanyFormData | null>(null);
 
     useEffect(() => {
         fetchCompanies();
@@ -122,7 +108,7 @@ export const CompaniesPage = () => {
         const etiquetasSet = new Set<string>();
         companies.forEach((c) => {
             if (c.etiquetas && Array.isArray(c.etiquetas)) {
-                c.etiquetas.forEach((etiqueta) => etiquetasSet.add(etiqueta));
+                c.etiquetas.forEach((etiqueta: string) => etiquetasSet.add(etiqueta));
             }
         });
         return Array.from(etiquetasSet).sort();
@@ -212,7 +198,7 @@ export const CompaniesPage = () => {
         return filteredCompanies.slice(startIndex, startIndex + pageSize);
     }, [filteredCompanies, currentPage, pageSize]);
 
-    const openModal = (company?: Company) => {
+    const openModal = (company?: CompanyFormData) => {
         setEditingCompany(company || null);
         setIsModalOpen(true);
     };
@@ -222,7 +208,7 @@ export const CompaniesPage = () => {
         setEditingCompany(null);
     };
 
-    const openViewModal = (company: Company) => {
+    const openViewModal = (company: CompanyFormData) => {
         setViewingCompany(company);
         setIsViewModalOpen(true);
     };
@@ -232,44 +218,44 @@ export const CompaniesPage = () => {
         setViewingCompany(null);
     };
 
-    const handleFormSubmit = async (formData: CompanyFormData) => {
-        // const operacionesArray = formData.etiquetas
-        //     ? formData.etiquetas.split(',').map((op) => op.trim())
-        //     : [];
+    // const handleFormSubmit = async (formData: CompanyFormData) => {
+    //     // const operacionesArray = formData.etiquetas
+    //     //     ? formData.etiquetas.split(',').map((op) => op.trim())
+    //     //     : [];
 
-        // const tipoOperacionesFinal = operacionesArray.length > 0 ? operacionesArray : ['Servicios'];
+    //     // const tipoOperacionesFinal = operacionesArray.length > 0 ? operacionesArray : ['Servicios'];
 
-        // const payload = {
-        //     nombreComercial: formData.nombreComercial,
-        //     razonSocial: formData.razonSocial,
-        //     rfc: formData.rfc,
-        //     tamanoEmpresa: formData.tamanoEmpresa,
-        //     anioInicio: Number(formData.anioInicio),
-        //     sitioWeb: formData.sitioWeb || '',
-        //     etiquetas: tipoOperacionesFinal,
-        //     tipoSuministro: ['Directo'],
-        //     estado: formData.estado,
-        //     municipio: formData.municipio,
-        //     direccion: 'Sin dirección registrada',
-        //     colonia: 'Sin colonia',
-        //     codigoPostal: '00000',
-        //     parqueIndustrial: '',
-        //     activa: formData.activo
-        // };
+    //     // const payload = {
+    //     //     nombreComercial: formData.nombreComercial,
+    //     //     razonSocial: formData.razonSocial,
+    //     //     rfc: formData.rfc,
+    //     //     tamanoEmpresa: formData.tamanoEmpresa,
+    //     //     anioInicio: Number(formData.anioInicio),
+    //     //     sitioWeb: formData.sitioWeb || '',
+    //     //     etiquetas: tipoOperacionesFinal,
+    //     //     tipoSuministro: ['Directo'],
+    //     //     estado: formData.estado,
+    //     //     municipio: formData.municipio,
+    //     //     direccion: 'Sin dirección registrada',
+    //     //     colonia: 'Sin colonia',
+    //     //     codigoPostal: '00000',
+    //     //     parqueIndustrial: '',
+    //     //     activa: formData.activo
+    //     // };
 
-        // try {
-        //     if (editingCompany) {
-        //         await api.put(`/companies/${editingCompany._id}`, payload);
-        //     } else {
-        //         await api.post('/companies', payload);
-        //     }
+    //     // try {
+    //     //     if (editingCompany) {
+    //     //         await api.put(`/companies/${editingCompany._id}`, payload);
+    //     //     } else {
+    //     //         await api.post('/companies', payload);
+    //     //     }
 
-        //     closeModal();
-        //     fetchCompanies();
-        // } catch (error: any) {
-        //     throw error;
-        // }
-    };
+    //     //     closeModal();
+    //     //     fetchCompanies();
+    //     // } catch (error: any) {
+    //     //     throw error;
+    //     // }
+    // };
 
     const handleDelete = (id: string, nombre: string) => {
         Swal.fire({
@@ -657,7 +643,8 @@ export const CompaniesPage = () => {
                                                                 <Edit2 className="w-4 h-4" />
                                                             </button>
                                                             <button
-                                                                onClick={() => handleDelete(comp._id, comp.nombreComercial)}
+                                                                //onClick={() => handleDelete(comp._id!, comp.nombreComercial)}
+                                                                onClick={() => comp._id && handleDelete(comp._id, comp.nombreComercial)}
                                                                 className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/20 transition-colors"
                                                                 title="Eliminar"
                                                             >
@@ -741,7 +728,8 @@ export const CompaniesPage = () => {
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(comp._id, comp.nombreComercial)}
+                                                    //onClick={() => handleDelete(comp._id!, comp.nombreComercial)}
+                                                    onClick={() => comp._id && handleDelete(comp._id, comp.nombreComercial)}
                                                     className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/20 transition-colors"
                                                     title="Eliminar"
                                                 >
@@ -939,25 +927,24 @@ export const CompaniesPage = () => {
                         </div>
                         <div className="p-6 max-h-[80vh] overflow-y-auto no-scrollbar">
                             <CompanyForm
-                                // initialValues={
-                                //     editingCompany
-                                //         ? {
-                                //             nombreComercial: editingCompany.nombreComercial,
-                                //             razonSocial: editingCompany.razonSocial,
-                                //             rfc: editingCompany.rfc,
-                                //             tamanoEmpresa: editingCompany.tamanoEmpresa,
-                                //             anioInicio: editingCompany.anioInicio,
-                                //             sitioWeb: editingCompany.sitioWeb || '',
-                                //             etiquetas: editingCompany.etiquetas?.join(', ') || '',
-                                //             estado: editingCompany.ubicacion?.estado || '',
-                                //             municipio: editingCompany.ubicacion?.municipio || '',
-                                //             activo: editingCompany.activa
-                                //         }
-                                //         : undefined
-                                // }
+                                initialValues={editingCompany || undefined}
                                 isPublicRegistration={false}
-                                isEditing={editingCompany ? true : false}
-                                onSubmit={handleFormSubmit}
+                                isEditing={Boolean(editingCompany)}
+                                onSubmit={async (data) => {
+                                    try {
+                                        if (editingCompany) {
+                                            await api.put(`/companies/${editingCompany._id}`, data);
+                                            toast.success('Empresa actualizada correctamente');
+                                        } else {
+                                            await api.post('/companies', data);
+                                            toast.success('Empresa registrada correctamente');
+                                        }
+                                        closeModal();
+                                        fetchCompanies();
+                                    } catch (error: any) {
+                                        toast.error(error.response?.data?.message || 'Error al guardar');
+                                    }
+                                }}
                                 onCancel={closeModal}
                             />
                         </div>

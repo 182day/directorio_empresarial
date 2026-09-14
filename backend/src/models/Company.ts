@@ -1,30 +1,26 @@
 // src/models/Company.ts
 import { Schema, model, Document } from 'mongoose';
 
-// Interface reutilizable para los contactos que llevan cargo
 export interface IContactoConCargo {
   nombreCompleto: string;
-  cargo: string;
-  telefono: string;
-  celularWhatsapp: string;
-  correoElectronico: string;
+  cargo?: string;
+  telefono?: string;
+  celularWhatsapp?: string;
+  correoElectronico?: string;
 }
 
-// Interface para el Director General (sin cargo)
 export interface IContactoDirector {
   nombreCompleto: string;
-  telefono: string;
-  celularWhatsapp: string;
+  telefono?: string;
+  celularWhatsapp?: string;
   correoElectronico: string;
 }
 
-// Interface para las especialidades/subsectores de cada sector
 export interface IEspecialidadSector {
-  opciones: string[];
+  lista: string[];
   otroEspecifique?: string;
 }
 
-// 1. Interfaz de TypeScript para el autocompletado y tipado estricto
 export interface ICompany extends Document {
   correoElectronico: string;
   nombreComercial: string;
@@ -34,8 +30,8 @@ export interface ICompany extends Document {
   anioInicio: number;
   sitioWeb?: string;
   etiquetas: string[];
-  tipoOperaciones: ('Fabricante' | 'Distribuidor' | 'Servicios')[];
-  tipoSuministro: ('Directo' | 'Indirecto')[];
+  tipoOperaciones: string[];
+  tipoSuministro: string[];
   ubicacion: {
     estado: string;
     municipio: string;
@@ -46,14 +42,15 @@ export interface ICompany extends Document {
   };
   contactos: {
     directorGeneral: IContactoDirector;
-    compras: IContactoConCargo;
-    ventas: IContactoConCargo;
-    recursosHumanos: IContactoConCargo;
+    compras?: IContactoConCargo;
+    ventas?: IContactoConCargo;
+    recursosHumanos?: IContactoConCargo;
   };
   informacionEmpresa: {
     productosFabrica: string;
-    principalesClientes: string;
+    principalesClientes?: string;
     paisOrigen: string;
+    paisOrigenOtro?: string;
     porcentajeInversionNacional: number;
     porcentajeInversionExtranjero: number;
     certificaciones: {
@@ -64,41 +61,37 @@ export interface ICompany extends Document {
       lista: string[];
       otroEspecifique?: string;
     };
-    especialidadesSectores?: {
-      plasticos?: IEspecialidadSector;
-      metalmecanico?: IEspecialidadSector;
-      electricoElectronico?: IEspecialidadSector;
-      empaque?: IEspecialidadSector;
-      tecnologiasInformacion?: IEspecialidadSector;
-      textil?: IEspecialidadSector;
-      serviciosEspecializados?: IEspecialidadSector;
-      mros?: IEspecialidadSector;
-      minero?: IEspecialidadSector;
-    };
+    sectorPlasticos?: IEspecialidadSector;
+    sectorMetalmecanico?: IEspecialidadSector;
+    sectorElectricaElectronica?: IEspecialidadSector;
+    sectorEmpaque?: IEspecialidadSector;
+    sectorTiI40?: IEspecialidadSector;
+    sectorTextil?: IEspecialidadSector;
+    sectorServiciosEspecializados?: IEspecialidadSector;
+    sectorMros?: IEspecialidadSector;
+    sectorMinero?: IEspecialidadSector;
     principalSectorAtiende: string;
     porcentajeExportaciones: number;
     destinoExportaciones: string[];
   };
-  // NUEVO: Retos y Apoyos / Necesidades
-  retosActuales: string; // Obligatorio (*)
+  retosActuales: string;
   apoyosYNecesidades: {
-    tipos: string[]; // Checkbox obligatorio (*)
+    tipos: string[];
     otroEspecifique?: string;
   };
-  presentacionComercial: string;
+  presentacionComercial?: string;
   activa: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// Sub-esquemas reutilizables para Mongoose
 const ContactoConCargoSchema = new Schema<IContactoConCargo>(
   {
-    nombreCompleto: { type: String, required: true, trim: true },
-    cargo: { type: String, required: true, trim: true },
-    telefono: { type: String, required: true, trim: true },
-    celularWhatsapp: { type: String, required: true, trim: true },
-    correoElectronico: { type: String, required: true, trim: true, lowercase: true }
+    nombreCompleto: { type: String, default: '', trim: true },
+    cargo: { type: String, default: '', trim: true },
+    telefono: { type: String, default: '', trim: true },
+    celularWhatsapp: { type: String, default: '', trim: true },
+    correoElectronico: { type: String, default: '', trim: true, lowercase: true }
   },
   { _id: false }
 );
@@ -106,8 +99,8 @@ const ContactoConCargoSchema = new Schema<IContactoConCargo>(
 const ContactoDirectorSchema = new Schema<IContactoDirector>(
   {
     nombreCompleto: { type: String, required: true, trim: true },
-    telefono: { type: String, required: true, trim: true },
-    celularWhatsapp: { type: String, required: true, trim: true },
+    telefono: { type: String, default: '', trim: true },
+    celularWhatsapp: { type: String, default: '', trim: true },
     correoElectronico: { type: String, required: true, trim: true, lowercase: true }
   },
   { _id: false }
@@ -115,13 +108,12 @@ const ContactoDirectorSchema = new Schema<IContactoDirector>(
 
 const EspecialidadSectorSchema = new Schema<IEspecialidadSector>(
   {
-    opciones: [{ type: String, trim: true }],
+    lista: [{ type: String, trim: true }],
     otroEspecifique: { type: String, default: '', trim: true }
   },
   { _id: false }
 );
 
-// 2. Esquema de Mongoose
 const CompanySchema = new Schema<ICompany>(
   {
     correoElectronico: { type: String, required: true, trim: true, lowercase: true },
@@ -131,9 +123,9 @@ const CompanySchema = new Schema<ICompany>(
     tamanoEmpresa: { type: String, required: true, enum: ['Micro', 'Pequeña', 'Mediana', 'Grande'] },
     anioInicio: { type: Number, required: true },
     sitioWeb: { type: String, trim: true, default: '' },
-    etiquetas: [{ type: String, required: true, trim: true }], 
-    tipoSuministro: [{ type: String, required: true, enum: ['Directo', 'Indirecto'] }],
-    tipoOperaciones: [{ type: String, required: true, enum: ['Fabricante', 'Distribuidor', 'Servicios'] }],
+    etiquetas: [{ type: String, trim: true }],
+    tipoSuministro: [{ type: String, required: true }],
+    tipoOperaciones: [{ type: String, required: true }],
     ubicacion: {
       estado: { type: String, required: true },
       municipio: { type: String, required: true },
@@ -144,14 +136,15 @@ const CompanySchema = new Schema<ICompany>(
     },
     contactos: {
       directorGeneral: { type: ContactoDirectorSchema, required: true },
-      compras: { type: ContactoConCargoSchema, required: true },
-      ventas: { type: ContactoConCargoSchema, required: true },
-      recursosHumanos: { type: ContactoConCargoSchema, required: true }
+      compras: { type: ContactoConCargoSchema },
+      ventas: { type: ContactoConCargoSchema },
+      recursosHumanos: { type: ContactoConCargoSchema }
     },
     informacionEmpresa: {
       productosFabrica: { type: String, required: true, trim: true },
-      principalesClientes: { type: String, required: true, trim: true },
+      principalesClientes: { type: String, default: '', trim: true },
       paisOrigen: { type: String, required: true, trim: true },
+      paisOrigenOtro: { type: String, default: '', trim: true },
       porcentajeInversionNacional: { type: Number, required: true, min: 0, max: 100 },
       porcentajeInversionExtranjero: { type: Number, required: true, min: 0, max: 100 },
       certificaciones: {
@@ -159,51 +152,28 @@ const CompanySchema = new Schema<ICompany>(
         otroEspecifique: { type: String, default: '', trim: true }
       },
       sectoresPertenece: {
-        lista: {
-          type: [{ type: String, trim: true }],
-          required: true,
-          validate: {
-            validator: function (v: string[]) {
-              return v && v.length > 0;
-            },
-            message: 'Debe seleccionar al menos un sector al que pertenece.'
-          }
-        },
+        lista: [{ type: String, trim: true }],
         otroEspecifique: { type: String, default: '', trim: true }
       },
-      especialidadesSectores: {
-        plasticos: { type: EspecialidadSectorSchema },
-        metalmecanico: { type: EspecialidadSectorSchema },
-        electricoElectronico: { type: EspecialidadSectorSchema },
-        empaque: { type: EspecialidadSectorSchema },
-        tecnologiasInformacion: { type: EspecialidadSectorSchema },
-        textil: { type: EspecialidadSectorSchema },
-        serviciosEspecializados: { type: EspecialidadSectorSchema },
-        mros: { type: EspecialidadSectorSchema },
-        minero: { type: EspecialidadSectorSchema }
-      },
+      sectorPlasticos: { type: EspecialidadSectorSchema },
+      sectorMetalmecanico: { type: EspecialidadSectorSchema },
+      sectorElectricaElectronica: { type: EspecialidadSectorSchema },
+      sectorEmpaque: { type: EspecialidadSectorSchema },
+      sectorTiI40: { type: EspecialidadSectorSchema },
+      sectorTextil: { type: EspecialidadSectorSchema },
+      sectorServiciosEspecializados: { type: EspecialidadSectorSchema },
+      sectorMros: { type: EspecialidadSectorSchema },
+      sectorMinero: { type: EspecialidadSectorSchema },
       principalSectorAtiende: { type: String, required: true, trim: true },
       porcentajeExportaciones: { type: Number, required: true, min: 0, max: 100 },
       destinoExportaciones: [{ type: String, trim: true }]
     },
-
-    // NUEVO: Retos y Apoyos / Necesidades
     retosActuales: { type: String, required: true, trim: true },
     apoyosYNecesidades: {
-      tipos: {
-        type: [{ type: String, trim: true }],
-        required: true,
-        validate: {
-          validator: function (v: string[]) {
-            return v && v.length > 0;
-          },
-          message: 'Debe seleccionar al menos un tipo de apoyo o necesidad.'
-        }
-      },
+      tipos: [{ type: String, trim: true }],
       otroEspecifique: { type: String, default: '', trim: true }
     },
-
-    presentacionComercial: { type: String, required: true, trim: true },
+    presentacionComercial: { type: String, default: '', trim: true },
     activa: { type: Boolean, default: false }
   },
   {
