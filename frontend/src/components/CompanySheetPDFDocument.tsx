@@ -1,214 +1,190 @@
 // src/components/CompanySheetPDFDocument.tsx
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { type CompanyFormData} from '../interfaces/company.interface';
+import { type CompanyFormData } from '../interfaces/company.interface';
 
 interface CompanySheetProps {
-    // Acepta una sola empresa O una lista de empresas
-    company?: CompanyFormData;
-    companies?: CompanyFormData[];
+  company?: CompanyFormData;
+  companies?: CompanyFormData[];
 }
 
 const styles = StyleSheet.create({
-    page: {
-        padding: 40,
-        fontSize: 10,
-        fontFamily: 'Helvetica',
-        color: '#1e293b',
-        backgroundColor: '#ffffff',
-    },
-    header: {
-        borderBottomWidth: 2,
-        borderBottomColor: '#2563eb',
-        paddingBottom: 12,
-        marginBottom: 20,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-    },
-    title: {
-        fontSize: 20,
-        fontFamily: 'Helvetica-Bold',
-        color: '#0f172a',
-    },
-    subtitle: {
-        fontSize: 11,
-        color: '#64748b',
-        marginTop: 2,
-    },
-    badge: {
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        borderRadius: 4,
-        fontSize: 9,
-        fontFamily: 'Helvetica-Bold',
-    },
-    badgeActive: {
-        backgroundColor: '#dcfce7',
-        color: '#15803d',
-    },
-    badgeInactive: {
-        backgroundColor: '#fee2e2',
-        color: '#b91c1c',
-    },
-    sectionTitle: {
-        fontSize: 12,
-        fontFamily: 'Helvetica-Bold',
-        color: '#1e3a8a',
-        backgroundColor: '#f1f5f9',
-        padding: 6,
-        marginTop: 15,
-        marginBottom: 10,
-        borderRadius: 3,
-    },
-    grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginBottom: 5,
-    },
-    col6: {
-        width: '50%',
-        marginBottom: 10,
-    },
-    col12: {
-        width: '100%',
-        marginBottom: 10,
-    },
-    label: {
-        fontSize: 8,
-        fontFamily: 'Helvetica-Bold',
-        color: '#64748b',
-        textTransform: 'uppercase',
-        marginBottom: 2,
-    },
-    value: {
-        fontSize: 10,
-        color: '#0f172a',
-    },
-    tagContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 4,
-        marginTop: 4,
-    },
-    tag: {
-        backgroundColor: '#e2e8f0',
-        color: '#334155',
-        paddingVertical: 3,
-        paddingHorizontal: 8,
-        borderRadius: 3,
-        fontSize: 8,
-    },
-    footer: {
-        position: 'absolute',
-        bottom: 30,
-        left: 40,
-        right: 40,
-        borderTopWidth: 1,
-        borderTopColor: '#e2e8f0',
-        paddingTop: 10,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    footerText: {
-        fontSize: 8,
-        color: '#94a3b8',
-    },
+  page: {
+    padding: 20,
+    fontSize: 8,
+    fontFamily: 'Helvetica',
+    color: '#1e293b',
+    backgroundColor: '#ffffff',
+  },
+  header: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#2563eb',
+    paddingBottom: 8,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 14,
+    fontFamily: 'Helvetica-Bold',
+    color: '#0f172a',
+  },
+  subtitle: {
+    fontSize: 8,
+    color: '#64748b',
+  },
+  table: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 3,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    alignItems: 'center',
+    minHeight: 22,
+  },
+  tableHeader: {
+    backgroundColor: '#1e3a8a',
+  },
+  headerText: {
+    color: '#ffffff',
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 7.5,
+  },
+  colName: { width: '28%', padding: 4 },
+  colRfc: { width: '16%', padding: 4 },
+  colLocation: { width: '26%', padding: 4 },
+  colSize: { width: '16%', padding: 4 },
+  colStatus: { width: '14%', padding: 4, textAlign: 'center' },
+  badgeActive: {
+    backgroundColor: '#dcfce7',
+    color: '#15803d',
+    paddingVertical: 1,
+    paddingHorizontal: 4,
+    borderRadius: 2,
+    fontSize: 6.5,
+    fontFamily: 'Helvetica-Bold',
+  },
+  badgeInactive: {
+    backgroundColor: '#fee2e2',
+    color: '#b91c1c',
+    paddingVertical: 1,
+    paddingHorizontal: 4,
+    borderRadius: 2,
+    fontSize: 6.5,
+    fontFamily: 'Helvetica-Bold',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 15,
+    left: 20,
+    right: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    paddingTop: 5,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  footerText: {
+    fontSize: 7,
+    color: '#94a3b8',
+  },
 });
 
 export const CompanySheetPDFDocument: React.FC<CompanySheetProps> = ({ company, companies }) => {
-    const fechaImpresion = new Date().toLocaleDateString('es-MX', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+  const targetCompanies = companies && companies.length > 0 ? companies : company ? [company] : [];
 
-    // Normalizamos los datos a un arreglo siempre
-    const targetCompanies = companies || (company ? [company] : []);
+  const fechaImpresion = new Date().toLocaleDateString('es-MX', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
-    return (
-        <Document>
-            {targetCompanies.map((comp) => (
-                <Page key={comp._id} size="A4" style={styles.page}>
-                    {/* ENCABEZADO */}
-                    <View style={styles.header}>
-                        <View style={{ width: '70%' }}>
-                            <Text style={styles.title}>{comp.nombreComercial}</Text>
-                            <Text style={styles.subtitle}>{comp.razonSocial}</Text>
-                        </View>
-                        <View style={{ alignItems: 'flex-end' }}>
-                            <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#2563eb', marginBottom: 4 }}>
-                                FICHA TÉCNICA
-                            </Text>
-                            <Text style={[styles.badge, comp.activa ? styles.badgeActive : styles.badgeInactive]}>
-                                {comp.activa ? 'ESTATUS: ACTIVO' : 'ESTATUS: INACTIVO'}
-                            </Text>
-                        </View>
-                    </View>
+  return (
+    <Document>
+      <Page size="A4" orientation="landscape" style={styles.page}>
+        {/* ENCABEZADO */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Reporte de Empresas (Listado Tabular)</Text>
+            <Text style={styles.subtitle}>Directorio Empresarial — Emitido el {fechaImpresion}</Text>
+          </View>
+          <Text style={{ fontSize: 8, color: '#64748b' }}>
+            Total de registros: {targetCompanies.length}
+          </Text>
+        </View>
 
-                    {/* SECCIÓN 1: DATOS GENERALES */}
-                    <Text style={styles.sectionTitle}>1. Información General</Text>
-                    <View style={styles.grid}>
-                        <View style={styles.col6}>
-                            <Text style={styles.label}>RFC</Text>
-                            <Text style={styles.value}>{comp.rfc || 'N/A'}</Text>
-                        </View>
-                        <View style={styles.col6}>
-                            <Text style={styles.label}>Tamaño de la Empresa</Text>
-                            <Text style={styles.value}>{comp.tamanoEmpresa}</Text>
-                        </View>
-                        <View style={styles.col6}>
-                            <Text style={styles.label}>Año de Inicio de Operaciones</Text>
-                            <Text style={styles.value}>{comp.anioInicio || 'N/A'}</Text>
-                        </View>
-                        <View style={styles.col6}>
-                            <Text style={styles.label}>Sitio Web</Text>
-                            <Text style={styles.value}>{comp.sitioWeb || 'Sin registro'}</Text>
-                        </View>
-                    </View>
+        {/* TABLA DE EMPRESAS */}
+        <View style={styles.table}>
+          <View style={[styles.tableRow, styles.tableHeader]}>
+            <View style={styles.colName}>
+              <Text style={styles.headerText}>EMPRESA / RAZÓN SOCIAL</Text>
+            </View>
+            <View style={styles.colRfc}>
+              <Text style={styles.headerText}>RFC</Text>
+            </View>
+            <View style={styles.colLocation}>
+              <Text style={styles.headerText}>UBICACIÓN</Text>
+            </View>
+            <View style={styles.colSize}>
+              <Text style={styles.headerText}>TAMAÑO</Text>
+            </View>
+            <View style={styles.colStatus}>
+              <Text style={styles.headerText}>ESTATUS</Text>
+            </View>
+          </View>
 
-                    {/* SECCIÓN 2: UBICACIÓN */}
-                    <Text style={styles.sectionTitle}>2. Ubicación Geográfica</Text>
-                    <View style={styles.grid}>
-                        <View style={styles.col6}>
-                            <Text style={styles.label}>Estado</Text>
-                            <Text style={styles.value}>{comp.ubicacion?.estado || 'N/A'}</Text>
-                        </View>
-                        <View style={styles.col6}>
-                            <Text style={styles.label}>Municipio</Text>
-                            <Text style={styles.value}>{comp.ubicacion?.municipio || 'N/A'}</Text>
-                        </View>
-                    </View>
+          {targetCompanies.map((comp, idx) => (
+            <View
+              key={comp._id || idx}
+              style={[
+                styles.tableRow,
+                { backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc' },
+              ]}
+            >
+              <View style={styles.colName}>
+                <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 8 }}>
+                  {comp.nombreComercial || 'N/A'}
+                </Text>
+                <Text style={{ fontSize: 7, color: '#64748b' }}>
+                  {comp.razonSocial || 'Sin razón social'}
+                </Text>
+              </View>
+              <View style={styles.colRfc}>
+                <Text>{comp.rfc || 'N/A'}</Text>
+              </View>
+              <View style={styles.colLocation}>
+                <Text>
+                  {[comp.ubicacion?.municipio, comp.ubicacion?.estado]
+                    .filter(Boolean)
+                    .join(', ') || 'N/A'}
+                </Text>
+              </View>
+              <View style={styles.colSize}>
+                <Text>{comp.tamanoEmpresa || 'N/A'}</Text>
+              </View>
+              <View style={styles.colStatus}>
+                <Text style={comp.activa ? styles.badgeActive : styles.badgeInactive}>
+                  {comp.activa ? 'ACTIVO' : 'INACTIVO'}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
 
-                    {/* SECCIÓN 3: OPERACIONES Y ETIQUETAS */}
-                    <Text style={styles.sectionTitle}>3. Operaciones y Servicios</Text>
-                    <View style={styles.grid}>
-                        <View style={styles.col12}>
-                            <Text style={styles.label}>Etiquetas / Sectores de Operación</Text>
-                            <View style={styles.tagContainer}>
-                                {comp.etiquetas && comp.etiquetas.length > 0 ? (
-                                    comp.etiquetas.map((tag, idx) => (
-                                        <Text key={idx} style={styles.tag}>
-                                            {tag}
-                                        </Text>
-                                    ))
-                                ) : (
-                                    <Text style={styles.value}>Sin etiquetas registradas</Text>
-                                )}
-                            </View>
-                        </View>
-                    </View>
-
-                    {/* PIE DE PÁGINA */}
-                    <View style={styles.footer} fixed>
-                        <Text style={styles.footerText}>Generado desde el Directorio Empresarial</Text>
-                        <Text style={styles.footerText}>Fecha de emisión: {fechaImpresion}</Text>
-                    </View>
-                </Page>
-            ))}
-        </Document>
-    );
+        {/* PIE DE PÁGINA */}
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerText}>Reporte generado desde el Sistema de Directorio Empresarial</Text>
+          <Text
+            style={styles.footerText}
+            render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`}
+          />
+        </View>
+      </Page>
+    </Document>
+  );
 };

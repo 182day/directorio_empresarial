@@ -4,10 +4,11 @@ import { AuthContext } from '../context/AuthContext';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
 import api from '../api/axios';
-import { CompanyForm } from '../components/CompanyForm'
+import { CompanyForm } from '../components/CompanyForm';
 import { type CompanyFormData } from '../interfaces/company.interface';
 import { CompaniesFilterDrawer } from '../components/CompaniesFilterDrawer';
 import { Pagination } from '../components/Pagination';
+import { CompanyDetailsModal } from '../components/CompanyDetailsModal';
 import {
     Plus, Edit2, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download, FileText, BarChart3
 } from 'lucide-react';
@@ -32,7 +33,6 @@ import {
 // Importación de React PDF
 import { CompaniesPDFDocument } from '../components/CompaniesPDFDocument';
 import { CompanySheetPDFDocument } from '../components/CompanySheetPDFDocument';
-
 
 const OPCIONES_TAMANO = ['Micro', 'Pequeña', 'Mediana', 'Grande'];
 const COLORES_GRAFICA = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
@@ -62,12 +62,23 @@ export const CompaniesPage = () => {
     const [selectedEstatus, setSelectedEstatus] = useState<string[]>([]);
     const [selectedEtiquetas, setSelectedEtiquetas] = useState<string[]>([]);
 
-    // Estados para Modales (Crear/Editar y Ver)
+    // Estados para Modal Crear/Editar
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCompany, setEditingCompany] = useState<CompanyFormData | null>(null);
 
-    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    // Estados para Modal de Detalles
     const [viewingCompany, setViewingCompany] = useState<CompanyFormData | null>(null);
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+    const handleOpenDetails = (company: CompanyFormData) => {
+        setViewingCompany(company);
+        setIsDetailsOpen(true);
+    };
+
+    const handleCloseDetails = () => {
+        setViewingCompany(null);
+        setIsDetailsOpen(false);
+    };
 
     useEffect(() => {
         fetchCompanies();
@@ -153,7 +164,6 @@ export const CompaniesPage = () => {
                 (selectedEstatus.includes('Inactivo') && !comp.activa)
             );
 
-            // --- CAMBIO AQUÍ: Usamos .some() en lugar de .every() para que sea un filtro tipo OR ---
             const matchEtiquetas = selectedEtiquetas.length === 0 || (
                 comp.etiquetas && selectedEtiquetas.some((etq) => comp.etiquetas.includes(etq))
             );
@@ -162,7 +172,7 @@ export const CompaniesPage = () => {
         });
     }, [companies, selectedTamanos, selectedEstados, selectedMunicipios, selectedEstatus, selectedEtiquetas]);
 
-    // 📊 DATOS CALCULADOS PARA LAS GRÁFICAS (Basados en las empresas filtradas actualmente)
+    // 📊 DATOS CALCULADOS PARA LAS GRÁFICAS
     const dataTamanoGrafica = useMemo(() => {
         const conteo: Record<string, number> = {};
         filteredCompanies.forEach((c) => {
@@ -207,55 +217,6 @@ export const CompaniesPage = () => {
         setIsModalOpen(false);
         setEditingCompany(null);
     };
-
-    const openViewModal = (company: CompanyFormData) => {
-        setViewingCompany(company);
-        setIsViewModalOpen(true);
-    };
-
-    const closeViewModal = () => {
-        setIsViewModalOpen(false);
-        setViewingCompany(null);
-    };
-
-    // const handleFormSubmit = async (formData: CompanyFormData) => {
-    //     // const operacionesArray = formData.etiquetas
-    //     //     ? formData.etiquetas.split(',').map((op) => op.trim())
-    //     //     : [];
-
-    //     // const tipoOperacionesFinal = operacionesArray.length > 0 ? operacionesArray : ['Servicios'];
-
-    //     // const payload = {
-    //     //     nombreComercial: formData.nombreComercial,
-    //     //     razonSocial: formData.razonSocial,
-    //     //     rfc: formData.rfc,
-    //     //     tamanoEmpresa: formData.tamanoEmpresa,
-    //     //     anioInicio: Number(formData.anioInicio),
-    //     //     sitioWeb: formData.sitioWeb || '',
-    //     //     etiquetas: tipoOperacionesFinal,
-    //     //     tipoSuministro: ['Directo'],
-    //     //     estado: formData.estado,
-    //     //     municipio: formData.municipio,
-    //     //     direccion: 'Sin dirección registrada',
-    //     //     colonia: 'Sin colonia',
-    //     //     codigoPostal: '00000',
-    //     //     parqueIndustrial: '',
-    //     //     activa: formData.activo
-    //     // };
-
-    //     // try {
-    //     //     if (editingCompany) {
-    //     //         await api.put(`/companies/${editingCompany._id}`, payload);
-    //     //     } else {
-    //     //         await api.post('/companies', payload);
-    //     //     }
-
-    //     //     closeModal();
-    //     //     fetchCompanies();
-    //     // } catch (error: any) {
-    //     //     throw error;
-    //     // }
-    // };
 
     const handleDelete = (id: string, nombre: string) => {
         Swal.fire({
@@ -379,8 +340,7 @@ export const CompaniesPage = () => {
             {/* BARRA SUPERIOR DE ACCIONES */}
             <div className="flex flex-col 2xl:flex-row items-stretch 2xl:items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3 w-full 2xl:w-auto flex-wrap">
-                    {/* Buscador General por Nombre/RFC */}
-                    <div className="relative flex-1 sm:w-72 min-w-[200px]">
+                    <div className="relative flex-1 sm:w-72 min-w-50">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                             type="text"
@@ -391,7 +351,6 @@ export const CompaniesPage = () => {
                         />
                     </div>
 
-                    {/* Botón para Abrir Drawer de Filtros */}
                     <button
                         onClick={() => setIsFilterDrawerOpen(true)}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all shrink-0 ${totalFiltrosActivos > 0
@@ -408,10 +367,8 @@ export const CompaniesPage = () => {
                         )}
                     </button>
 
-                    {/* GRUPO DE ACCIONES (Gráficas y Exportación) */}
                     {filteredCompanies.length > 0 && (
                         <div className="flex items-center gap-2 flex-wrap">
-                            {/* BOTÓN PARA ABRIR MODAL DE GRÁFICAS ESTADÍSTICAS */}
                             <button
                                 type="button"
                                 onClick={() => setIsChartsModalOpen(true)}
@@ -436,9 +393,12 @@ export const CompaniesPage = () => {
                                 type="button"
                                 onClick={async () => {
                                     const { pdf } = await import('@react-pdf/renderer');
+
+                                    // Si estamos en modo tabla -> CompanySheetPDFDocument (Modo Tabla)
+                                    // Si estamos en modo cards -> CompaniesPDFDocument (Fichas Técnicas)
                                     const doc = tipoVista === 'tabla'
-                                        ? <CompaniesPDFDocument companies={filteredCompanies} />
-                                        : <CompanySheetPDFDocument companies={filteredCompanies} />;
+                                        ? <CompanySheetPDFDocument companies={filteredCompanies} />
+                                        : <CompaniesPDFDocument companies={filteredCompanies} />;
 
                                     const blob = await pdf(doc).toBlob();
                                     const nombreArchivo = tipoVista === 'tabla'
@@ -451,9 +411,7 @@ export const CompaniesPage = () => {
                                 className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0"
                             >
                                 <FileText className="w-4 h-4" />
-                                <span>
-                                    PDF
-                                </span>
+                                <span>PDF</span>
                             </button>
                         </div>
                     )}
@@ -626,7 +584,7 @@ export const CompaniesPage = () => {
 
                                                 <td className="px-6 py-4 text-right space-x-2">
                                                     <button
-                                                        onClick={() => openViewModal(comp)}
+                                                        onClick={() => handleOpenDetails(comp)}
                                                         className="p-1.5 bg-slate-700 hover:bg-slate-600 text-blue-400 rounded-md transition-colors"
                                                         title="Ver detalles"
                                                     >
@@ -643,7 +601,6 @@ export const CompaniesPage = () => {
                                                                 <Edit2 className="w-4 h-4" />
                                                             </button>
                                                             <button
-                                                                //onClick={() => handleDelete(comp._id!, comp.nombreComercial)}
                                                                 onClick={() => comp._id && handleDelete(comp._id, comp.nombreComercial)}
                                                                 className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/20 transition-colors"
                                                                 title="Eliminar"
@@ -711,11 +668,10 @@ export const CompaniesPage = () => {
 
                                     <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-700/60 mt-2">
                                         <button
-                                            onClick={() => openViewModal(comp)}
+                                            onClick={() => handleOpenDetails(comp)}
                                             className="p-2 bg-slate-700 hover:bg-slate-600 text-blue-400 rounded-lg transition-colors text-xs flex items-center gap-1"
                                         >
                                             <Eye className="w-4 h-4" />
-                                            <span>Detalles</span>
                                         </button>
 
                                         {canEdit && (
@@ -728,7 +684,6 @@ export const CompaniesPage = () => {
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    //onClick={() => handleDelete(comp._id!, comp.nombreComercial)}
                                                     onClick={() => comp._id && handleDelete(comp._id, comp.nombreComercial)}
                                                     className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/20 transition-colors"
                                                     title="Eliminar"
@@ -754,11 +709,10 @@ export const CompaniesPage = () => {
                 </>
             )}
 
-            {/* 📊 MODAL DE GRÁFICAS ESTADÍSTICAS CON RECHARTS */}
+            {/* 📊 MODAL DE GRÁFICAS ESTADÍSTICAS */}
             {isChartsModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
                     <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl my-8">
-                        {/* Cabecera del Modal */}
                         <div className="p-6 border-b border-slate-700 flex items-center justify-between bg-slate-800/60">
                             <div>
                                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -777,10 +731,7 @@ export const CompaniesPage = () => {
                             </button>
                         </div>
 
-                        {/* Cuerpo de las Gráficas */}
                         <div className="p-6 max-h-[75vh] overflow-y-auto space-y-8">
-                            {/* Gráfica 1: Tamaño de Empresa */}
-                            {/* Gráfica 1: Tamaño de Empresa (Pastel / Pie Chart) */}
                             <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl p-5 shadow-md">
                                 <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
                                     <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
@@ -796,7 +747,7 @@ export const CompaniesPage = () => {
                                                 cx="50%"
                                                 cy="50%"
                                                 outerRadius={80}
-                                                innerRadius={40} // Si lo quieres como dona (doughnut), déjalo en 40. Si lo quieres totalmente sólido, bórralo o ponlo en 0.
+                                                innerRadius={40}
                                                 label={({ name, percent }) => {
                                                     const itemName = name ?? 'Sin nombre';
                                                     const itemPercent = percent ? (percent * 100).toFixed(0) : 0;
@@ -821,7 +772,6 @@ export const CompaniesPage = () => {
                                 </div>
                             </div>
 
-                            {/* Gráfica 2: Estados */}
                             <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl p-5 shadow-md">
                                 <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
                                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
@@ -846,7 +796,6 @@ export const CompaniesPage = () => {
                                 </div>
                             </div>
 
-                            {/* Gráfica 3: Municipios (Solo se muestra si hay algún estado seleccionado) */}
                             {selectedEstados.length > 0 && (
                                 <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl p-5 shadow-md animate-fade-in">
                                     <h3 className="text-sm font-semibold text-slate-200 mb-1 flex items-center gap-2">
@@ -877,7 +826,6 @@ export const CompaniesPage = () => {
                             )}
                         </div>
 
-                        {/* Pie del Modal */}
                         <div className="p-4 border-t border-slate-700 bg-slate-800/60 flex justify-end">
                             <button
                                 onClick={() => setIsChartsModalOpen(false)}
@@ -953,106 +901,11 @@ export const CompaniesPage = () => {
             )}
 
             {/* MODAL VER DETALLES */}
-            {isViewModalOpen && viewingCompany && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-                    <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl">
-                        <div className="p-6 border-b border-slate-700 flex items-center justify-between">
-                            <div>
-                                <h2 className="text-xl font-bold text-white">{viewingCompany.nombreComercial}</h2>
-                                <p className="text-xs text-slate-400">{viewingCompany.razonSocial}</p>
-                            </div>
-                            <button onClick={closeViewModal} className="text-slate-400 hover:text-white transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="p-6 space-y-4 text-sm text-slate-300">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <span className="text-xs text-slate-500 uppercase font-semibold">RFC</span>
-                                    <p className="font-medium text-white">{viewingCompany.rfc}</p>
-                                </div>
-                                <div>
-                                    <span className="text-xs text-slate-500 uppercase font-semibold">Tamaño</span>
-                                    <p className="font-medium text-white">{viewingCompany.tamanoEmpresa}</p>
-                                </div>
-                                <div>
-                                    <span className="text-xs text-slate-500 uppercase font-semibold">Ubicación</span>
-                                    <p className="font-medium text-white">{viewingCompany.ubicacion?.municipio}, {viewingCompany.ubicacion?.estado}</p>
-                                </div>
-                                <div>
-                                    <span className="text-xs text-slate-500 uppercase font-semibold">Año Inicio</span>
-                                    <p className="font-medium text-white">{viewingCompany.anioInicio}</p>
-                                </div>
-
-                                {canEdit && (
-                                    <div>
-                                        <span className="text-xs text-slate-500 uppercase font-semibold block mb-1">Estatus</span>
-                                        <span
-                                            className={`px-2.5 py-0.5 text-xs rounded border font-medium inline-flex items-center gap-1.5 ${viewingCompany.activa
-                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                                                }`}
-                                        >
-                                            <span className={`w-1.5 h-1.5 rounded-full ${viewingCompany.activa ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-                                            {viewingCompany.activa ? 'Activo' : 'Inactivo'}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {viewingCompany.sitioWeb && (
-                                <div>
-                                    <span className="text-xs text-slate-500 uppercase font-semibold">Sitio Web</span>
-                                    <p>
-                                        <a href={viewingCompany.sitioWeb} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
-                                            {viewingCompany.sitioWeb}
-                                        </a>
-                                    </p>
-                                </div>
-                            )}
-
-                            <div>
-                                <span className="text-xs text-slate-500 uppercase font-semibold">Etiquetas</span>
-                                <div className="flex gap-2 mt-1 flex-wrap">
-                                    {viewingCompany.etiquetas?.map((op) => (
-                                        <span key={op} className="px-2.5 py-0.5 bg-slate-700 text-slate-200 text-xs rounded-md">
-                                            {op}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* PIE DEL MODAL CON BOTÓN DE FICHA TÉCNICA PDF */}
-                        <div className="p-4 border-t border-slate-700 bg-slate-900/40 flex items-center justify-between">
-                            <button
-                                type="button"
-                                onClick={async () => {
-                                    const { pdf } = await import('@react-pdf/renderer');
-                                    const doc = <CompanySheetPDFDocument company={viewingCompany} />;
-                                    const blob = await pdf(doc).toBlob();
-                                    const nombreLimpio = viewingCompany.nombreComercial
-                                        .replace(/[^a-zA-Z0-9_-]/g, '_');
-
-                                    saveAs(blob, `Ficha_Tecnica_${nombreLimpio}.pdf`);
-                                }}
-                                className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
-                            >
-                                <FileText className="w-4 h-4" />
-                                <span>Descargar Ficha Técnica PDF</span>
-                            </button>
-
-                            <button
-                                onClick={closeViewModal}
-                                className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                            >
-                                Cerrar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <CompanyDetailsModal
+                isOpen={isDetailsOpen}
+                company={viewingCompany}
+                onClose={handleCloseDetails}
+            />
         </>
     );
 };
