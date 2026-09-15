@@ -20,6 +20,8 @@ export interface CompanyFormData {
     colonia: string;
     codigoPostal: string;
     parqueIndustrial?: string;
+    latitud?: number | '';
+    longitud?: number | '';
   };
   contactos: {
     directorGeneral: {

@@ -11,32 +11,17 @@ import { Pagination } from '../components/Pagination';
 import { CompanyDetailsModal } from '../components/CompanyDetailsModal';
 import {
     Plus, Edit2, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download, FileText, BarChart3,
-    Hash, Calendar, Layers, Truck, Flag
+    Hash, Calendar, Layers, Truck, Flag, CheckSquare, Square, ListChecks, CheckCheck
 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { exportCompaniesToExcel } from '../components/CompaniesSheetExcel';
-
-// Importación de Recharts para las gráficas estadísticas
-import {
-    ResponsiveContainer,
-    BarChart,
-    Bar,
-    PieChart,
-    Pie,
-    XAxis,
-    YAxis,
-    Tooltip,
-    CartesianGrid,
-    Cell,
-    Legend
-} from 'recharts';
+import { CompaniesGraphics } from '../components/CompaniesGraphics';
 
 // Importación de React PDF
 import { CompaniesPDFDocument } from '../components/CompaniesPDFDocument';
 import { CompanySheetPDFDocument } from '../components/CompanySheetPDFDocument';
 
 const OPCIONES_TAMANO = ['Micro', 'Pequeña', 'Mediana', 'Grande'];
-const COLORES_GRAFICA = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
 
 // Los "Productos o Servicios" no viven en un campo único: cada empresa los guarda
 // dentro del sub-objeto del sector específico al que pertenece (ver SECTORES_CONFIG en CompanyForm.tsx)
@@ -66,6 +51,10 @@ export const CompaniesPage = () => {
 
     // Estado del Drawer de Filtros Lateral
     const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+
+    // Estados para Selección Múltiple de Empresas (persiste aunque cambien los filtros/búsqueda)
+    const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
+    const [showOnlySelected, setShowOnlySelected] = useState(false);
 
     // Estado para el Modal de Gráficas Estadísticas
     const [isChartsModalOpen, setIsChartsModalOpen] = useState(false);
@@ -256,6 +245,25 @@ export const CompaniesPage = () => {
         }
     };
 
+    // --- Selección de Empresas ---
+    const toggleCompanySelection = (id?: string) => {
+        if (!id) return;
+        setSelectedCompanyIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
+    const clearSelection = () => {
+        setSelectedCompanyIds(new Set());
+        setShowOnlySelected(false);
+    };
+
     const handleToggleEstatus = (estatus: string) => {
         setCurrentPage(1);
         setSelectedEstatus((prev) =>
@@ -368,41 +376,44 @@ export const CompaniesPage = () => {
         selectedSectores, selectedProductos
     ]);
 
-    // 📊 DATOS CALCULADOS PARA LAS GRÁFICAS
-    const dataTamanoGrafica = useMemo(() => {
-        const conteo: Record<string, number> = {};
-        filteredCompanies.forEach((c) => {
-            const tam = c.tamanoEmpresa || 'No especificado';
-            conteo[tam] = (conteo[tam] || 0) + 1;
-        });
-        return Object.keys(conteo).map((key) => ({ name: key, total: conteo[key] }));
-    }, [filteredCompanies]);
+    // Si está activo "mostrar solo seleccionadas", se ignoran los filtros y se muestran
+    // únicamente las empresas marcadas (sin importar en qué página/búsqueda fueron seleccionadas)
+    const displayedCompanies = useMemo(() => {
+        if (showOnlySelected) {
+            return companies.filter((c) => c._id && selectedCompanyIds.has(c._id));
+        }
+        return filteredCompanies;
+    }, [showOnlySelected, companies, selectedCompanyIds, filteredCompanies]);
 
-    const dataEstadoGrafica = useMemo(() => {
-        const conteo: Record<string, number> = {};
-        filteredCompanies.forEach((c) => {
-            const estado = c.ubicacion?.estado || 'Sin estado';
-            conteo[estado] = (conteo[estado] || 0) + 1;
-        });
-        return Object.keys(conteo).map((key) => ({ name: key, total: conteo[key] }));
-    }, [filteredCompanies]);
-
-    const dataMunicipioGrafica = useMemo(() => {
-        if (selectedEstados.length === 0) return [];
-        const conteo: Record<string, number> = {};
-        filteredCompanies.forEach((c) => {
-            const muni = c.ubicacion?.municipio || 'Sin municipio';
-            conteo[muni] = (conteo[muni] || 0) + 1;
-        });
-        return Object.keys(conteo).map((key) => ({ name: key, total: conteo[key] }));
-    }, [filteredCompanies, selectedEstados]);
+    // Reinicia la vista de "solo seleccionadas" si quedan 1 o 0 empresas seleccionadas
+    useEffect(() => {
+        if (showOnlySelected && selectedCompanyIds.size <= 1) {
+            setShowOnlySelected(false);
+        }
+    }, [selectedCompanyIds, showOnlySelected]);
 
     const paginatedCompanies = useMemo(() => {
-        if (pageSize === 'all') return filteredCompanies;
+        if (pageSize === 'all') return displayedCompanies;
 
         const startIndex = (currentPage - 1) * pageSize;
-        return filteredCompanies.slice(startIndex, startIndex + pageSize);
-    }, [filteredCompanies, currentPage, pageSize]);
+        return displayedCompanies.slice(startIndex, startIndex + pageSize);
+    }, [displayedCompanies, currentPage, pageSize]);
+
+    // ¿Están seleccionadas todas las empresas actualmente visibles (la página actual)?
+    const allVisibleSelected = paginatedCompanies.length > 0 &&
+        paginatedCompanies.every((c) => c._id && selectedCompanyIds.has(c._id));
+
+    const toggleSelectAllVisible = () => {
+        setSelectedCompanyIds((prev) => {
+            const next = new Set(prev);
+            if (allVisibleSelected) {
+                paginatedCompanies.forEach((c) => { if (c._id) next.delete(c._id); });
+            } else {
+                paginatedCompanies.forEach((c) => { if (c._id) next.add(c._id); });
+            }
+            return next;
+        });
+    };
 
     const openModal = (company?: CompanyFormData) => {
         setEditingCompany(company || null);
@@ -460,7 +471,7 @@ export const CompaniesPage = () => {
         selectedProductos.length;
 
     const handleExportExcel = async () => {
-        await exportCompaniesToExcel(filteredCompanies);
+        await exportCompaniesToExcel(displayedCompanies, user);
     };
 
     return (
@@ -499,6 +510,41 @@ export const CompaniesPage = () => {
                         <div className="flex items-center gap-2 flex-wrap">
                             <button
                                 type="button"
+                                onClick={toggleSelectAllVisible}
+                                title={allVisibleSelected ? 'Deseleccionar las visibles' : 'Seleccionar todas las visibles'}
+                                className={`flex items-center gap-2 font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0 border ${allVisibleSelected
+                                    ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:border-slate-600'
+                                    }`}
+                            >
+                                <ListChecks className="w-4 h-4" />
+                                <span className="hidden sm:inline">
+                                    {allVisibleSelected ? 'Deseleccionar visibles' : 'Seleccionar todas las visibles'}
+                                </span>
+                            </button>
+
+                            {selectedCompanyIds.size > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setCurrentPage(1);
+                                        setShowOnlySelected((prev) => !prev);
+                                    }}
+                                    title={showOnlySelected ? 'Mostrar todos los resultados' : 'Mostrar solo las empresas seleccionadas'}
+                                    className={`flex items-center gap-2 font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0 ${showOnlySelected
+                                        ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                                        : 'bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-600'
+                                        }`}
+                                >
+                                    <CheckCheck className="w-4 h-4" />
+                                    <span className="hidden sm:inline">
+                                        {showOnlySelected ? 'Mostrar todos los resultados' : `Mostrar seleccionadas (${selectedCompanyIds.size})`}
+                                    </span>
+                                </button>
+                            )}
+
+                            <button
+                                type="button"
                                 onClick={() => setIsChartsModalOpen(true)}
                                 title="Ver Gráficas"
                                 className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0"
@@ -523,8 +569,8 @@ export const CompaniesPage = () => {
                                     const { pdf } = await import('@react-pdf/renderer');
 
                                     const doc = tipoVista === 'tabla'
-                                        ? <CompanySheetPDFDocument companies={filteredCompanies} />
-                                        : <CompaniesPDFDocument companies={filteredCompanies} />;
+                                        ? <CompanySheetPDFDocument companies={displayedCompanies} />
+                                        : <CompaniesPDFDocument companies={displayedCompanies} />;
 
                                     const blob = await pdf(doc).toBlob();
                                     const nombreArchivo = tipoVista === 'tabla'
@@ -585,9 +631,20 @@ export const CompaniesPage = () => {
             </div>
 
             {/* CHIPS DE FILTRO */}
-            {totalFiltrosActivos > 0 && (
+            {(totalFiltrosActivos > 0 || selectedCompanyIds.size > 0) && (
                 <div className="flex items-center gap-2 mb-6 flex-wrap bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
                     <span className="text-xs text-slate-400 font-medium">Filtros aplicados:</span>
+
+                    {/* Empresas seleccionadas */}
+                    {selectedCompanyIds.size > 0 && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-600/10 text-blue-400 text-xs rounded-lg border border-blue-500/30 font-medium">
+                            <CheckSquare className="w-3.5 h-3.5" />
+                            Empresas seleccionadas: {selectedCompanyIds.size}
+                            <button onClick={clearSelection} className="hover:text-white" title="Quitar selección">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    )}
 
                     {/* Búsqueda */}
                     {search.trim() !== '' && (
@@ -748,14 +805,41 @@ export const CompaniesPage = () => {
                 </div>
             )}
 
+            {/* CONTADOR DE RESULTADOS ENCONTRADOS */}
+            {!loading && displayedCompanies.length > 0 && (
+                <div className="mb-4 flex items-center justify-between bg-slate-800/60 border border-slate-700/60 px-4 py-2.5 rounded-lg text-sm text-slate-300 shadow-sm">
+                    <span className="font-medium">
+                        {showOnlySelected ? (
+                            <>
+                                Mostrando <strong className="text-blue-400 font-semibold">{displayedCompanies.length}</strong>{' '}
+                                {displayedCompanies.length === 1 ? 'empresa seleccionada' : 'empresas seleccionadas'}
+                            </>
+                        ) : (
+                            <>
+                                Se {displayedCompanies.length === 1 ? 'encontró' : 'encontraron'}{' '}
+                                <strong className="text-blue-400 font-semibold">{displayedCompanies.length}</strong>{' '}
+                                {displayedCompanies.length === 1 ? 'resultado' : 'resultados'}
+                            </>
+                        )}
+                    </span>
+                    {!showOnlySelected && displayedCompanies.length !== companies.length && (
+                        <span className="text-xs text-slate-400">
+                            (filtrados de un total de {companies.length})
+                        </span>
+                    )}
+                </div>
+            )}
+
             {/* TABLA O TARJETAS */}
             {loading ? (
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
                     Cargando datos...
                 </div>
-            ) : filteredCompanies.length === 0 ? (
+            ) : displayedCompanies.length === 0 ? (
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
-                    No se encontraron empresas con los criterios seleccionados.
+                    {showOnlySelected
+                        ? 'No hay empresas seleccionadas.'
+                        : 'No se encontraron empresas con los criterios seleccionados.'}
                 </div>
             ) : (
                 <>
@@ -765,6 +849,7 @@ export const CompaniesPage = () => {
                                 <table className="w-full text-left text-sm text-slate-300">
                                     <thead className="bg-slate-900/60 text-slate-400 text-xs uppercase border-b border-slate-700">
                                         <tr>
+                                            <th className="px-4 py-4 w-10"></th>
                                             <th className="px-6 py-4">Empresa</th>
                                             <th className="px-6 py-4">RFC</th>
                                             <th className="px-6 py-4">Ubicación</th>
@@ -774,8 +859,20 @@ export const CompaniesPage = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-700/60">
-                                        {paginatedCompanies.map((comp) => (
-                                            <tr key={comp._id} className="hover:bg-slate-700/30 transition-colors">
+                                        {paginatedCompanies.map((comp) => {
+                                            const isSelected = Boolean(comp._id && selectedCompanyIds.has(comp._id));
+                                            return (
+                                            <tr key={comp._id} className={`transition-colors ${isSelected ? 'bg-blue-500/5 hover:bg-blue-500/10' : 'hover:bg-slate-700/30'}`}>
+                                                <td className="px-4 py-4">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleCompanySelection(comp._id)}
+                                                        title={isSelected ? 'Quitar selección' : 'Seleccionar empresa'}
+                                                        className={`p-1 rounded-md transition-colors ${isSelected ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
+                                                    >
+                                                        {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                                                    </button>
+                                                </td>
                                                 <td className="px-6 py-4 font-medium text-white">
                                                     <div>{comp.nombreComercial}</div>
                                                     <div className="text-xs text-slate-500">{comp.razonSocial}</div>
@@ -833,7 +930,8 @@ export const CompaniesPage = () => {
                                                     )}
                                                 </td>
                                             </tr>
-                                        ))}
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -842,10 +940,12 @@ export const CompaniesPage = () => {
 
                     {tipoVista === 'cards' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {paginatedCompanies.map((comp) => (
+                            {paginatedCompanies.map((comp) => {
+                                const isSelected = Boolean(comp._id && selectedCompanyIds.has(comp._id));
+                                return (
                                 <div
                                     key={comp._id}
-                                    className="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-xl flex flex-col justify-between hover:border-slate-600 transition-colors"
+                                    className={`bg-slate-800 border rounded-xl p-5 shadow-xl flex flex-col justify-between transition-colors ${isSelected ? 'border-blue-500 ring-1 ring-blue-500/40' : 'border-slate-700 hover:border-slate-600'}`}
                                 >
                                     <div>
                                         <div className="flex items-start justify-between gap-3 mb-3">
@@ -932,6 +1032,18 @@ export const CompaniesPage = () => {
 
                                     <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-700/60 mt-2">
                                         <button
+                                            onClick={() => toggleCompanySelection(comp._id)}
+                                            title={isSelected ? 'Quitar selección' : 'Seleccionar empresa'}
+                                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors text-xs font-medium mr-auto ${isSelected
+                                                ? 'bg-blue-600/20 border border-blue-500/50 text-blue-400'
+                                                : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                                                }`}
+                                        >
+                                            {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                                            <span className="hidden sm:inline">{isSelected ? 'Seleccionada' : 'Seleccionar'}</span>
+                                        </button>
+
+                                        <button
                                             onClick={() => handleOpenDetails(comp)}
                                             className="p-2 bg-slate-700 hover:bg-slate-600 text-blue-400 rounded-lg transition-colors text-xs flex items-center gap-1"
                                         >
@@ -958,14 +1070,15 @@ export const CompaniesPage = () => {
                                         )}
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
 
                     {/* COMPONENTE DE PAGINACIÓN */}
                     <Pagination
                         currentPage={currentPage}
-                        totalItems={filteredCompanies.length}
+                        totalItems={displayedCompanies.length}
                         pageSize={pageSize}
                         onPageChange={setCurrentPage}
                         onPageSizeChange={setPageSize}
@@ -974,133 +1087,12 @@ export const CompaniesPage = () => {
             )}
 
             {/* 📊 MODAL DE GRÁFICAS ESTADÍSTICAS */}
-            {isChartsModalOpen && (               
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col my-8">
-                        <div className="p-6 border-b border-slate-700 flex items-center justify-between bg-slate-800/60">
-                            <div>
-                                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                    <BarChart3 className="w-5 h-5 text-indigo-400" />
-                                    <span>Análisis Estadístico de Empresas</span>
-                                </h2>
-                                <p className="text-xs text-slate-400 mt-0.5">
-                                    Visualización basada en los {filteredCompanies.length} registros filtrados actuales.
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setIsChartsModalOpen(false)}
-                                className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-1.5 rounded-lg border border-slate-700"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="max-h-[80vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none p-6 space-y-6">
-                            <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl p-5 shadow-md">
-                                <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                                    Distribución por Tamaño de Empresa
-                                </h3>
-                                <div className="h-64 w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie
-                                                data={dataTamanoGrafica}
-                                                dataKey="total"
-                                                nameKey="name"
-                                                cx="50%"
-                                                cy="50%"
-                                                outerRadius={80}
-                                                innerRadius={40}
-                                                label={({ name, percent }) => {
-                                                    const itemName = name ?? 'Sin nombre';
-                                                    const itemPercent = percent ? (percent * 100).toFixed(0) : 0;
-                                                    return `${itemName}: ${itemPercent}%`;
-                                                }}
-                                                labelLine={false}
-                                            >
-                                                {dataTamanoGrafica.map((_, index) => (
-                                                    <Cell key={`cell-pie-${index}`} fill={COLORES_GRAFICA[index % COLORES_GRAFICA.length]} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip
-                                                contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '0.5rem', color: '#fff' }}
-                                            />
-                                            <Legend
-                                                verticalAlign="bottom"
-                                                height={36}
-                                                formatter={(value) => <span className="text-xs text-slate-300">{value}</span>}
-                                            />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-
-                            <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl p-5 shadow-md">
-                                <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                                    Distribución por Estado
-                                </h3>
-                                <div className="h-64 w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={dataEstadoGrafica}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                                            <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} allowDecimals={false} />
-                                            <Tooltip
-                                                contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '0.5rem', color: '#fff' }}
-                                            />
-                                            <Bar dataKey="total" fill="#10b981" radius={[4, 4, 0, 0]}>
-                                                {dataEstadoGrafica.map((_, index) => (
-                                                    <Cell key={`cell-est-${index}`} fill={COLORES_GRAFICA[(index + 1) % COLORES_GRAFICA.length]} />
-                                                ))}
-                                            </Bar>
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-
-                            {selectedEstados.length > 0 && (
-                                <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl p-5 shadow-md animate-fade-in">
-                                    <h3 className="text-sm font-semibold text-slate-200 mb-1 flex items-center gap-2">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-                                        Distribución por Municipio
-                                    </h3>
-                                    <p className="text-xs text-slate-400 mb-4">
-                                        Filtrado por los estados: <span className="text-indigo-400 font-medium">{selectedEstados.join(', ')}</span>
-                                    </p>
-                                    <div className="h-64 w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={dataMunicipioGrafica}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                                                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                                                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} allowDecimals={false} />
-                                                <Tooltip
-                                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '0.5rem', color: '#fff' }}
-                                                />
-                                                <Bar dataKey="total" fill="#8b5cf6" radius={[4, 4, 0, 0]}>
-                                                    {dataMunicipioGrafica.map((_, index) => (
-                                                        <Cell key={`cell-mun-${index}`} fill={COLORES_GRAFICA[(index + 2) % COLORES_GRAFICA.length]} />
-                                                    ))}
-                                                </Bar>
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="p-4 border-t border-slate-700 bg-slate-800/60 flex justify-end">
-                            <button
-                                onClick={() => setIsChartsModalOpen(false)}
-                                className="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
-                            >
-                                Cerrar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <CompaniesGraphics
+                isOpen={isChartsModalOpen}
+                onClose={() => setIsChartsModalOpen(false)}
+                companies={filteredCompanies}
+                selectedEstados={selectedEstados}
+            />
 
             {/* DRAWER DE FILTROS */}
             <CompaniesFilterDrawer

@@ -32,3 +32,9 @@ public/uploads/
 
 # Archivos
 *.rar
+
+# Ignora todo dentro de la carpeta documents
+src/assets/*
+
+# Pero no ignores el archivo .gitkeep
+!src/assets/.gitkeep

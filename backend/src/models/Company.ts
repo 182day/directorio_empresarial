@@ -39,6 +39,8 @@ export interface ICompany extends Document {
     colonia: string;
     codigoPostal: string;
     parqueIndustrial?: string;
+    latitud?: number;
+    longitud?: number
   };
   contactos: {
     directorGeneral: IContactoDirector;
@@ -132,7 +134,9 @@ const CompanySchema = new Schema<ICompany>(
       direccion: { type: String, required: true, trim: true },
       colonia: { type: String, required: true, trim: true },
       codigoPostal: { type: String, required: true, trim: true },
-      parqueIndustrial: { type: String, default: '', trim: true }
+      parqueIndustrial: { type: String, default: '', trim: true },
+      latitud: { type: Number, min: -90, max: 90 },   // <--- Validación de rango latitud
+      longitud: { type: Number, min: -180, max: 180 }  // <--- Validación de rango longitud
     },
     contactos: {
       directorGeneral: { type: ContactoDirectorSchema, required: true },

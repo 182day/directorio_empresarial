@@ -165,7 +165,9 @@ export const CompanyForm = ({
             direccion: '',
             colonia: '',
             codigoPostal: '',
-            parqueIndustrial: ''
+            parqueIndustrial: '',
+            latitud: '',
+            longitud: ''
         },
 
         contactos: {
@@ -1110,6 +1112,37 @@ export const CompanyForm = ({
                                 className={getInputClass('ubicacion.parqueIndustrial')}
                             />
                         </div>
+
+                        {(isEditing || !isPublicRegistration) && (<>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-400 mb-1">
+                                    Latitud
+                                </label>
+                                <input
+                                    type="number"
+                                    step="any"
+                                    placeholder="ej. 20.5888"
+                                    value={formData.ubicacion.latitud ?? ''}
+                                    onChange={(e) => handleChange('ubicacion.latitud', e.target.value === '' ? '' : Number(e.target.value))}
+                                    className={getInputClass('ubicacion.latitud')}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-400 mb-1">
+                                    Longitud
+                                </label>
+                                <input
+                                    type="number"
+                                    step="any"
+                                    placeholder="ej. -100.3899"
+                                    value={formData.ubicacion.longitud ?? ''}
+                                    onChange={(e) => handleChange('ubicacion.longitud', e.target.value === '' ? '' : Number(e.target.value))}
+                                    className={getInputClass('ubicacion.longitud')}
+                                />
+                            </div>
+                        </>)
+                        }
                     </div>
                 )}
             </div>

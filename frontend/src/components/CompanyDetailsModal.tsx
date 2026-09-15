@@ -1,11 +1,11 @@
 // src/components/CompanyDetailsModal.tsx
 import React, { useContext } from 'react';
-import { X, Building2, MapPin, Phone, Mail, ShieldCheck, Tag, Users, Award, FileText, Calendar, Hash, Edit2, Trash2, Globe, Briefcase } from 'lucide-react';
+import { X, Building2, MapPin, Phone, Mail, ShieldCheck, Tag, Users, Award, FileText, Calendar, Hash, Edit2, Trash2, Globe, Briefcase, ExternalLink } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { type CompanyFormData } from '../interfaces/company.interface';
 import { AuthContext } from '../context/AuthContext';
-import { CompaniesPDFDocument } from './CompaniesPDFDocument'; // Ajusta la ruta a tu componente PDF
-import { SECTORES_CONFIG, type ColorTheme } from './CompanyForm'; // Misma fuente de sectores/colores que el formulario
+import { CompaniesPDFDocument } from './CompaniesPDFDocument';
+import { SECTORES_CONFIG, type ColorTheme } from './CompanyForm';
 
 interface CompanyDetailsModalProps {
     company: CompanyFormData | null;
@@ -15,8 +15,6 @@ interface CompanyDetailsModalProps {
     onDelete?: (id: string, nombre: string) => void;
 }
 
-// Clases de Tailwind estáticas (por color) para que el JIT las detecte en el build.
-// El colorTheme de cada sector viene de SECTORES_CONFIG en CompanyForm.tsx.
 const COLOR_CLASSES: Record<ColorTheme, string> = {
     blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
@@ -57,8 +55,37 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
         correoElectronico
     } = company;
 
-    // Junta los productos/servicios agrupados por sector (mismo origen/colores que CompanyForm.tsx),
-    // incluyendo "Otro" si lo especificaron
+    // Helper para construir la URL de Google Maps
+    const getGoogleMapsUrl = (): string | null => {
+        if (!ubicacion) return null;
+
+        const hasLat = ubicacion.latitud !== undefined && ubicacion.latitud !== null && ubicacion.latitud !== '';
+        const hasLng = ubicacion.longitud !== undefined && ubicacion.longitud !== null && ubicacion.longitud !== '';
+
+        // Opción A: Usar coordenadas si están disponibles
+        if (hasLat && hasLng) {
+            return `https://www.google.com/maps/search/?api=1&query=${ubicacion.latitud},${ubicacion.longitud}`;
+        }
+
+        // Opción B: Construir búsqueda basada en la dirección física
+        const partesDireccion = [
+            ubicacion.direccion,
+            ubicacion.colonia,
+            ubicacion.municipio,
+            ubicacion.estado,
+            ubicacion.codigoPostal ? `C.P. ${ubicacion.codigoPostal}` : '',
+            'México'
+        ].filter(Boolean).join(', ');
+
+        if (partesDireccion.trim()) {
+            return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(partesDireccion)}`;
+        }
+
+        return null;
+    };
+
+    const googleMapsUrl = getGoogleMapsUrl();
+
     const productosPorSector = informacionEmpresa
         ? SECTORES_CONFIG.map((sector) => {
             const sectorData = (informacionEmpresa as any)[sector.keyName];
@@ -112,7 +139,6 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
 
                     {/* Fila 1: Resumen e Identificación */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-slate-900/60 rounded-xl border border-slate-700/60">
-                        {/* ID - Solo visible para ADMIN */}
                         {isAdmin && _id && (
                             <div>
                                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">ID (Sistema)</span>
@@ -138,12 +164,10 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                             </span>
                         </div>
 
-                        {/* Estatus Activo - Visible para ADMIN y EDITOR */}
                         {canEdit && (
                             <div>
                                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Estatus</span>
-                                <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full border ${activa ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                                    }`}>
+                                <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full border ${activa ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
                                     {activa ? 'Activo' : 'Inactivo'}
                                 </span>
                             </div>
@@ -185,9 +209,26 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
 
                     {/* Ubicación y Sitio Web */}
                     <div className="space-y-3 border-t border-slate-700/60 pt-4">
-                        <h3 className="text-base font-bold text-white flex items-center gap-2">
-                            <MapPin className="w-5 h-5 text-blue-400" /> Ubicación
-                        </h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-base font-bold text-white flex items-center gap-2">
+                                <MapPin className="w-5 h-5 text-blue-400" /> Ubicación
+                            </h3>
+
+                            {/* Botón "Ver Ubicación" */}
+                            {googleMapsUrl && (
+                                <a
+                                    href={googleMapsUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-lg text-xs font-semibold transition-colors"
+                                    title="Ver ubicación en Google Maps"
+                                >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    <span>Ver ubicación</span>
+                                </a>
+                            )}
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800 text-sm">
                             <div>
                                 <p><strong className="text-slate-400">Dirección:</strong> {ubicacion?.direccion || 'N/A'}</p>
@@ -221,7 +262,7 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                 { titulo: 'Compras', data: contactos.compras },
                                 { titulo: 'Ventas', data: contactos.ventas },
                                 { titulo: 'Recursos Humanos', data: contactos.recursosHumanos },
-                            ].filter(item => item.data?.nombreCompleto); // Filtra los que no tienen nombre registrado
+                            ].filter(item => item.data?.nombreCompleto);
 
                             if (listaContactos.length === 0) return null;
 
@@ -231,30 +272,66 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                         <Users className="w-5 h-5 text-blue-400" /> Contactos
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {listaContactos.map((item, index) => (
-                                            <div key={index} className="bg-slate-900/40 p-4 rounded-xl border border-slate-800 text-sm space-y-1">
-                                                <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider block mb-2">{item.titulo}</span>
-                                                <p className="text-white font-medium">{item.data?.nombreCompleto}</p>
-                                                {'cargo' in (item.data || {}) && (item.data as any)?.cargo && (
-                                                    <p className="text-xs text-slate-400 flex items-center gap-1.5 pt-0.5">
-                                                        <Briefcase className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                                                        <span>{(item.data as any).cargo}</span>
-                                                    </p>
-                                                )}
-                                                {item.data?.correoElectronico && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-slate-400 pt-1">
-                                                        <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                                                        <span>{item.data.correoElectronico}</span>
-                                                    </div>
-                                                )}
-                                                {(item.data?.telefono || item.data?.celularWhatsapp) && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                                                        <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                                                        <span>{item.data?.telefono || item.data?.celularWhatsapp}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
+                                        {listaContactos.map((item, index) => {
+                                            const nombreContacto = item.data?.nombreCompleto || 'contacto';
+                                            const empresaNombre = nombreComercial || 'la empresa';
+
+                                            const telefonoCrudo = item.data?.celularWhatsapp || item.data?.telefono || '';
+                                            const telefonoLimpio = telefonoCrudo.replace(/\D/g, '');
+
+                                            const textoWhatsapp = encodeURIComponent(
+                                                `Hola ${nombreContacto}, te escribo de SEDESU en relación a ${empresaNombre}.`
+                                            );
+                                            const urlWhatsapp = telefonoLimpio ? `https://wa.me/${telefonoLimpio}?text=${textoWhatsapp}` : '';
+
+                                            const correo = item.data?.correoElectronico;
+
+                                            return (
+                                                <div key={index} className="bg-slate-900/40 p-4 rounded-xl border border-slate-800 text-sm space-y-1.5">
+                                                    <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider block mb-2">{item.titulo}</span>
+                                                    <p className="text-white font-medium">{nombreContacto}</p>
+
+                                                    {'cargo' in (item.data || {}) && (item.data as any)?.cargo && (
+                                                        <p className="text-xs text-slate-400 flex items-center gap-1.5 pt-0.5">
+                                                            <Briefcase className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                                            <span>{(item.data as any).cargo}</span>
+                                                        </p>
+                                                    )}
+
+                                                    {correo && (
+                                                        <div className="flex items-center gap-1.5 text-xs pt-1">
+                                                            <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                                            <a
+                                                                href={`mailto:${correo}?subject=Contacto%20desde%20SEDESU%20-%20${encodeURIComponent(empresaNombre)}`}
+                                                                className="text-blue-400 hover:underline truncate"
+                                                            >
+                                                                {correo}
+                                                            </a>
+                                                        </div>
+                                                    )}
+
+                                                    {telefonoCrudo && (
+                                                        <div className="flex items-center gap-1.5 text-xs">
+                                                            <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                                            {urlWhatsapp ? (
+                                                                <a
+                                                                    href={urlWhatsapp}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="text-emerald-400 hover:underline flex items-center gap-1 font-medium"
+                                                                    title="Enviar mensaje de WhatsApp"
+                                                                >
+                                                                    <span>{telefonoCrudo}</span>
+                                                                    <span className="text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-1 rounded text-emerald-300">WhatsApp</span>
+                                                                </a>
+                                                            ) : (
+                                                                <span className="text-slate-400">{telefonoCrudo}</span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             );
@@ -273,7 +350,6 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                 <p><strong className="text-slate-400">Principales Clientes:</strong> {informacionEmpresa.principalesClientes || 'N/A'}</p>
                                 <p><strong className="text-slate-400">Sector Principal:</strong> {informacionEmpresa.principalSectorAtiende || 'N/A'}</p>
 
-                                {/* Sectores a los que pertenece */}
                                 {informacionEmpresa.sectoresPertenece?.lista && informacionEmpresa.sectoresPertenece.lista.length > 0 && (
                                     <div>
                                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Sectores a los que pertenece</span>
@@ -292,7 +368,6 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                     </div>
                                 )}
 
-                                {/* Productos o Servicios (agrupados por sector, con el mismo color de cada sector) */}
                                 {productosPorSector.length > 0 && (
                                     <div>
                                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Productos o Servicios</span>
@@ -313,7 +388,6 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                     </div>
                                 )}
 
-                                {/* Certificaciones */}
                                 {informacionEmpresa.certificaciones?.lista && informacionEmpresa.certificaciones.lista.length > 0 && (
                                     <div>
                                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Certificaciones</span>
@@ -332,7 +406,6 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                     </div>
                                 )}
 
-                                {/* Exportación */}
                                 {informacionEmpresa.porcentajeExportaciones !== '' && (
                                     <div className="pt-2 border-t border-slate-800 text-xs">
                                         <span className="text-slate-400 font-semibold block">Exportación:</span>
@@ -367,7 +440,7 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                         </div>
                     )}
 
-                    {/* Etiquetas - Solo visible para USUARIOS LOGEADOS */}
+                    {/* Etiquetas */}
                     {isAuthenticated && etiquetas && etiquetas.length > 0 && (
                         <div className="border-t border-slate-700/60 pt-4">
                             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -385,7 +458,7 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
 
                 </div>
 
-                {/* PIE DEL MODAL CON BOTÓN DE FICHA TÉCNICA PDF, EDITAR, ELIMINAR Y CERRAR */}
+                {/* Pie del Modal */}
                 <div className="p-4 border-t border-slate-700 bg-slate-900/40 flex items-center justify-between">
                     <button
                         type="button"
