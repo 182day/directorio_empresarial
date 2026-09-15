@@ -10,10 +10,11 @@ import { CompaniesFilterDrawer } from '../components/CompaniesFilterDrawer';
 import { Pagination } from '../components/Pagination';
 import { CompanyDetailsModal } from '../components/CompanyDetailsModal';
 import {
-    Plus, Edit2, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download, FileText, BarChart3
+    Plus, Edit2, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download, FileText, BarChart3,
+    Hash, Calendar, Layers, Truck, Flag
 } from 'lucide-react';
-import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { exportCompaniesToExcel } from '../components/CompaniesSheetExcel';
 
 // Importación de Recharts para las gráficas estadísticas
 import {
@@ -57,7 +58,7 @@ export const CompaniesPage = () => {
     const [companies, setCompanies] = useState<CompanyFormData[]>([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
-    const [tipoVista, setTipoVista] = useState<'tabla' | 'cards'>('tabla');
+    const [tipoVista, setTipoVista] = useState<'tabla' | 'cards'>('cards');
 
     // Estados para Paginación
     const [currentPage, setCurrentPage] = useState<number>(1);
@@ -459,84 +460,7 @@ export const CompaniesPage = () => {
         selectedProductos.length;
 
     const handleExportExcel = async () => {
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Reporte de Empresas');
-
-        worksheet.columns = [
-            { header: 'ID', key: 'id', width: 28 },
-            { header: 'Nombre Comercial', key: 'nombreComercial', width: 30 },
-            { header: 'Razón Social', key: 'razonSocial', width: 30 },
-            { header: 'RFC', key: 'rfc', width: 16 },
-            { header: 'Tamaño', key: 'tamanoEmpresa', width: 18 },
-            { header: 'Estado', key: 'estado', width: 22 },
-            { header: 'Municipio', key: 'municipio', width: 22 },
-            { header: 'Estatus', key: 'estatus', width: 15 },
-        ];
-
-        const headerRow = worksheet.getRow(1);
-        headerRow.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFF' } };
-        headerRow.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: '1E3A8A' },
-        };
-        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-        headerRow.height = 25;
-
-        filteredCompanies.forEach((company) => {
-            const estatusTexto = company.activa ? 'Activo' : 'Inactivo';
-
-            const row = worksheet.addRow({
-                id: company._id,
-                nombreComercial: company.nombreComercial,
-                razonSocial: company.razonSocial,
-                rfc: company.rfc,
-                tamanoEmpresa: company.tamanoEmpresa,
-                estado: company.ubicacion?.estado || '',
-                municipio: company.ubicacion?.municipio || '',
-                estatus: estatusTexto,
-            });
-
-            row.alignment = { vertical: 'middle' };
-
-            const statusCell = row.getCell('estatus');
-            statusCell.alignment = { vertical: 'middle', horizontal: 'center' };
-
-            if (company.activa) {
-                statusCell.font = { color: { argb: '15803D' }, bold: true };
-                statusCell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'DCFCE7' },
-                };
-            } else {
-                statusCell.font = { color: { argb: 'B91C1C' }, bold: true };
-                statusCell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FEE2E2' },
-                };
-            }
-        });
-
-        worksheet.eachRow((row) => {
-            row.eachCell((cell) => {
-                cell.border = {
-                    top: { style: 'thin', color: { argb: 'E2E8F0' } },
-                    left: { style: 'thin', color: { argb: 'E2E8F0' } },
-                    bottom: { style: 'thin', color: { argb: 'E2E8F0' } },
-                    right: { style: 'thin', color: { argb: 'E2E8F0' } },
-                };
-            });
-        });
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], {
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        });
-
-        const fileName = `Reporte_Empresas_${new Date().toISOString().split('T')[0]}.xlsx`;
-        saveAs(blob, fileName);
+        await exportCompaniesToExcel(filteredCompanies);
     };
 
     return (
@@ -950,9 +874,28 @@ export const CompaniesPage = () => {
 
                                         <div className="space-y-2 text-xs text-slate-300 my-4">
                                             <div className="flex items-center gap-2">
+                                                <Hash className="w-4 h-4 text-slate-400 shrink-0" />
+                                                <span>RFC: {comp.rfc || 'N/A'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                                                <span>Inicio de operaciones: {comp.anioInicio || 'N/A'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
                                                 <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
                                                 <span>{comp.ubicacion?.municipio}, {comp.ubicacion?.estado}</span>
                                             </div>
+                                            {comp.informacionEmpresa?.paisOrigen && (
+                                                <div className="flex items-center gap-2">
+                                                    <Flag className="w-4 h-4 text-slate-400 shrink-0" />
+                                                    <span>
+                                                        País de Origen:{' '}
+                                                        {comp.informacionEmpresa.paisOrigen === 'Otro' && comp.informacionEmpresa.paisOrigenOtro
+                                                            ? comp.informacionEmpresa.paisOrigenOtro
+                                                            : comp.informacionEmpresa.paisOrigen}
+                                                    </span>
+                                                </div>
+                                            )}
                                             {comp.sitioWeb && (
                                                 <div className="flex items-center gap-2">
                                                     <Globe className="w-4 h-4 text-slate-400 shrink-0" />
@@ -962,6 +905,29 @@ export const CompaniesPage = () => {
                                                 </div>
                                             )}
                                         </div>
+
+                                        {(comp.tipoOperaciones?.length > 0 || comp.tipoSuministro?.length > 0) && (
+                                            <div className="flex flex-wrap gap-1.5 mb-1">
+                                                {comp.tipoOperaciones?.map((op, idx) => (
+                                                    <span
+                                                        key={`op-${idx}`}
+                                                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-500/10 text-purple-400 text-[11px] rounded border border-purple-500/20"
+                                                    >
+                                                        <Layers className="w-3 h-3" />
+                                                        {op}
+                                                    </span>
+                                                ))}
+                                                {comp.tipoSuministro?.map((sum, idx) => (
+                                                    <span
+                                                        key={`sum-${idx}`}
+                                                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-500/10 text-orange-400 text-[11px] rounded border border-orange-500/20"
+                                                    >
+                                                        <Truck className="w-3 h-3" />
+                                                        {sum}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-700/60 mt-2">
@@ -1008,9 +974,9 @@ export const CompaniesPage = () => {
             )}
 
             {/* 📊 MODAL DE GRÁFICAS ESTADÍSTICAS */}
-            {isChartsModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl my-8">
+            {isChartsModalOpen && (               
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col my-8">
                         <div className="p-6 border-b border-slate-700 flex items-center justify-between bg-slate-800/60">
                             <div>
                                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -1029,7 +995,7 @@ export const CompaniesPage = () => {
                             </button>
                         </div>
 
-                        <div className="p-6 max-h-[75vh] overflow-y-auto space-y-8">
+                        <div className="max-h-[80vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none p-6 space-y-6">
                             <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl p-5 shadow-md">
                                 <h3 className="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
                                     <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
@@ -1193,7 +1159,7 @@ export const CompaniesPage = () => {
 
             {/* MODAL CREAR / EDITAR */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
                     <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-8">
                         <div className="p-6 border-b border-slate-700 flex items-center justify-between">
                             <h2 className="text-lg font-bold text-white">

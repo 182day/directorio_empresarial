@@ -1,6 +1,6 @@
 // src/components/CompanyDetailsModal.tsx
 import React, { useContext } from 'react';
-import { X, Building2, MapPin, Phone, Mail, ShieldCheck, Tag, Users, Award, FileText, Calendar, Hash, Edit2, Trash2 } from 'lucide-react';
+import { X, Building2, MapPin, Phone, Mail, ShieldCheck, Tag, Users, Award, FileText, Calendar, Hash, Edit2, Trash2, Globe, Briefcase } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { type CompanyFormData } from '../interfaces/company.interface';
 import { AuthContext } from '../context/AuthContext';
@@ -85,7 +85,7 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
             <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col my-8">
 
                 {/* Encabezado */}
@@ -156,19 +156,25 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                             <FileText className="w-4 h-4 text-blue-400" /> Información General
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900/40 p-4 rounded-xl border border-slate-800 text-sm">
-                            <p><strong className="text-slate-400">Correo Principal:</strong> {correoElectronico || 'N/A'}</p>
                             <p className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-slate-400" />
+                                <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                                <strong className="text-slate-400">Correo Principal:</strong> {correoElectronico || 'N/A'}
+                            </p>
+                            <p className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
                                 <strong className="text-slate-400">Año de Inicio:</strong> {anioInicio || 'N/A'}
                             </p>
                             {presentacionComercial && (
                                 <div className="md:col-span-2 pt-2 border-t border-slate-800">
-                                    <strong className="text-slate-400 block mb-1">Presentación Comercial:</strong>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                                        <strong className="text-slate-400">Presentación Comercial:</strong>
+                                    </div>
                                     <a
                                         href={presentacionComercial.startsWith('http') ? presentacionComercial : `https://${presentacionComercial}`}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-sm text-blue-400 hover:underline break-all"
+                                        className="text-sm text-blue-400 hover:underline break-all pl-6 block"
                                     >
                                         {presentacionComercial}
                                     </a>
@@ -195,8 +201,11 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                             </div>
                             {sitioWeb && (
                                 <div className="md:col-span-2 pt-2 border-t border-slate-800">
-                                    <strong className="text-slate-400">Sitio Web: </strong>
-                                    <a href={sitioWeb.startsWith('http') ? sitioWeb : `https://${sitioWeb}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Globe className="w-4 h-4 text-slate-400 shrink-0" />
+                                        <strong className="text-slate-400">Sitio Web:</strong>
+                                    </div>
+                                    <a href={sitioWeb.startsWith('http') ? sitioWeb : `https://${sitioWeb}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline pl-6 block break-all">
                                         {sitioWeb}
                                     </a>
                                 </div>
@@ -206,35 +215,50 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
 
                     {/* Contactos por Área */}
                     {contactos && (
-                        <div className="space-y-3 border-t border-slate-700/60 pt-4">
-                            <h3 className="text-base font-bold text-white flex items-center gap-2">
-                                <Users className="w-5 h-5 text-blue-400" /> Contactos Clave
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {[
-                                    { titulo: 'Director General', data: contactos.directorGeneral },
-                                    { titulo: 'Compras', data: contactos.compras },
-                                    { titulo: 'Ventas', data: contactos.ventas },
-                                    { titulo: 'Recursos Humanos', data: contactos.recursosHumanos },
-                                ].map((item, index) => (
-                                    <div key={index} className="bg-slate-900/40 p-4 rounded-xl border border-slate-800 text-sm space-y-1">
-                                        <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider block mb-2">{item.titulo}</span>
-                                        <p className="text-white font-medium">{item.data?.nombreCompleto || 'Sin registrar'}</p>
-                                        {'cargo' in (item.data || {}) && (item.data as any)?.cargo && (
-                                            <p className="text-xs text-slate-400">Cargo: {(item.data as any).cargo}</p>
-                                        )}
-                                        <div className="flex items-center gap-1.5 text-xs text-slate-400 pt-1">
-                                            <Mail className="w-3.5 h-3.5 text-slate-500" />
-                                            <span>{item.data?.correoElectronico || 'N/A'}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                                            <Phone className="w-3.5 h-3.5 text-slate-500" />
-                                            <span>{item.data?.telefono || item.data?.celularWhatsapp || 'N/A'}</span>
-                                        </div>
+                        (() => {
+                            const listaContactos = [
+                                { titulo: 'Director General', data: contactos.directorGeneral },
+                                { titulo: 'Compras', data: contactos.compras },
+                                { titulo: 'Ventas', data: contactos.ventas },
+                                { titulo: 'Recursos Humanos', data: contactos.recursosHumanos },
+                            ].filter(item => item.data?.nombreCompleto); // Filtra los que no tienen nombre registrado
+
+                            if (listaContactos.length === 0) return null;
+
+                            return (
+                                <div className="space-y-3 border-t border-slate-700/60 pt-4">
+                                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                                        <Users className="w-5 h-5 text-blue-400" /> Contactos
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {listaContactos.map((item, index) => (
+                                            <div key={index} className="bg-slate-900/40 p-4 rounded-xl border border-slate-800 text-sm space-y-1">
+                                                <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider block mb-2">{item.titulo}</span>
+                                                <p className="text-white font-medium">{item.data?.nombreCompleto}</p>
+                                                {'cargo' in (item.data || {}) && (item.data as any)?.cargo && (
+                                                    <p className="text-xs text-slate-400 flex items-center gap-1.5 pt-0.5">
+                                                        <Briefcase className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                                        <span>{(item.data as any).cargo}</span>
+                                                    </p>
+                                                )}
+                                                {item.data?.correoElectronico && (
+                                                    <div className="flex items-center gap-1.5 text-xs text-slate-400 pt-1">
+                                                        <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                                        <span>{item.data.correoElectronico}</span>
+                                                    </div>
+                                                )}
+                                                {(item.data?.telefono || item.data?.celularWhatsapp) && (
+                                                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                                                        <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                                        <span>{item.data?.telefono || item.data?.celularWhatsapp}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        </div>
+                                </div>
+                            );
+                        })()
                     )}
 
                     {/* Información Industrial */}
