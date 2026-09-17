@@ -4,6 +4,7 @@ import { Types } from 'mongoose';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import { Company } from '../models/Company';
 import { AuditLog } from '../models/AuditLog';
+import { CompanyFollowUp } from '../models/CompanyFollowUp';
 import { getClientIp } from '../utils/getClientIp';
 
 // Helper para procesar el string de etiquetas enviado por el frontend
@@ -289,5 +290,68 @@ export const deleteCompany = async (req: AuthRequest, res: Response): Promise<vo
     res.json({ mensaje: 'Empresa eliminada con éxito' });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al eliminar la empresa', error });
+  }
+};
+
+// POST: Registrar seguimiento de empresa
+export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { empresaId, fechaSeguimiento, horaSeguimiento, tipoSeguimiento, medioAtencion, asunto, descripcion, atencionSeguimiento, estatus } = req.body;
+
+    if (!empresaId || !asunto || !descripcion) {
+      res.status(400).json({ message: 'Los campos empresaId, asunto y descripción son obligatorios.' });
+      return;
+    }
+
+    const userId = req.user?.id || req.user?._id;
+
+    const followUp = new CompanyFollowUp({
+      empresaId,
+      usuarioId: userId ? new Types.ObjectId(userId as string) : undefined,
+      fechaSeguimiento,
+      horaSeguimiento,
+      tipoSeguimiento,
+      medioAtencion,
+      asunto,
+      descripcion,
+      atencionSeguimiento,
+      estatus
+    });
+
+    const savedFollowUp = await followUp.save();
+
+    // 📝 Auditoría
+    if (userId) {
+      await AuditLog.create({
+        accion: 'CREAR',
+        modulo: 'SeguimientoEmpresas',
+        empresaId: new Types.ObjectId(empresaId as string),
+        usuarioId: new Types.ObjectId(userId as string),
+        detalles: { asunto, tipoSeguimiento },
+        ip: getClientIp(req)
+      });
+    }
+
+    res.status(201).json(savedFollowUp);
+  } catch (error: any) {
+    console.error('Error al guardar seguimiento:', error);
+    res.status(500).json({ message: 'Error al registrar el seguimiento.', error: error?.message || error });
+  }
+};
+
+// GET: Obtener seguimientos (de una empresa específica o todos) con Populate (Inner Join)
+export const getCompanyFollowUps = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { companyId } = req.params;
+    const query = companyId ? { empresaId: companyId } : {};
+
+    const followUps = await CompanyFollowUp.find(query)
+      .populate('empresaId', 'nombreComercial rfc razonSocial') // 👈 JOIN con Empresa
+      .populate('usuarioId', 'nombre email')                    // 👈 JOIN con Usuario
+      .sort({ createdAt: -1 });
+
+    res.json(followUps);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener los seguimientos', error });
   }
 };

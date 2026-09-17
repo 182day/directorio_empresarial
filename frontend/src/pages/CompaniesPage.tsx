@@ -9,9 +9,10 @@ import { type CompanyFormData } from '../interfaces/company.interface';
 import { CompaniesFilterDrawer } from '../components/CompaniesFilterDrawer';
 import { Pagination } from '../components/Pagination';
 import { CompanyDetailsModal } from '../components/CompanyDetailsModal';
+import { CompaniesFollowPage } from './CompaniesFollowPage';
 import {
     Plus, Edit2, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download, FileText, BarChart3,
-    Hash, Calendar, Layers, Truck, Flag, CheckSquare, Square, ListChecks, CheckCheck
+    Hash, Calendar, Layers, Truck, Flag, CheckSquare, Square, ListChecks, CheckCheck, ChartGantt
 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { exportCompaniesToExcel } from '../components/CompaniesSheetExcel';
@@ -23,8 +24,6 @@ import { CompanySheetPDFDocument } from '../components/CompanySheetPDFDocument';
 
 const OPCIONES_TAMANO = ['Micro', 'Pequeña', 'Mediana', 'Grande'];
 
-// Los "Productos o Servicios" no viven en un campo único: cada empresa los guarda
-// dentro del sub-objeto del sector específico al que pertenece (ver SECTORES_CONFIG en CompanyForm.tsx)
 const SECTOR_PRODUCT_KEYS = [
     'sectorPlasticos',
     'sectorMetalmecanico',
@@ -52,20 +51,20 @@ export const CompaniesPage = () => {
     // Estado del Drawer de Filtros Lateral
     const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
-    // Estados para Selección Múltiple de Empresas (persiste aunque cambien los filtros/búsqueda)
+    // Estados para Selección Múltiple de Empresas
     const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
     const [showOnlySelected, setShowOnlySelected] = useState(false);
 
     // Estado para el Modal de Gráficas Estadísticas
     const [isChartsModalOpen, setIsChartsModalOpen] = useState(false);
 
-    // Estados para Filtros Múltiples (DENTRO DEL DRAWER)
+    // Estados para Filtros Múltiples
     const [selectedTamanos, setSelectedTamanos] = useState<string[]>([]);
     const [selectedEstados, setSelectedEstados] = useState<string[]>([]);
     const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
     const [selectedEstatus, setSelectedEstatus] = useState<string[]>([]);
     const [selectedEtiquetas, setSelectedEtiquetas] = useState<string[]>([]);
-    const [selectedExporta, setSelectedExporta] = useState<string>(''); // '' | 'si' | 'no'
+    const [selectedExporta, setSelectedExporta] = useState<string>('');
     const [selectedPaisesDestino, setSelectedPaisesDestino] = useState<string[]>([]);
     const [selectedCertificaciones, setSelectedCertificaciones] = useState<string[]>([]);
     const [selectedApoyos, setSelectedApoyos] = useState<string[]>([]);
@@ -81,6 +80,11 @@ export const CompaniesPage = () => {
 
     // Estados para Modal de Detalles
     const [viewingCompany, setViewingCompany] = useState<CompanyFormData | null>(null);
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+    // Estados para Modal de Seguimiento (CompaniesFollowPage)
+    const [followCompany, setFollowCompany] = useState<CompanyFormData | null>(null);
+    const [isFollowModalOpen, setIsFollowModalOpen] = useState(false);
 
     const handleOpenDetails = (company: CompanyFormData) => {
         setViewingCompany(company);
@@ -92,7 +96,15 @@ export const CompaniesPage = () => {
         setIsDetailsOpen(false);
     };
 
-    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+    const handleOpenFollow = (company: CompanyFormData) => {
+        setFollowCompany(company);
+        setIsFollowModalOpen(true);
+    };
+
+    const handleCloseFollow = () => {
+        setFollowCompany(null);
+        setIsFollowModalOpen(false);
+    };
 
     useEffect(() => {
         fetchCompanies();
@@ -209,7 +221,6 @@ export const CompaniesPage = () => {
         return Array.from(set).sort();
     }, [companies]);
 
-    // Opciones dinámicas de Productos / Servicios según el sector seleccionado
     const opcionesProductos = useMemo(() => {
         const set = new Set<string>();
         const empresasFiltradas = selectedSectores.length > 0
@@ -231,7 +242,6 @@ export const CompaniesPage = () => {
         return Array.from(set).sort();
     }, [companies, selectedSectores]);
 
-    // Limpia productos no válidos cuando cambian las opciones disponibles
     useEffect(() => {
         setSelectedProductos((prev) => prev.filter((p) => opcionesProductos.includes(p)));
     }, [opcionesProductos]);
@@ -245,7 +255,6 @@ export const CompaniesPage = () => {
         }
     };
 
-    // --- Selección de Empresas ---
     const toggleCompanySelection = (id?: string) => {
         if (!id) return;
         setSelectedCompanyIds((prev) => {
@@ -307,56 +316,47 @@ export const CompaniesPage = () => {
                 comp.etiquetas && selectedEtiquetas.some((etq) => comp.etiquetas.includes(etq))
             );
 
-            // Exportación
             const pctExp = Number(comp.informacionEmpresa?.porcentajeExportaciones) || 0;
             const matchExporta =
                 selectedExporta === '' ||
                 (selectedExporta === 'si' && pctExp > 0) ||
                 (selectedExporta === 'no' && pctExp === 0);
 
-            // Países Destino
             const matchPaises = selectedPaisesDestino.length === 0 || selectedExporta === 'no' || (
                 comp.informacionEmpresa?.destinoExportaciones &&
                 selectedPaisesDestino.some((p) => comp.informacionEmpresa.destinoExportaciones.includes(p))
             );
 
-            // Certificaciones
             const matchCert = selectedCertificaciones.length === 0 || (
                 comp.informacionEmpresa?.certificaciones?.lista &&
                 selectedCertificaciones.some((c) => comp.informacionEmpresa.certificaciones.lista.includes(c))
             );
 
-            // Apoyos Requeridos
             const matchApoyos = selectedApoyos.length === 0 || (
                 comp.apoyosYNecesidades?.tipos &&
                 selectedApoyos.some((a) => comp.apoyosYNecesidades.tipos.includes(a))
             );
 
-            // Tipo Operaciones
             const matchTipoOp = selectedTipoOperaciones.length === 0 || (
                 comp.tipoOperaciones &&
                 selectedTipoOperaciones.some((op) => comp.tipoOperaciones.includes(op))
             );
 
-            // Tipo Suministro
             const matchTipoSum = selectedTipoSuministro.length === 0 || (
                 comp.tipoSuministro &&
                 selectedTipoSuministro.some((sum) => comp.tipoSuministro.includes(sum))
             );
 
-            // País de Origen
             const matchPaisOrigen = selectedPaisOrigen.length === 0 || (
                 comp.informacionEmpresa?.paisOrigen &&
                 selectedPaisOrigen.includes(comp.informacionEmpresa.paisOrigen)
             );
 
-            // Sectores
             const matchSectores = selectedSectores.length === 0 || (
                 comp.informacionEmpresa?.sectoresPertenece?.lista &&
                 selectedSectores.some((s) => comp.informacionEmpresa.sectoresPertenece.lista.includes(s))
             );
 
-            // Productos y Servicios
             const productosEmpresa = SECTOR_PRODUCT_KEYS.flatMap(
                 (key) => comp.informacionEmpresa?.[key]?.lista || []
             );
@@ -376,8 +376,6 @@ export const CompaniesPage = () => {
         selectedSectores, selectedProductos
     ]);
 
-    // Si está activo "mostrar solo seleccionadas", se ignoran los filtros y se muestran
-    // únicamente las empresas marcadas (sin importar en qué página/búsqueda fueron seleccionadas)
     const displayedCompanies = useMemo(() => {
         if (showOnlySelected) {
             return companies.filter((c) => c._id && selectedCompanyIds.has(c._id));
@@ -385,7 +383,6 @@ export const CompaniesPage = () => {
         return filteredCompanies;
     }, [showOnlySelected, companies, selectedCompanyIds, filteredCompanies]);
 
-    // Reinicia la vista de "solo seleccionadas" si quedan 1 o 0 empresas seleccionadas
     useEffect(() => {
         if (showOnlySelected && selectedCompanyIds.size <= 1) {
             setShowOnlySelected(false);
@@ -399,7 +396,6 @@ export const CompaniesPage = () => {
         return displayedCompanies.slice(startIndex, startIndex + pageSize);
     }, [displayedCompanies, currentPage, pageSize]);
 
-    // ¿Están seleccionadas todas las empresas actualmente visibles (la página actual)?
     const allVisibleSelected = paginatedCompanies.length > 0 &&
         paginatedCompanies.every((c) => c._id && selectedCompanyIds.has(c._id));
 
@@ -511,7 +507,7 @@ export const CompaniesPage = () => {
                             <button
                                 type="button"
                                 onClick={toggleSelectAllVisible}
-                                title={allVisibleSelected ? 'Deseleccionar las visibles' : 'Seleccionar todas las visibles'}
+                                title={allVisibleSelected ? 'Deseleccionar las visibles' : 'Seleccionar las visibles'}
                                 className={`flex items-center gap-2 font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0 border ${allVisibleSelected
                                     ? 'bg-blue-600/20 border-blue-500 text-blue-400'
                                     : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:border-slate-600'
@@ -519,7 +515,7 @@ export const CompaniesPage = () => {
                             >
                                 <ListChecks className="w-4 h-4" />
                                 <span className="hidden sm:inline">
-                                    {allVisibleSelected ? 'Deseleccionar visibles' : 'Seleccionar todas las visibles'}
+                                    {allVisibleSelected ? 'Deseleccionar visibles' : 'Seleccionar las visibles'}
                                 </span>
                             </button>
 
@@ -538,7 +534,7 @@ export const CompaniesPage = () => {
                                 >
                                     <CheckCheck className="w-4 h-4" />
                                     <span className="hidden sm:inline">
-                                        {showOnlySelected ? 'Mostrar todos los resultados' : `Mostrar seleccionadas (${selectedCompanyIds.size})`}
+                                        {showOnlySelected ? 'Mostrar los resultados' : `Mostrar seleccionadas (${selectedCompanyIds.size})`}
                                     </span>
                                 </button>
                             )}
@@ -635,7 +631,6 @@ export const CompaniesPage = () => {
                 <div className="flex items-center gap-2 mb-6 flex-wrap bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
                     <span className="text-xs text-slate-400 font-medium">Filtros aplicados:</span>
 
-                    {/* Empresas seleccionadas */}
                     {selectedCompanyIds.size > 0 && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-600/10 text-blue-400 text-xs rounded-lg border border-blue-500/30 font-medium">
                             <CheckSquare className="w-3.5 h-3.5" />
@@ -646,7 +641,6 @@ export const CompaniesPage = () => {
                         </span>
                     )}
 
-                    {/* Búsqueda */}
                     {search.trim() !== '' && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-400 text-xs rounded-lg border border-amber-500/20">
                             Búsqueda: "{search}"
@@ -656,7 +650,6 @@ export const CompaniesPage = () => {
                         </span>
                     )}
 
-                    {/* Estatus */}
                     {canEdit && selectedEstatus.map((est) => (
                         <span key={est} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
                             Estatus: {est}
@@ -666,7 +659,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Tamaños */}
                     {selectedTamanos.map((tamano) => (
                         <span key={tamano} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20">
                             Tamaño: {tamano}
@@ -676,7 +668,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Sectores */}
                     {selectedSectores.map((sec) => (
                         <span key={sec} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 text-indigo-400 text-xs rounded-lg border border-indigo-500/20">
                             Sector: {sec.toLowerCase().includes('otro especif') ? 'Otro' : sec}
@@ -686,7 +677,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Productos / Servicios */}
                     {selectedProductos.map((prod) => (
                         <span key={prod} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
                             Producto/Servicio: {prod.toLowerCase().includes('otro especif') ? 'Otro' : prod}
@@ -696,7 +686,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Tipo Operaciones */}
                     {selectedTipoOperaciones.map((op) => (
                         <span key={op} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 text-cyan-400 text-xs rounded-lg border border-cyan-500/20">
                             Operación: {op.toLowerCase().includes('otro especifique') ? 'Otro' : op}
@@ -706,7 +695,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Tipo Suministro */}
                     {selectedTipoSuministro.map((sum) => (
                         <span key={sum} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-500/10 text-teal-400 text-xs rounded-lg border border-teal-500/20">
                             Suministro: {sum.toLowerCase().includes('otro especifique') ? 'Otro' : sum}
@@ -716,7 +704,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* País de Origen */}
                     {selectedPaisOrigen.map((pais) => (
                         <span key={pais} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-violet-500/10 text-violet-400 text-xs rounded-lg border border-violet-500/20">
                             Origen: {pais.toLowerCase().includes('otro especifique') ? 'Otro' : pais}
@@ -726,7 +713,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Estados */}
                     {selectedEstados.map((estado) => (
                         <span key={estado} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
                             Estado: {estado}
@@ -736,7 +722,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Municipios */}
                     {selectedMunicipios.map((muni) => (
                         <span key={muni} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-lg border border-purple-500/20">
                             Municipio: {muni}
@@ -746,7 +731,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Exporta */}
                     {selectedExporta !== '' && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-500/10 text-sky-400 text-xs rounded-lg border border-sky-500/20">
                             Exporta: {selectedExporta === 'si' ? 'Sí' : 'No'}
@@ -756,7 +740,6 @@ export const CompaniesPage = () => {
                         </span>
                     )}
 
-                    {/* Países Destino */}
                     {selectedPaisesDestino.map((pais) => (
                         <span key={pais} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-fuchsia-500/10 text-fuchsia-400 text-xs rounded-lg border border-fuchsia-500/20">
                             Destino: {pais.toLowerCase().includes('otro especifique') ? 'Otro' : pais}
@@ -766,7 +749,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Certificaciones */}
                     {selectedCertificaciones.map((cert) => (
                         <span key={cert} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-500/10 text-rose-400 text-xs rounded-lg border border-rose-500/20">
                             Certificación: {cert.toLowerCase().includes('otro especifique') ? 'Otro' : cert}
@@ -776,7 +758,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Apoyos */}
                     {selectedApoyos.map((apoyo) => (
                         <span key={apoyo} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-500/10 text-orange-400 text-xs rounded-lg border border-orange-500/20">
                             Apoyo: {apoyo.toLowerCase().includes('otro especifique') ? 'Otro' : apoyo}
@@ -786,7 +767,6 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
-                    {/* Etiquetas */}
                     {selectedEtiquetas.map((etq) => (
                         <span key={etq} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 text-indigo-400 text-xs rounded-lg border border-indigo-500/20">
                             Etiqueta: {etq.toLowerCase().includes('otro especifique') ? 'Otro' : etq}
@@ -862,74 +842,82 @@ export const CompaniesPage = () => {
                                         {paginatedCompanies.map((comp) => {
                                             const isSelected = Boolean(comp._id && selectedCompanyIds.has(comp._id));
                                             return (
-                                            <tr key={comp._id} className={`transition-colors ${isSelected ? 'bg-blue-500/5 hover:bg-blue-500/10' : 'hover:bg-slate-700/30'}`}>
-                                                <td className="px-4 py-4">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleCompanySelection(comp._id)}
-                                                        title={isSelected ? 'Quitar selección' : 'Seleccionar empresa'}
-                                                        className={`p-1 rounded-md transition-colors ${isSelected ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
-                                                    >
-                                                        {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                                                    </button>
-                                                </td>
-                                                <td className="px-6 py-4 font-medium text-white">
-                                                    <div>{comp.nombreComercial}</div>
-                                                    <div className="text-xs text-slate-500">{comp.razonSocial}</div>
-                                                </td>
-                                                <td className="px-6 py-4 text-slate-400">{comp.rfc}</td>
-                                                <td className="px-6 py-4 text-slate-400">
-                                                    {comp.ubicacion?.municipio}, {comp.ubicacion?.estado}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className="px-2.5 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded border border-blue-500/20">
-                                                        {comp.tamanoEmpresa}
-                                                    </span>
-                                                </td>
-
-                                                {canEdit && (
-                                                    <td className="px-6 py-4">
-                                                        <span
-                                                            className={`px-2.5 py-0.5 text-xs rounded border font-medium inline-flex items-center gap-1.5 ${comp.activa
-                                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                                : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                                                                }`}
+                                                <tr key={comp._id} className={`transition-colors ${isSelected ? 'bg-blue-500/5 hover:bg-blue-500/10' : 'hover:bg-slate-700/30'}`}>
+                                                    <td className="px-4 py-4">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleCompanySelection(comp._id)}
+                                                            title={isSelected ? 'Quitar selección' : 'Seleccionar empresa'}
+                                                            className={`p-1 rounded-md transition-colors ${isSelected ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
                                                         >
-                                                            <span className={`w-1.5 h-1.5 rounded-full ${comp.activa ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-                                                            {comp.activa ? 'Activo' : 'Inactivo'}
+                                                            {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                                                        </button>
+                                                    </td>
+                                                    <td className="px-6 py-4 font-medium text-white">
+                                                        <div>{comp.nombreComercial}</div>
+                                                        <div className="text-xs text-slate-500">{comp.razonSocial}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-slate-400">{comp.rfc}</td>
+                                                    <td className="px-6 py-4 text-slate-400">
+                                                        {comp.ubicacion?.municipio}, {comp.ubicacion?.estado}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className="px-2.5 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded border border-blue-500/20">
+                                                            {comp.tamanoEmpresa}
                                                         </span>
                                                     </td>
-                                                )}
-
-                                                <td className="px-6 py-4 text-right space-x-2">
-                                                    <button
-                                                        onClick={() => handleOpenDetails(comp)}
-                                                        className="p-1.5 bg-slate-700 hover:bg-slate-600 text-blue-400 rounded-md transition-colors"
-                                                        title="Ver detalles"
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                    </button>
 
                                                     {canEdit && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => openModal(comp)}
-                                                                className="p-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md transition-colors"
-                                                                title="Editar"
+                                                        <td className="px-6 py-4">
+                                                            <span
+                                                                className={`px-2.5 py-0.5 text-xs rounded border font-medium inline-flex items-center gap-1.5 ${comp.activa
+                                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                                                    }`}
                                                             >
-                                                                <Edit2 className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => comp._id && handleDelete(comp._id, comp.nombreComercial)}
-                                                                className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/20 transition-colors"
-                                                                title="Eliminar"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </>
+                                                                <span className={`w-1.5 h-1.5 rounded-full ${comp.activa ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                                                                {comp.activa ? 'Activo' : 'Inactivo'}
+                                                            </span>
+                                                        </td>
                                                     )}
-                                                </td>
-                                            </tr>
+
+                                                    <td className="px-6 py-4 text-right space-x-2">
+                                                        <button
+                                                            onClick={() => handleOpenDetails(comp)}
+                                                            className="p-1.5 bg-slate-700 hover:bg-slate-600 text-blue-400 rounded-md transition-colors"
+                                                            title="Ver detalles"
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => handleOpenFollow(comp)}
+                                                            className="p-1.5 bg-slate-700 hover:bg-slate-600 text-amber-400 rounded-md transition-colors"
+                                                            title="Ver seguimientos"
+                                                        >
+                                                            <ChartGantt className="w-4 h-4" />
+                                                        </button>
+
+                                                        {canEdit && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => openModal(comp)}
+                                                                    className="p-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md transition-colors"
+                                                                    title="Editar"
+                                                                >
+                                                                    <Edit2 className="w-4 h-4" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => comp._id && handleDelete(comp._id, comp.nombreComercial)}
+                                                                    className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/20 transition-colors"
+                                                                    title="Eliminar"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </td>
+                                                </tr>
                                             );
                                         })}
                                     </tbody>
@@ -943,133 +931,142 @@ export const CompaniesPage = () => {
                             {paginatedCompanies.map((comp) => {
                                 const isSelected = Boolean(comp._id && selectedCompanyIds.has(comp._id));
                                 return (
-                                <div
-                                    key={comp._id}
-                                    className={`bg-slate-800 border rounded-xl p-5 shadow-xl flex flex-col justify-between transition-colors ${isSelected ? 'border-blue-500 ring-1 ring-blue-500/40' : 'border-slate-700 hover:border-slate-600'}`}
-                                >
-                                    <div>
-                                        <div className="flex items-start justify-between gap-3 mb-3">
-                                            <div>
-                                                <h3 className="font-bold text-white text-base leading-snug">{comp.nombreComercial}</h3>
-                                                <p className="text-xs text-slate-400 line-clamp-1">{comp.razonSocial}</p>
-                                            </div>
-                                            <div className="flex flex-col items-end gap-1.5 shrink-0">
-                                                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded border border-blue-500/20 whitespace-nowrap">
-                                                    {comp.tamanoEmpresa}
-                                                </span>
-
-                                                {canEdit && (
-                                                    <span
-                                                        className={`px-2 py-0.5 text-xs rounded border font-medium flex items-center gap-1.5 whitespace-nowrap ${comp.activa
-                                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                            : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                                                            }`}
-                                                    >
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${comp.activa ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-                                                        {comp.activa ? 'Activo' : 'Inactivo'}
+                                    <div
+                                        key={comp._id}
+                                        className={`bg-slate-800 border rounded-xl p-5 shadow-xl flex flex-col justify-between transition-colors ${isSelected ? 'border-blue-500 ring-1 ring-blue-500/40' : 'border-slate-700 hover:border-slate-600'}`}
+                                    >
+                                        <div>
+                                            <div className="flex items-start justify-between gap-3 mb-3">
+                                                <div>
+                                                    <h3 className="font-bold text-white text-base leading-snug">{comp.nombreComercial}</h3>
+                                                    <p className="text-xs text-slate-400 line-clamp-1">{comp.razonSocial}</p>
+                                                </div>
+                                                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded border border-blue-500/20 whitespace-nowrap">
+                                                        {comp.tamanoEmpresa}
                                                     </span>
+
+                                                    {canEdit && (
+                                                        <span
+                                                            className={`px-2 py-0.5 text-xs rounded border font-medium flex items-center gap-1.5 whitespace-nowrap ${comp.activa
+                                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                                : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                                                }`}
+                                                        >
+                                                            <span className={`w-1.5 h-1.5 rounded-full ${comp.activa ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                                                            {comp.activa ? 'Activo' : 'Inactivo'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2 text-xs text-slate-300 my-4">
+                                                <div className="flex items-center gap-2">
+                                                    <Hash className="w-4 h-4 text-slate-400 shrink-0" />
+                                                    <span>RFC: {comp.rfc || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                                                    <span>Inicio de operaciones: {comp.anioInicio || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+                                                    <span>{comp.ubicacion?.municipio}, {comp.ubicacion?.estado}</span>
+                                                </div>
+                                                {comp.informacionEmpresa?.paisOrigen && (
+                                                    <div className="flex items-center gap-2">
+                                                        <Flag className="w-4 h-4 text-slate-400 shrink-0" />
+                                                        <span>
+                                                            País de Origen:{' '}
+                                                            {comp.informacionEmpresa.paisOrigen === 'Otro' && comp.informacionEmpresa.paisOrigenOtro
+                                                                ? comp.informacionEmpresa.paisOrigenOtro
+                                                                : comp.informacionEmpresa.paisOrigen}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {comp.sitioWeb && (
+                                                    <div className="flex items-center gap-2">
+                                                        <Globe className="w-4 h-4 text-slate-400 shrink-0" />
+                                                        <a href={comp.sitioWeb} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline truncate">
+                                                            {comp.sitioWeb}
+                                                        </a>
+                                                    </div>
                                                 )}
                                             </div>
-                                        </div>
 
-                                        <div className="space-y-2 text-xs text-slate-300 my-4">
-                                            <div className="flex items-center gap-2">
-                                                <Hash className="w-4 h-4 text-slate-400 shrink-0" />
-                                                <span>RFC: {comp.rfc || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                                                <span>Inicio de operaciones: {comp.anioInicio || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                                                <span>{comp.ubicacion?.municipio}, {comp.ubicacion?.estado}</span>
-                                            </div>
-                                            {comp.informacionEmpresa?.paisOrigen && (
-                                                <div className="flex items-center gap-2">
-                                                    <Flag className="w-4 h-4 text-slate-400 shrink-0" />
-                                                    <span>
-                                                        País de Origen:{' '}
-                                                        {comp.informacionEmpresa.paisOrigen === 'Otro' && comp.informacionEmpresa.paisOrigenOtro
-                                                            ? comp.informacionEmpresa.paisOrigenOtro
-                                                            : comp.informacionEmpresa.paisOrigen}
-                                                    </span>
-                                                </div>
-                                            )}
-                                            {comp.sitioWeb && (
-                                                <div className="flex items-center gap-2">
-                                                    <Globe className="w-4 h-4 text-slate-400 shrink-0" />
-                                                    <a href={comp.sitioWeb} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline truncate">
-                                                        {comp.sitioWeb}
-                                                    </a>
+                                            {(comp.tipoOperaciones?.length > 0 || comp.tipoSuministro?.length > 0) && (
+                                                <div className="flex flex-wrap gap-1.5 mb-1">
+                                                    {comp.tipoOperaciones?.map((op, idx) => (
+                                                        <span
+                                                            key={`op-${idx}`}
+                                                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-500/10 text-purple-400 text-[11px] rounded border border-purple-500/20"
+                                                        >
+                                                            <Layers className="w-3 h-3" />
+                                                            {op}
+                                                        </span>
+                                                    ))}
+                                                    {comp.tipoSuministro?.map((sum, idx) => (
+                                                        <span
+                                                            key={`sum-${idx}`}
+                                                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-500/10 text-orange-400 text-[11px] rounded border border-orange-500/20"
+                                                        >
+                                                            <Truck className="w-3 h-3" />
+                                                            {sum}
+                                                        </span>
+                                                    ))}
                                                 </div>
                                             )}
                                         </div>
 
-                                        {(comp.tipoOperaciones?.length > 0 || comp.tipoSuministro?.length > 0) && (
-                                            <div className="flex flex-wrap gap-1.5 mb-1">
-                                                {comp.tipoOperaciones?.map((op, idx) => (
-                                                    <span
-                                                        key={`op-${idx}`}
-                                                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-500/10 text-purple-400 text-[11px] rounded border border-purple-500/20"
+                                        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-700/60 mt-2">
+                                            <button
+                                                onClick={() => toggleCompanySelection(comp._id)}
+                                                title={isSelected ? 'Quitar selección' : 'Seleccionar empresa'}
+                                                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors text-xs font-medium mr-auto ${isSelected
+                                                    ? 'bg-blue-600/20 border border-blue-500/50 text-blue-400'
+                                                    : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                                                    }`}
+                                            >
+                                                {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                                                <span className="hidden sm:inline">{isSelected ? 'Seleccionada' : 'Seleccionar'}</span>
+                                            </button>
+
+                                            <button
+                                                onClick={() => handleOpenDetails(comp)}
+                                                className="p-2 bg-slate-700 hover:bg-slate-600 text-blue-400 rounded-lg transition-colors text-xs flex items-center gap-1"
+                                                title="Ver detalles"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
+
+                                            <button
+                                                onClick={() => handleOpenFollow(comp)}
+                                                className="p-2 bg-slate-700 hover:bg-slate-600 text-amber-400 rounded-lg transition-colors text-xs flex items-center gap-1"
+                                                title="Ver seguimientos"
+                                            >
+                                                <ChartGantt className="w-4 h-4" />
+                                            </button>
+
+                                            {canEdit && (
+                                                <>
+                                                    <button
+                                                        onClick={() => openModal(comp)}
+                                                        className="p-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors"
+                                                        title="Editar"
                                                     >
-                                                        <Layers className="w-3 h-3" />
-                                                        {op}
-                                                    </span>
-                                                ))}
-                                                {comp.tipoSuministro?.map((sum, idx) => (
-                                                    <span
-                                                        key={`sum-${idx}`}
-                                                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-500/10 text-orange-400 text-[11px] rounded border border-orange-500/20"
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => comp._id && handleDelete(comp._id, comp.nombreComercial)}
+                                                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/20 transition-colors"
+                                                        title="Eliminar"
                                                     >
-                                                        <Truck className="w-3 h-3" />
-                                                        {sum}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
-
-                                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-700/60 mt-2">
-                                        <button
-                                            onClick={() => toggleCompanySelection(comp._id)}
-                                            title={isSelected ? 'Quitar selección' : 'Seleccionar empresa'}
-                                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors text-xs font-medium mr-auto ${isSelected
-                                                ? 'bg-blue-600/20 border border-blue-500/50 text-blue-400'
-                                                : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
-                                                }`}
-                                        >
-                                            {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                                            <span className="hidden sm:inline">{isSelected ? 'Seleccionada' : 'Seleccionar'}</span>
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleOpenDetails(comp)}
-                                            className="p-2 bg-slate-700 hover:bg-slate-600 text-blue-400 rounded-lg transition-colors text-xs flex items-center gap-1"
-                                        >
-                                            <Eye className="w-4 h-4" />
-                                        </button>
-
-                                        {canEdit && (
-                                            <>
-                                                <button
-                                                    onClick={() => openModal(comp)}
-                                                    className="p-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors"
-                                                    title="Editar"
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => comp._id && handleDelete(comp._id, comp.nombreComercial)}
-                                                    className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/20 transition-colors"
-                                                    title="Eliminar"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
                                 );
                             })}
                         </div>
@@ -1196,6 +1193,18 @@ export const CompaniesPage = () => {
                 onEdit={openModal}
                 onDelete={handleDelete}
             />
+
+            {/* MODAL CON COMPANIESFOLLOWPAGE */}
+            {isFollowModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col my-8">
+                        <CompaniesFollowPage
+                            company={followCompany}
+                            onClose={handleCloseFollow}
+                        />
+                    </div>
+                </div>
+            )}
         </>
     );
 };

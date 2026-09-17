@@ -13,6 +13,7 @@ import { CompaniesPage } from './pages/CompaniesPage';
 import { UsersPage } from './pages/UsersPage';
 import { AuditLogPage } from './pages/AuditLogPage'; // 👈 Importación de la Bitácora
 import { MyAccountPage } from './pages/MyAccountPage';
+import { CompaniesFollowPage } from './pages/CompaniesFollowPage';
 
 function Router() {
   return (
@@ -58,6 +59,14 @@ function Router() {
               element={
                 <ProtectedRoute>
                   <MyAccountPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/empresas/seguimientos"
+              element={
+                <ProtectedRoute>
+                  <CompaniesFollowPage />
                 </ProtectedRoute>
               }
             />

@@ -1,4 +1,4 @@
-// src/components/companyForm.tsx
+// src/components/CompanyForm.tsx
 import { useState, useEffect, type KeyboardEvent } from 'react';
 import api from '../api/axios';
 import { CheckCircle, X, ChevronDown, Building2, MapPin, Users, Briefcase, HelpCircle, Copy, Check } from 'lucide-react';

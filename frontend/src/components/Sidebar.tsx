@@ -3,7 +3,7 @@ import { useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import {
-    FolderSearch, Building2, Users, BarChart2, History, Settings, X, ChevronRight
+    FolderSearch, Building2, Users, /*BarChart2,*/ ChartGantt, History, Settings, X, ChevronRight
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -35,10 +35,10 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             allowedRoles: ['admin']
         },
         {
-            path: '/estadisticas',
-            label: 'Estadísticas',
-            icon: BarChart2,
-            allowedRoles: ['admin', 'editor']
+            path: '/empresas/seguimientos',
+            label: 'Seguimientos',
+            icon: ChartGantt,
+            allowedRoles: ['admin', 'editor', 'lector']
         },
         {
             path: '/auditoria',
@@ -61,17 +61,15 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
     return (
         <aside
-            className={`bg-slate-800 border-r border-slate-700 transition-all duration-300 ease-in-out flex flex-col shrink-0 ${isOpen ? 'w-64' : 'w-0 overflow-hidden border-none'
+            className={`bg-slate-800 border-r border-slate-700 transition-all duration-300 ease-in-out flex flex-col shrink-0 h-full ${isOpen ? 'w-64' : 'w-0 overflow-hidden border-none'
                 }`}
         >
-            <div className="p-4 border-b border-slate-700/60 flex items-center justify-between">
+            {/* Cabecera del sidebar */}
+            <div className="p-4 border-b border-slate-700/60 flex items-center justify-between shrink-0">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Navegación
                 </span>
-                <button
-                    onClick={onClose}
-                    className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700/50 transition-colors"
-                >
+                <button onClick={onClose} className="...">
                     <X className="w-4 h-4" />
                 </button>
             </div>

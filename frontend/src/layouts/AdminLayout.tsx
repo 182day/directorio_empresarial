@@ -5,7 +5,7 @@ import { Outlet, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Sidebar } from '../components/Sidebar';
 import { CompanyForm } from '../components/CompanyForm';
-import { FolderSearch, Building2, Users, Menu, X, LogOut, LogIn, LayoutDashboard, History, Settings } from 'lucide-react';
+import { FolderSearch, Building2, Users, Menu, X, LogOut, LogIn, LayoutDashboard, History, Settings, ChartGantt } from 'lucide-react';
 //import { toast } from 'sonner';
 
 export const AdminLayout = () => {
@@ -22,6 +22,13 @@ export const AdminLayout = () => {
             return {
                 title: 'Directorio Empresarial',
                 icon: <FolderSearch className="w-6 h-6" />,
+            };
+        }
+
+        if (path.startsWith('/empresas/seguimientos')) {
+            return {
+                title: 'Seguimientos',
+                icon: <ChartGantt className="w-6 h-6" />,
             };
         }
 
@@ -64,7 +71,7 @@ export const AdminLayout = () => {
     // Handler para registrar la empresa mediante la API/Backend
     // const handlePublicRegistrationSubmit = async (formData: any) => {
     //     console.log('hola');
-        
+
     //     try {
     //         // Axios usará la URL base del backend y el endpoint /empresas/public
     //         await api.post('/companies/public', formData);
@@ -84,9 +91,9 @@ export const AdminLayout = () => {
     // }
 
     return (
-        <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
+        <div className="h-screen bg-slate-900 text-slate-100 flex flex-col overflow-hidden">
             {/* Topbar Superior */}
-            <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-30">
+            <header className="bg-slate-800 border-b border-slate-700 z-30 shrink-0">
                 <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* El botón de abrir menú solo aparece si el usuario está autenticado */}
@@ -148,11 +155,16 @@ export const AdminLayout = () => {
             </header>
 
             {/* Estructura Principal */}
-            <div className="flex-1 flex overflow-hidden">
-                {/* El menú lateral solo se renderiza si el usuario está autenticado */}
-                {user && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />}
+            <div className="flex-1 flex overflow-hidden w-full h-full">
+                {/* El menú lateral con su propio scroll */}
+                {user && (
+                    <div className="h-full overflow-y-auto shrink-0">
+                        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+                    </div>
+                )}
 
-                <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto transition-all">
+                {/* El área de contenido principal con su propio scroll independiente */}
+                <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto transition-all h-full">
                     <div className="max-w-7xl mx-auto">
                         <Outlet />
                     </div>
@@ -176,7 +188,7 @@ export const AdminLayout = () => {
                             <CompanyForm
                                 isPublicRegistration={true}
                                 onCancel={() => setIsPublicRegisterOpen(false)}
-                                //onSubmit={handlePublicRegistrationSubmit}
+                            //onSubmit={handlePublicRegistrationSubmit}
                             />
                         </div>
                     </div>

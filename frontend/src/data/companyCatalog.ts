@@ -1,3 +1,5 @@
+// src/data/companyCatalog.ts
+
 export const OPCIONES_OPERACIONES = ['Fabricante', 'Distribuidor', 'Servicios'];
 export const OPCIONES_SUMINISTRO = ['Directo', 'Indirecto'];
 
