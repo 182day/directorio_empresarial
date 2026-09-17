@@ -16,41 +16,41 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
     // Las rutas ahora coinciden exactamente con la estructura del Router.tsx
     const navItems = [
-        { 
-            path: '/', 
-            label: 'Directorio', 
-            icon: FolderSearch, 
-            allowedRoles: ['admin', 'editor', 'lector'] 
+        {
+            path: '/',
+            label: 'Directorio',
+            icon: FolderSearch,
+            allowedRoles: ['admin', 'editor', 'lector']
         },
-        { 
-            path: '/empresas', 
-            label: 'Empresas', 
-            icon: Building2, 
-            allowedRoles: ['admin', 'editor', 'lector'] 
+        {
+            path: '/empresas',
+            label: 'Empresas',
+            icon: Building2,
+            allowedRoles: ['admin', 'editor', 'lector']
         },
-        { 
-            path: '/usuarios', 
-            label: 'Usuarios', 
-            icon: Users, 
-            allowedRoles: ['admin'] 
+        {
+            path: '/usuarios',
+            label: 'Usuarios',
+            icon: Users,
+            allowedRoles: ['admin']
         },
-        { 
-            path: '/estadisticas', 
-            label: 'Estadísticas', 
-            icon: BarChart2, 
-            allowedRoles: ['admin', 'editor'] 
+        {
+            path: '/estadisticas',
+            label: 'Estadísticas',
+            icon: BarChart2,
+            allowedRoles: ['admin', 'editor']
         },
-        { 
-            path: '/auditoria', 
-            label: 'Auditoría', 
-            icon: History, 
-            allowedRoles: ['admin'] 
+        {
+            path: '/auditoria',
+            label: 'Auditoría',
+            icon: History,
+            allowedRoles: ['admin']
         },
-        { 
-            path: '/configuracion', 
-            label: 'Configuración', 
-            icon: Settings, 
-            allowedRoles: ['admin'] 
+        {
+            path: '/micuenta',
+            label: 'Mi Cuenta',
+            icon: Settings,
+            allowedRoles: ['admin', 'editor', 'lector']
         },
     ];
 
@@ -61,9 +61,8 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
     return (
         <aside
-            className={`bg-slate-800 border-r border-slate-700 transition-all duration-300 ease-in-out flex flex-col shrink-0 ${
-                isOpen ? 'w-64' : 'w-0 overflow-hidden border-none'
-            }`}
+            className={`bg-slate-800 border-r border-slate-700 transition-all duration-300 ease-in-out flex flex-col shrink-0 ${isOpen ? 'w-64' : 'w-0 overflow-hidden border-none'
+                }`}
         >
             <div className="p-4 border-b border-slate-700/60 flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -87,10 +86,9 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                             // Usamos "end" para evitar que la ruta '/' permanezca seleccionada cuando navegas a otras rutas
                             end={item.path === '/'}
                             className={({ isActive }) =>
-                                `flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors font-medium ${
-                                    isActive
-                                        ? 'bg-blue-600/20 text-blue-400'
-                                        : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                                `flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors font-medium ${isActive
+                                    ? 'bg-blue-600/20 text-blue-400'
+                                    : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
                                 }`
                             }
                         >

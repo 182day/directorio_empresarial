@@ -36,7 +36,7 @@ interface CompanyFormProps {
     initialData?: Partial<CompanyFormData>;
     isEditing?: boolean;
     isPublicRegistration?: boolean;
-    onSubmit: (data: CompanyFormData) => Promise<void> | void;
+    onSubmit?: (data: CompanyFormData) => Promise<void> | void;
     onCancel?: () => void;
     submitButtonText?: string;
 }

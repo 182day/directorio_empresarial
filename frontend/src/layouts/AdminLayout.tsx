@@ -5,7 +5,7 @@ import { Outlet, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Sidebar } from '../components/Sidebar';
 import { CompanyForm } from '../components/CompanyForm';
-import { FolderSearch, Building2, Users, Menu, X, LogOut, LogIn, LayoutDashboard, History } from 'lucide-react';
+import { FolderSearch, Building2, Users, Menu, X, LogOut, LogIn, LayoutDashboard, History, Settings } from 'lucide-react';
 //import { toast } from 'sonner';
 
 export const AdminLayout = () => {
@@ -43,6 +43,13 @@ export const AdminLayout = () => {
             return {
                 title: 'Auditoría',
                 icon: <History className="w-6 h-6" />,
+            };
+        }
+
+        if (path.startsWith('/micuenta')) {
+            return {
+                title: 'Mi Cuenta',
+                icon: <Settings className="w-6 h-6" />,
             };
         }
 

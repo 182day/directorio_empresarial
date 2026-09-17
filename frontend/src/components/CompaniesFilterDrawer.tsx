@@ -168,7 +168,7 @@ export const CompaniesFilterDrawer = ({
                     </div>
 
                     {/* CUERPO DEL DRAWER */}
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] [scrollbar-width:none]">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
 
                         {/* Filtro: Estatus */}
                         {canEdit && (

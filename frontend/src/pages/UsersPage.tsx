@@ -74,19 +74,19 @@ export const UsersPage = () => {
         }
     };
 
-    const handleToggleStatus = async (user: User) => {
-        try {
-            const nuevoEstado = !user.activo;
-            await api.put(`/users/${user._id}`, { activo: nuevoEstado });
+    // const handleToggleStatus = async (user: User) => {
+    //     try {
+    //         const nuevoEstado = !user.activo;
+    //         await api.put(`/users/${user._id}`, { activo: nuevoEstado });
 
-            toast.success(
-                `Cuenta de ${user.nombre} ${nuevoEstado ? 'activada' : 'desactivada'}.`
-            );
-            fetchUsers();
-        } catch (err: any) {
-            toast.error('No se pudo cambiar el estado del usuario.');
-        }
-    };
+    //         toast.success(
+    //             `Cuenta de ${user.nombre} ${nuevoEstado ? 'activada' : 'desactivada'}.`
+    //         );
+    //         fetchUsers();
+    //     } catch (err: any) {
+    //         toast.error('No se pudo cambiar el estado del usuario.');
+    //     }
+    // };
 
     const handleDelete = (id: string, nombre: string) => {
         Swal.fire({
@@ -187,12 +187,12 @@ export const UsersPage = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <button
-                                                onClick={() => handleToggleStatus(u)}
+                                                // onClick={() => handleToggleStatus(u)}
                                                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${u.activo
                                                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
                                                         : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'
                                                     }`}
-                                                title="Hacer clic para cambiar estado"
+                                                // title="Hacer clic para cambiar estado"
                                             >
                                                 {u.activo ? (
                                                     <>

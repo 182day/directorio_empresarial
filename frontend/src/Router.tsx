@@ -12,6 +12,7 @@ import { AdminLayout } from './layouts/AdminLayout';
 import { CompaniesPage } from './pages/CompaniesPage';
 import { UsersPage } from './pages/UsersPage';
 import { AuditLogPage } from './pages/AuditLogPage'; // 👈 Importación de la Bitácora
+import { MyAccountPage } from './pages/MyAccountPage';
 
 function Router() {
   return (
@@ -49,6 +50,14 @@ function Router() {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AuditLogPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/micuenta"
+              element={
+                <ProtectedRoute>
+                  <MyAccountPage />
                 </ProtectedRoute>
               }
             />
