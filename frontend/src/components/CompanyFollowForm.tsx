@@ -34,36 +34,45 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Estados para Empresas Vinculadas (Typeahead Múltiple)
+  const [selectedVinculadas, setSelectedVinculadas] = useState<CompanyFormData[]>([]);
+  const [searchVinculadasTerm, setSearchVinculadasTerm] = useState('');
+  const [isVinculadasDropdownOpen, setIsVinculadasDropdownOpen] = useState(false);
+  const dropdownVinculadasRef = useRef<HTMLDivElement>(null);
+
   const now = new Date();
   const currentDate = now.toISOString().split('T')[0];
   const currentTime = now.toTimeString().split(' ')[0].substring(0, 5);
 
   const [formData, setFormData] = useState({
     empresaId: companyId || initialData?.empresaId || '',
-    fechaSeguimiento: initialData?.fechaSeguimiento || currentDate,
+    fechaSeguimiento: initialData?.fechaSeguimiento ? formatDateForInput(initialData.fechaSeguimiento) : currentDate,
     horaSeguimiento: initialData?.horaSeguimiento || currentTime,
     tipoSeguimiento: (initialData?.tipoSeguimiento as FollowUpType) || 'Vinculación',
     medioAtencion: (initialData?.medioAtencion as AttentionMedium) || 'Llamada telefónica',
     asunto: initialData?.asunto || '',
     descripcion: initialData?.descripcion || '',
     atencionSeguimiento: initialData?.atencionSeguimiento || '',
-    estatus: (initialData?.estatus as FollowStatus) || 'En Proceso'
+    estatus: (initialData?.estatus as FollowStatus) || 'En Proceso',
+    empresasVinculadas: Array.isArray(initialData?.empresasVinculadas)
+      ? initialData.empresasVinculadas.map((item: any) => typeof item === 'string' ? item : item._id)
+      : []
   });
 
+  // Cargar catálogo de empresas
   useEffect(() => {
-    if (!companyId) {
-      const fetchEmpresas = async () => {
-        try {
-          const res = await api.get('/companies');
-          setEmpresas(res.data);
-        } catch (error) {
-          console.error('Error al obtener empresas:', error);
-        }
-      };
-      fetchEmpresas();
-    }
-  }, [companyId]);
+    const fetchEmpresas = async () => {
+      try {
+        const res = await api.get('/companies');
+        setEmpresas(res.data);
+      } catch (error) {
+        console.error('Error al obtener empresas:', error);
+      }
+    };
+    fetchEmpresas();
+  }, []);
 
+  // Cargar información de la empresa principal si existe companyId
   useEffect(() => {
     const targetCompanyId = companyId || initialData?.empresaId;
     if (targetCompanyId) {
@@ -80,8 +89,11 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
     }
   }, [companyId, initialData?.empresaId]);
 
+  // Cargar empresas vinculadas al EDITAR
   useEffect(() => {
     if (initialData) {
+      const rawVinculadas = initialData.empresasVinculadas || [];
+
       setFormData({
         empresaId: initialData.empresaId || companyId || '',
         fechaSeguimiento: formatDateForInput(initialData.fechaSeguimiento),
@@ -91,15 +103,32 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
         asunto: initialData.asunto || '',
         descripcion: initialData.descripcion || '',
         atencionSeguimiento: initialData.atencionSeguimiento || '',
-        estatus: (initialData.estatus as FollowStatus) || 'En Proceso'
+        estatus: (initialData.estatus as FollowStatus) || 'En Proceso',
+        empresasVinculadas: rawVinculadas.map((item: any) => typeof item === 'string' ? item : item._id)
       });
+
+      // CASO A: Vienen como Objetos completos desde el backend
+      const isObjectArray = rawVinculadas.length > 0 && typeof rawVinculadas[0] === 'object';
+      if (isObjectArray) {
+        // Uso de (rawVinculadas as unknown as CompanyFormData[]) para evitar la advertencia de TypeScript
+        setSelectedVinculadas(rawVinculadas as unknown as CompanyFormData[]);
+      }
+      // CASO B: Vienen solo los IDs (string[]) -> Esperamos a que cargue el catálogo de 'empresas'
+      else if (rawVinculadas.length > 0 && empresas.length > 0) {
+        const ids = rawVinculadas as unknown as string[];
+        const vinculadas = empresas.filter((emp) => emp._id && ids.includes(emp._id));
+        setSelectedVinculadas(vinculadas);
+      }
     }
-  }, [initialData]);
+  }, [initialData, empresas]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
+      }
+      if (dropdownVinculadasRef.current && !dropdownVinculadasRef.current.contains(event.target as Node)) {
+        setIsVinculadasDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -124,10 +153,44 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
     }
   };
 
+  // Handlers para selección múltiple de empresas vinculadas
+  const handleAddVinculada = (emp: CompanyFormData) => {
+    if (!selectedVinculadas.some((item) => item._id === emp._id)) {
+      const updated = [...selectedVinculadas, emp];
+      setSelectedVinculadas(updated);
+      setFormData((prev) => ({
+        ...prev,
+        empresasVinculadas: updated.map((item) => item._id || '')
+      }));
+    }
+    setSearchVinculadasTerm('');
+    setIsVinculadasDropdownOpen(false);
+  };
+
+  const handleRemoveVinculada = (id?: string) => {
+    const updated = selectedVinculadas.filter((emp) => emp._id !== id);
+    setSelectedVinculadas(updated);
+    setFormData((prev) => ({
+      ...prev,
+      empresasVinculadas: updated.map((item) => item._id || '')
+    }));
+  };
+
   const filteredCompanies = empresas.filter((emp) =>
     emp.nombreComercial?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.rfc?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Filtra empresas excluyendo la principal seleccionada y las ya agregadas
+  const filteredVinculadasCompanies = empresas.filter((emp) => {
+    const isCurrentCompany = emp._id === (companyId || formData.empresaId);
+    const isAlreadySelected = selectedVinculadas.some((v) => v._id === emp._id);
+    const matchesSearch =
+      emp.nombreComercial?.toLowerCase().includes(searchVinculadasTerm.toLowerCase()) ||
+      emp.rfc?.toLowerCase().includes(searchVinculadasTerm.toLowerCase());
+
+    return !isCurrentCompany && !isAlreadySelected && matchesSearch;
+  });
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, boolean> = {};
@@ -160,15 +223,19 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
 
     if (!validateForm()) return;
 
+    // Si no es tipo 'Vinculación', limpiamos el campo opcional
+    const payload = {
+      ...formData,
+      empresasVinculadas: formData.tipoSeguimiento === 'Vinculación' ? formData.empresasVinculadas : []
+    };
+
     setLoading(true);
     try {
       if (initialData?._id) {
-        // Cambiado de /companies/follow/ a /companies/follows/
-        await api.put(`/companies/follows/${initialData._id}`, formData);
+        await api.put(`/companies/follows/${initialData._id}`, payload);
         toast.success('Seguimiento actualizado correctamente.');
       } else {
-        // Cambiado de /companies/follow/ a /companies/follows
-        await api.post('/companies/follows', formData);
+        await api.post('/companies/follows', payload);
         toast.success('Seguimiento guardado correctamente.');
       }
       onSuccess();
@@ -291,6 +358,75 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
               ))}
             </select>
           </div>
+
+          {/* Campo Condicional: Empresas Vinculadas */}
+          {formData.tipoSeguimiento === 'Vinculación' && (
+            <div className="md:col-span-2 relative" ref={dropdownVinculadasRef}>
+              <label className="block text-xs font-medium text-slate-300 mb-1">
+                Empresas con las que se hizo vinculación <span className="text-slate-400 font-normal">(Opcional)</span>
+              </label>
+
+              {/* Tags / Chips seleccionados */}
+              {selectedVinculadas.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2 p-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                  {selectedVinculadas.map((emp, index) => (
+                    <span
+                      key={emp._id || index}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-blue-600/30 text-blue-300 border border-blue-500/30"
+                    >
+                      {emp.nombreComercial || emp.razonSocial || 'Empresa Vinculada'}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVinculada(emp._id)}
+                        className="hover:text-red-400 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Input Typeahead */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Buscar empresa para vincular..."
+                  value={searchVinculadasTerm}
+                  onFocus={() => setIsVinculadasDropdownOpen(true)}
+                  onChange={(e) => {
+                    setSearchVinculadasTerm(e.target.value);
+                    setIsVinculadasDropdownOpen(true);
+                  }}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-8 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-500"
+                />
+                <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
+                <ChevronDown size={16} className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" />
+              </div>
+
+              {/* Dropdown de Opciones */}
+              {isVinculadasDropdownOpen && (
+                <ul className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 text-sm text-slate-200">
+                  {filteredVinculadasCompanies.length > 0 ? (
+                    filteredVinculadasCompanies.map((emp) => (
+                      <li
+                        key={emp._id}
+                        onClick={() => handleAddVinculada(emp)}
+                        className="px-4 py-2.5 hover:bg-blue-600 hover:text-white cursor-pointer transition-colors flex justify-between items-center"
+                      >
+                        <span className="font-medium">{emp.nombreComercial}</span>
+                        <span className="text-xs opacity-70 ml-2">RFC: {emp.rfc}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="px-4 py-3 text-slate-400 text-center">
+                      No hay más empresas disponibles
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1">

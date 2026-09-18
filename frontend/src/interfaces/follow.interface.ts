@@ -16,4 +16,5 @@ export interface FollowRecord {
   atencionSeguimiento?: string;
   estatus: FollowStatus | string;
   usuario?: string;
+  empresasVinculadas?: string[];
 }

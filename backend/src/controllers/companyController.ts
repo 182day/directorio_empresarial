@@ -293,7 +293,9 @@ export const deleteCompany = async (req: AuthRequest, res: Response): Promise<vo
   }
 };
 
-// POST: Registrar seguimiento de empresa
+// src/controllers/companyController.ts (Fragmentos a actualizar)
+
+// POST: Registrar seguimiento
 export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const {
@@ -305,7 +307,8 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       asunto,
       descripcion,
       atencionSeguimiento,
-      estatus
+      estatus,
+      empresasVinculadas // 👈 Extraer de req.body
     } = req.body;
 
     if (!empresaId || !asunto || !descripcion) {
@@ -313,16 +316,20 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
-    // Validar que empresaId sea un ObjectId válido
     if (!Types.ObjectId.isValid(empresaId)) {
       res.status(400).json({ message: 'El ID de la empresa no tiene un formato válido.' });
       return;
     }
 
     const userId = req.user?.id || req.user?._id;
-
-    // Convertir la fecha recibida a Date para evitar errores de casteo en Mongoose
     const parsedDate = fechaSeguimiento ? new Date(fechaSeguimiento) : new Date();
+
+    // Mapear arreglo de IDs validando ObjectId
+    const vinculadasArray = Array.isArray(empresasVinculadas)
+      ? empresasVinculadas
+          .filter((id: string) => Types.ObjectId.isValid(id))
+          .map((id: string) => new Types.ObjectId(id))
+      : [];
 
     const followUp = new CompanyFollowUp({
       empresaId: new Types.ObjectId(empresaId as string),
@@ -334,12 +341,12 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       asunto,
       descripcion,
       atencionSeguimiento,
-      estatus
+      estatus,
+      empresasVinculadas: tipoSeguimiento === 'Vinculación' ? vinculadasArray : [] // 👈 Solo guardar si es Vinculación
     });
 
     const savedFollowUp = await followUp.save();
 
-    // 📝 Auditoría
     if (userId) {
       await AuditLog.create({
         accion: 'CREAR',
@@ -358,7 +365,7 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
   }
 };
 
-// PUT: Actualizar un seguimiento de empresa existente
+// PUT: Actualizar seguimiento
 export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -371,17 +378,22 @@ export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       asunto,
       descripcion,
       atencionSeguimiento,
-      estatus
+      estatus,
+      empresasVinculadas // 👈 Extraer de req.body
     } = req.body;
 
-    // 💡 Aseguramos el tipado a string (id as string)
     if (!id || !Types.ObjectId.isValid(id as string)) {
       res.status(400).json({ message: 'El ID del seguimiento no es válido.' });
       return;
     }
 
-    // Convertir la fecha recibida a Date para evitar problemas de casteo en Mongoose
     const parsedDate = fechaSeguimiento ? new Date(fechaSeguimiento) : new Date();
+
+    const vinculadasArray = Array.isArray(empresasVinculadas)
+      ? empresasVinculadas
+          .filter((vId: string) => Types.ObjectId.isValid(vId))
+          .map((vId: string) => new Types.ObjectId(vId))
+      : [];
 
     const updatePayload: any = {
       fechaSeguimiento: parsedDate,
@@ -391,7 +403,8 @@ export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       asunto,
       descripcion,
       atencionSeguimiento,
-      estatus
+      estatus,
+      empresasVinculadas: tipoSeguimiento === 'Vinculación' ? vinculadasArray : []
     };
 
     if (empresaId && Types.ObjectId.isValid(empresaId as string)) {
@@ -409,7 +422,6 @@ export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
-    // 📝 Auditoría
     const userId = req.user?.id || req.user?._id;
     if (userId) {
       await AuditLog.create({
@@ -426,6 +438,126 @@ export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
   } catch (error: any) {
     console.error('Error al actualizar el seguimiento:', error);
     res.status(500).json({ message: 'Error al actualizar el seguimiento.', error: error?.message || error });
+  }
+};
+
+// GET: Obtener seguimientos con populate de empresas vinculadas
+export const getCompanyFollowUps = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { companyId } = req.params;
+    const {
+      search,
+      tipo,
+      medio,
+      estatus,
+      empresa,
+      usuario,
+      fechaDesde,
+      fechaHasta
+    } = req.query;
+
+    const matchStage: any = {};
+
+    if (companyId) {
+      matchStage.empresaId = new Types.ObjectId(companyId as string);
+    }
+
+    if (tipo) {
+      const tiposArray = Array.isArray(tipo) ? tipo : (tipo as string).split(',');
+      matchStage.tipoSeguimiento = { $in: tiposArray };
+    }
+
+    if (medio) {
+      const mediosArray = Array.isArray(medio) ? medio : (medio as string).split(',');
+      matchStage.medioAtencion = { $in: mediosArray };
+    }
+
+    if (estatus) {
+      const estatusArray = Array.isArray(estatus) ? estatus : (estatus as string).split(',');
+      matchStage.estatus = { $in: estatusArray };
+    }
+
+    if (fechaDesde || fechaHasta) {
+      matchStage.$expr = matchStage.$expr || { $and: [] };
+
+      if (fechaDesde) {
+        matchStage.$expr.$and.push({
+          $gte: [{ $substr: ["$fechaSeguimiento", 0, 10] }, fechaDesde]
+        });
+      }
+      if (fechaHasta) {
+        matchStage.$expr.$and.push({
+          $lte: [{ $substr: ["$fechaSeguimiento", 0, 10] }, fechaHasta]
+        });
+      }
+    }
+
+    const pipeline: any[] = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: 'companies',
+          localField: 'empresaId',
+          foreignField: '_id',
+          as: 'empresaId'
+        }
+      },
+      { $unwind: { path: '$empresaId', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'usuarioId',
+          foreignField: '_id',
+          as: 'usuarioId'
+        }
+      },
+      { $unwind: { path: '$usuarioId', preserveNullAndEmptyArrays: true } },
+      // 👈 Lookup para poblar la información de las Empresas Vinculadas
+      {
+        $lookup: {
+          from: 'companies',
+          localField: 'empresasVinculadas',
+          foreignField: '_id',
+          as: 'empresasVinculadas'
+        }
+      }
+    ];
+
+    const postLookupMatch: any = {};
+
+    if (empresa) {
+      const empresasArray = Array.isArray(empresa) ? empresa : (empresa as string).split(',');
+      postLookupMatch['empresaId.nombreComercial'] = { $in: empresasArray };
+    }
+
+    if (usuario) {
+      const usuariosArray = Array.isArray(usuario) ? usuario : (usuario as string).split(',');
+      postLookupMatch['usuarioId.nombre'] = { $in: usuariosArray };
+    }
+
+    if (search && typeof search === 'string' && search.trim() !== '') {
+      const regex = new RegExp(search.trim(), 'i');
+      postLookupMatch.$or = [
+        { descripcion: regex },
+        { asunto: regex },
+        { 'empresaId.nombreComercial': regex },
+        { 'usuarioId.nombre': regex },
+        { 'empresasVinculadas.nombreComercial': regex } // 👈 Permite buscar por nombre de empresas vinculadas
+      ];
+    }
+
+    if (Object.keys(postLookupMatch).length > 0) {
+      pipeline.push({ $match: postLookupMatch });
+    }
+
+    pipeline.push({ $sort: { createdAt: -1 } });
+
+    const followUps = await CompanyFollowUp.aggregate(pipeline);
+
+    res.json(followUps);
+  } catch (error: any) {
+    console.error('Error al obtener seguimientos filtrados:', error);
+    res.status(500).json({ message: 'Error al obtener los seguimientos', error: error?.message || error });
   }
 };
 
@@ -464,124 +596,6 @@ export const deleteCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
   } catch (error: any) {
     console.error('Error al eliminar el seguimiento:', error);
     res.status(500).json({ message: 'Error al eliminar el seguimiento.', error: error?.message || error });
-  }
-};
-
-// GET: Obtener seguimientos (de una empresa específica o todos) con Populate (Inner Join)
-// GET: Obtener seguimientos filtrados desde el Backend
-export const getCompanyFollowUps = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { companyId } = req.params;
-    const {
-      search,
-      tipo,
-      medio,
-      estatus,
-      empresa,
-      usuario,
-      fechaDesde,
-      fechaHasta
-    } = req.query;
-
-    const matchStage: any = {};
-
-    // 1. Si viene companyId por la URL (contexto de una sola empresa)
-    if (companyId) {
-      matchStage.empresaId = new Types.ObjectId(companyId as string);
-    }
-
-    // 2. Filtros de Selección Múltiple
-    if (tipo) {
-      const tiposArray = Array.isArray(tipo) ? tipo : (tipo as string).split(',');
-      matchStage.tipoSeguimiento = { $in: tiposArray };
-    }
-
-    if (medio) {
-      const mediosArray = Array.isArray(medio) ? medio : (medio as string).split(',');
-      matchStage.medioAtencion = { $in: mediosArray };
-    }
-
-    if (estatus) {
-      const estatusArray = Array.isArray(estatus) ? estatus : (estatus as string).split(',');
-      matchStage.estatus = { $in: estatusArray };
-    }
-
-    // Si fechaSeguimiento sigue siendo String en el backend
-    if (fechaDesde || fechaHasta) {
-      matchStage.$expr = matchStage.$expr || { $and: [] };
-
-      if (fechaDesde) {
-        matchStage.$expr.$and.push({
-          $gte: [{ $substr: ["$fechaSeguimiento", 0, 10] }, fechaDesde]
-        });
-      }
-      if (fechaHasta) {
-        matchStage.$expr.$and.push({
-          $lte: [{ $substr: ["$fechaSeguimiento", 0, 10] }, fechaHasta]
-        });
-      }
-    }
-
-    // Construcción de la Agregación
-    const pipeline: any[] = [
-      { $match: matchStage },
-      {
-        $lookup: {
-          from: 'companies',
-          localField: 'empresaId',
-          foreignField: '_id',
-          as: 'empresaId'
-        }
-      },
-      { $unwind: { path: '$empresaId', preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'usuarioId',
-          foreignField: '_id',
-          as: 'usuarioId'
-        }
-      },
-      { $unwind: { path: '$usuarioId', preserveNullAndEmptyArrays: true } }
-    ];
-
-    // 4. Filtros post-join (Empresas y Usuarios Múltiples)
-    const postLookupMatch: any = {};
-
-    if (empresa) {
-      const empresasArray = Array.isArray(empresa) ? empresa : (empresa as string).split(',');
-      postLookupMatch['empresaId.nombreComercial'] = { $in: empresasArray };
-    }
-
-    if (usuario) {
-      const usuariosArray = Array.isArray(usuario) ? usuario : (usuario as string).split(',');
-      postLookupMatch['usuarioId.nombre'] = { $in: usuariosArray };
-    }
-
-    // 5. Búsqueda Global ($or sobre campos)
-    if (search && typeof search === 'string' && search.trim() !== '') {
-      const regex = new RegExp(search.trim(), 'i');
-      postLookupMatch.$or = [
-        { descripcion: regex },
-        { asunto: regex },
-        { 'empresaId.nombreComercial': regex },
-        { 'usuarioId.nombre': regex }
-      ];
-    }
-
-    if (Object.keys(postLookupMatch).length > 0) {
-      pipeline.push({ $match: postLookupMatch });
-    }
-
-    // Ordenamiento por creación/fecha descendente
-    pipeline.push({ $sort: { createdAt: -1 } });
-
-    const followUps = await CompanyFollowUp.aggregate(pipeline);
-
-    res.json(followUps);
-  } catch (error: any) {
-    console.error('Error al obtener seguimientos filtrados:', error);
-    res.status(500).json({ message: 'Error al obtener los seguimientos', error: error?.message || error });
   }
 };
 

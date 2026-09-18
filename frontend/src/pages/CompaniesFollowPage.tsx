@@ -185,7 +185,11 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                 horaSeguimiento: item.horaSeguimiento || '',
                 atencionSeguimiento: item.atencionSeguimiento || '',
                 estatus: item.estatus || 'Pendiente',
-                usuario: item.usuarioId?.nombre || 'Sistema'
+                usuario: item.usuarioId?.nombre || 'Sistema',
+                // 👈 Normalización de empresas vinculadas (soporta objetos o IDs)
+                empresasVinculadas: Array.isArray(item.empresasVinculadas)
+                    ? item.empresasVinculadas.map((ev: any) => typeof ev === 'object' ? ev : { _id: ev })
+                    : []
             }));
 
             setFollows(normalizedData);
@@ -950,7 +954,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                             {!company && <th className="px-6 py-4">Empresa</th>}
                                             <th className="px-6 py-4">Fecha</th>
                                             <th className="px-6 py-4">Tipo</th>
-                                            <th className="px-6 py-4">Asunto / Descripción</th>
+                                            <th className="px-6 py-4">Asunto</th>
                                             <th className="px-6 py-4">Estatus</th>
                                             <th className="px-6 py-4">Usuario</th>
                                             <th className="px-6 py-4 text-center">Acciones</th>
@@ -973,7 +977,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 max-w-xs truncate text-slate-300">
-                                                    {item.asunto ? `${item.asunto} - ` : ''}{item.descripcion}
+                                                    {item.asunto}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span className={`px-2.5 py-0.5 text-xs rounded border font-medium ${item.estatus === 'Completado'
@@ -1226,6 +1230,27 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                         </div>
 
                                     </div>
+
+                                    {/* Empresas Vinculadas (solo si el tipo es Vinculación o existen vinculaciones) */}
+                                    {selectedFollow.empresasVinculadas && selectedFollow.empresasVinculadas.length > 0 && (
+                                        <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-2">
+                                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                                <Building2 className="w-3.5 h-3.5 text-blue-400" />
+                                                Empresas Vinculadas ({selectedFollow.empresasVinculadas.length})
+                                            </span>
+                                            <div className="flex flex-wrap gap-2 pt-1">
+                                                {selectedFollow.empresasVinculadas.map((emp: any, idx: number) => (
+                                                    <span
+                                                        key={emp._id || idx}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 text-blue-300 text-xs font-medium rounded-lg border border-blue-500/20 shadow-sm"
+                                                    >
+                                                        <Building2 className="w-3 h-3 text-blue-400" />
+                                                        {emp.nombreComercial || emp.razonSocial || 'Empresa Vinculada'}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Persona o Atención de Seguimiento */}
                                     {selectedFollow.atencionSeguimiento && (

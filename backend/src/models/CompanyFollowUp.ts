@@ -12,6 +12,7 @@ export interface ICompanyFollowUp extends Document {
   descripcion: string;
   atencionSeguimiento?: string;
   estatus: string;
+  empresasVinculadas?: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,7 +28,8 @@ const CompanyFollowUpSchema = new Schema<ICompanyFollowUp>(
     asunto: { type: String, required: true, trim: true },
     descripcion: { type: String, required: true, trim: true },
     atencionSeguimiento: { type: String, default: '', trim: true },
-    estatus: { type: String, default: 'En Proceso' }
+    estatus: { type: String, default: 'En Proceso' },
+    empresasVinculadas: [{ type: Schema.Types.ObjectId, ref: 'Company' }]
   },
   {
     timestamps: true

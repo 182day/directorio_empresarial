@@ -3,7 +3,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api/axios';
-import { Lock, Mail, LogIn, ShieldAlert, UserPlus, ArrowLeft } from 'lucide-react';
+import { Lock, Mail, LogIn, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner'; // 👈 1. Importar toast
 
 export const Login = () => {
