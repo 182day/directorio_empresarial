@@ -1,16 +1,18 @@
+// src/components/CompanyFollowForm.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { type CompanyFormData } from '../interfaces/company.interface';
-import { 
-  type FollowRecord, 
-  type FollowUpType, 
-  type AttentionMedium, 
-  type FollowStatus 
+import { formatDateForInput } from '../utils/formUtils';
+import {
+  type FollowRecord,
+  type FollowUpType,
+  type AttentionMedium,
+  type FollowStatus
 } from '../interfaces/follow.interface';
-import { 
-  OPCIONES_TIPO_SEGUIMIENTO, 
-  OPCIONES_MEDIO_ATENCION, 
-  OPCIONES_ESTATUS_SEGUIMIENTO 
+import {
+  OPCIONES_TIPO_SEGUIMIENTO,
+  OPCIONES_MEDIO_ATENCION,
+  OPCIONES_ESTATUS_SEGUIMIENTO
 } from '../data/followCatalog';
 import { Save, X, FileText, Building2, Search, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -82,7 +84,7 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
     if (initialData) {
       setFormData({
         empresaId: initialData.empresaId || companyId || '',
-        fechaSeguimiento: initialData.fechaSeguimiento || currentDate,
+        fechaSeguimiento: formatDateForInput(initialData.fechaSeguimiento),
         horaSeguimiento: initialData.horaSeguimiento || currentTime,
         tipoSeguimiento: (initialData.tipoSeguimiento as FollowUpType) || 'Vinculación',
         medioAtencion: (initialData.medioAtencion as AttentionMedium) || 'Llamada telefónica',
@@ -161,16 +163,19 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
     setLoading(true);
     try {
       if (initialData?._id) {
-        await api.put(`/companies/follow/${initialData._id}`, formData);
+        // Cambiado de /companies/follow/ a /companies/follows/
+        await api.put(`/companies/follows/${initialData._id}`, formData);
         toast.success('Seguimiento actualizado correctamente.');
       } else {
-        await api.post('/companies/follow/', formData);
+        // Cambiado de /companies/follow/ a /companies/follows
+        await api.post('/companies/follows', formData);
         toast.success('Seguimiento guardado correctamente.');
       }
       onSuccess();
-    } catch (error) {
-      console.error('Error al guardar el seguimiento:', error);
-      toast.error('Ocurrió un error al guardar el seguimiento. Inténtalo de nuevo.');
+    } catch (error: any) {
+      console.error('Error al guardar el seguimiento:', error.response?.data || error);
+      const msg = error.response?.data?.errors?.[0]?.msg || 'Ocurrió un error al guardar el seguimiento.';
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -201,9 +206,8 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
                     setFormData({ ...formData, empresaId: '' });
                     setIsDropdownOpen(true);
                   }}
-                  className={`w-full bg-slate-800 border rounded-lg pl-9 pr-8 py-2 text-sm text-white focus:outline-none transition-colors placeholder:text-slate-500 ${
-                    errors.empresaId ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-                  }`}
+                  className={`w-full bg-slate-800 border rounded-lg pl-9 pr-8 py-2 text-sm text-white focus:outline-none transition-colors placeholder:text-slate-500 ${errors.empresaId ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
+                    }`}
                 />
                 <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
                 <ChevronDown size={16} className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" />
@@ -250,9 +254,8 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
               name="fechaSeguimiento"
               value={formData.fechaSeguimiento}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${
-                errors.fechaSeguimiento ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-              }`}
+              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${errors.fechaSeguimiento ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
+                }`}
             />
           </div>
 
@@ -265,9 +268,8 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
               name="horaSeguimiento"
               value={formData.horaSeguimiento}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${
-                errors.horaSeguimiento ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-              }`}
+              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${errors.horaSeguimiento ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
+                }`}
             />
           </div>
 
@@ -279,9 +281,8 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
               name="tipoSeguimiento"
               value={formData.tipoSeguimiento}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${
-                errors.tipoSeguimiento ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-              }`}
+              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${errors.tipoSeguimiento ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
+                }`}
             >
               {OPCIONES_TIPO_SEGUIMIENTO.map((tipo) => (
                 <option key={tipo} value={tipo}>
@@ -299,9 +300,8 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
               name="medioAtencion"
               value={formData.medioAtencion}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${
-                errors.medioAtencion ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-              }`}
+              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${errors.medioAtencion ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
+                }`}
             >
               {OPCIONES_MEDIO_ATENCION.map((medio) => (
                 <option key={medio} value={medio}>
@@ -319,9 +319,8 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
               name="estatus"
               value={formData.estatus}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${
-                errors.estatus ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-              }`}
+              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${errors.estatus ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
+                }`}
             >
               {OPCIONES_ESTATUS_SEGUIMIENTO.map((estatus) => (
                 <option key={estatus} value={estatus}>
@@ -349,9 +348,8 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
               placeholder="Ej. Revisión de propuesta / Renovación de convenio"
               value={formData.asunto}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors placeholder:text-slate-500 ${
-                errors.asunto ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-              }`}
+              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors placeholder:text-slate-500 ${errors.asunto ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
+                }`}
             />
           </div>
 
@@ -365,9 +363,8 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
               placeholder="Describa los detalles o minutas del seguimiento..."
               value={formData.descripcion}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg p-3 text-sm text-white focus:outline-none transition-colors placeholder:text-slate-500 resize-none ${
-                errors.descripcion ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-              }`}
+              className={`w-full bg-slate-800 border rounded-lg p-3 text-sm text-white focus:outline-none transition-colors placeholder:text-slate-500 resize-none ${errors.descripcion ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
+                }`}
             />
           </div>
 

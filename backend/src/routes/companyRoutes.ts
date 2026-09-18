@@ -8,7 +8,11 @@ import {
   updateCompany,
   deleteCompany,
   createCompanyFollowUp,
-  getCompanyFollowUps
+  getCompanyFollowUps,
+  getFollowUpCompanies,
+  getFollowUpUsers,
+  updateCompanyFollowUp,
+  deleteCompanyFollowUp
 } from '../controllers/companyController';
 import { protect, optionalAuth } from '../middlewares/authMiddleware';
 import { validatePublicCompany } from '../middlewares/validators/companyValidator';
@@ -20,9 +24,17 @@ const router = Router();
 router.get('/', optionalAuth, getCompanies);
 router.post('/public', validatePublicCompany, createPublicCompany);
 
-// 2. Rutas de Seguimientos (Van ANTES de /:id para evitar colisiones)
+// 2. Rutas de Seguimientos
 router.post('/follows', protect, validateCompanyFollowUp, createCompanyFollowUp);
 router.get('/follows', protect, getCompanyFollowUps);
+router.get('/follows/filter-companies', protect, getFollowUpCompanies);
+router.get('/follows/filter-users', protect, getFollowUpUsers);
+
+// 💡 Rutas PUT y DELETE para seguimiento por ID del seguimiento
+router.put('/follows/:id', protect, validateCompanyFollowUp, updateCompanyFollowUp);
+router.delete('/follows/:id', protect, deleteCompanyFollowUp);
+
+// Ruta paramétrica de seguimientos por ID de empresa
 router.get('/follows/:companyId', protect, getCompanyFollowUps);
 
 // 3. Rutas Paramétricas y Protegidas de Empresas

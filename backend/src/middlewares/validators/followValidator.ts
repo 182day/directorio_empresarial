@@ -13,7 +13,7 @@ export const validateCompanyFollowUp = [
   body('fechaSeguimiento')
     .notEmpty()
     .withMessage('La fecha de seguimiento es obligatoria.')
-    .isISO8601()
+    .matches(/^\d{4}-\d{2}-\d{2}$/)
     .withMessage('La fecha debe tener un formato válido (YYYY-MM-DD).'),
 
   body('horaSeguimiento')
@@ -23,16 +23,14 @@ export const validateCompanyFollowUp = [
     .withMessage('La hora debe estar en formato HH:MM (24 horas).'),
 
   body('tipoSeguimiento')
+    .trim()
     .notEmpty()
-    .withMessage('El tipo de seguimiento es obligatorio.')
-    .isIn(['Vinculación', 'Apoyo', 'Evento', 'Asesoría', 'Capacitación', 'Otro'])
-    .withMessage('El tipo de seguimiento no es válido.'),
+    .withMessage('El tipo de seguimiento es obligatorio.'),
 
   body('medioAtencion')
+    .trim()
     .notEmpty()
-    .withMessage('El medio de atención es obligatorio.')
-    .isIn(['Reunión', 'Llamada telefónica', 'Correo', 'Visita', 'Otro'])
-    .withMessage('El medio de atención no es válido.'),
+    .withMessage('El medio de atención es obligatorio.'),
 
   body('asunto')
     .trim()
@@ -52,13 +50,13 @@ export const validateCompanyFollowUp = [
 
   body('estatus')
     .optional()
-    .isIn(['En Proceso', 'Concluido', 'Cancelado'])
-    .withMessage('El estatus no es válido.'),
+    .trim(),
 
-  // Middleware para verificar si existen errores de validación
+  // Middleware para verificar errores y mostrarlos detallados en la consola si vuelve a fallar
   (req: Request, res: Response, next: NextFunction): void => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.error('Errores de validación en seguimiento:', errors.array());
       res.status(400).json({
         message: 'Error de validación en los datos del seguimiento.',
         errors: errors.array()

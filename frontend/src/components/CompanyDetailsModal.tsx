@@ -1,6 +1,6 @@
 // src/components/CompanyDetailsModal.tsx
 import React, { useContext } from 'react';
-import { X, Building2, MapPin, Phone, Mail, ShieldCheck, Tag, Users, Award, FileText, Calendar, Hash, Edit2, Trash2, Globe, Briefcase, ExternalLink } from 'lucide-react';
+import { X, Building2, MapPin, Phone, Mail, ShieldCheck, Tag, Users, Award, FileText, Calendar, Hash, Pencil, Trash2, Globe, Briefcase, ExternalLink } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { type CompanyFormData } from '../interfaces/company.interface';
 import { AuthContext } from '../context/AuthContext';
@@ -480,7 +480,7 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                 className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium px-4 py-2 rounded-lg text-sm transition-colors"
                                 title="Editar"
                             >
-                                <Edit2 className="w-4 h-4" />
+                                <Pencil className="w-4 h-4" />
                                 <span>Editar</span>
                             </button>
                         )}

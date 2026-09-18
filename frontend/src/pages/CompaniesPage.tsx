@@ -11,7 +11,7 @@ import { Pagination } from '../components/Pagination';
 import { CompanyDetailsModal } from '../components/CompanyDetailsModal';
 import { CompaniesFollowPage } from './CompaniesFollowPage';
 import {
-    Plus, Edit2, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download, FileText, BarChart3,
+    Plus, Pencil, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download, FileText, BarChart3,
     Hash, Calendar, Layers, Truck, Flag, CheckSquare, Square, ListChecks, CheckCheck, ChartGantt
 } from 'lucide-react';
 import { saveAs } from 'file-saver';
@@ -488,7 +488,7 @@ export const CompaniesPage = () => {
 
                     <button
                         onClick={() => setIsFilterDrawerOpen(true)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all shrink-0 ${totalFiltrosActivos > 0
+                        className={`sm:col-span-3 md:col-span-3 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${totalFiltrosActivos > 0
                             ? 'bg-blue-600/20 border-blue-500 text-blue-400 font-semibold'
                             : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:border-slate-600'
                             }`}
@@ -496,7 +496,7 @@ export const CompaniesPage = () => {
                         <SlidersHorizontal className="w-4 h-4" />
                         <span>Filtros</span>
                         {totalFiltrosActivos > 0 && (
-                            <span className="ml-1 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full font-bold">
+                            <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-600 text-white rounded-full font-bold">
                                 {totalFiltrosActivos}
                             </span>
                         )}
@@ -579,7 +579,7 @@ export const CompaniesPage = () => {
                                 className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0"
                             >
                                 <FileText className="w-4 h-4" />
-                                <span>PDF</span>
+                                <span className="hidden sm:inline">PDF</span>
                             </button>
                         </div>
                     )}
@@ -905,7 +905,7 @@ export const CompaniesPage = () => {
                                                                     className="p-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md transition-colors"
                                                                     title="Editar"
                                                                 >
-                                                                    <Edit2 className="w-4 h-4" />
+                                                                    <Pencil className="w-4 h-4" />
                                                                 </button>
                                                                 <button
                                                                     onClick={() => comp._id && handleDelete(comp._id, comp.nombreComercial)}
@@ -1054,7 +1054,7 @@ export const CompaniesPage = () => {
                                                         className="p-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors"
                                                         title="Editar"
                                                     >
-                                                        <Edit2 className="w-4 h-4" />
+                                                        <Pencil className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => comp._id && handleDelete(comp._id, comp.nombreComercial)}
@@ -1196,8 +1196,8 @@ export const CompaniesPage = () => {
 
             {/* MODAL CON COMPANIESFOLLOWPAGE */}
             {isFollowModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col my-8">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col my-8 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden [ms-overflow-style:none]">
                         <CompaniesFollowPage
                             company={followCompany}
                             onClose={handleCloseFollow}

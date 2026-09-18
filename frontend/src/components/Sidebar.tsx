@@ -81,8 +81,8 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                         <NavLink
                             key={item.path}
                             to={item.path}
-                            // Usamos "end" para evitar que la ruta '/' permanezca seleccionada cuando navegas a otras rutas
-                            end={item.path === '/'}
+                            // Agregamos '/empresas' para que solo se active en su ruta exacta y no coincida con '/empresas/seguimientos'
+                            end={item.path === '/' || item.path === '/empresas'}
                             className={({ isActive }) =>
                                 `flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors font-medium ${isActive
                                     ? 'bg-blue-600/20 text-blue-400'

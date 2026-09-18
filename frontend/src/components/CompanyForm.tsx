@@ -28,7 +28,7 @@ import {
     PHONE_REGEX,
     normalizeText,
     sanitizePhoneNumber
-} from '../utils/validators';
+} from '../utils/formUtils';
 import { type CompanyFormData } from '../interfaces/company.interface';
 
 interface CompanyFormProps {
