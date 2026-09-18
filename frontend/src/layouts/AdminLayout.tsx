@@ -5,7 +5,7 @@ import { Outlet, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Sidebar } from '../components/Sidebar';
 import { CompanyForm } from '../components/CompanyForm';
-import { FolderSearch, Building2, Users, Menu, X, LogOut, LogIn, LayoutDashboard, History, Settings, ChartGantt } from 'lucide-react';
+import { ChartLine, Building2, Users, Menu, X, LogOut, LogIn, LayoutDashboard, History, Settings, ChartGantt } from 'lucide-react';
 //import { toast } from 'sonner';
 
 export const AdminLayout = () => {
@@ -20,8 +20,8 @@ export const AdminLayout = () => {
 
         if (path === '/') {
             return {
-                title: 'Directorio Empresarial',
-                icon: <FolderSearch className="w-6 h-6" />,
+                title: user ? 'Estadísticas' : 'Directorio Empresarial',
+                icon: user ? <ChartLine className="w-6 h-6" /> : <Building2 className="w-6 h-6" />,
             };
         }
 
@@ -96,7 +96,7 @@ export const AdminLayout = () => {
             <header className="bg-slate-800 border-b border-slate-700 z-30 shrink-0">
                 <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        {/* El botón de abrir menú solo aparece si el usuario está autenticado */}
+                        {/* Botón Abrir / Cerrar Menú */}
                         {user && (
                             <button
                                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -107,10 +107,15 @@ export const AdminLayout = () => {
                             </button>
                         )}
 
+                        {/* Ícono de la vista actual */}
                         <div className="p-2 bg-blue-600/20 text-blue-400 rounded-lg">
                             {currentHeader.icon}
                         </div>
-                        <h1 className="text-xl font-bold text-white">{currentHeader.title}</h1>
+
+                        {/* Título: Oculto por debajo de 400px, visible a partir de 400px */}
+                        <h1 className="text-xl font-bold text-white hidden min-[400px]:block">
+                            {currentHeader.title}
+                        </h1>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -134,19 +139,21 @@ export const AdminLayout = () => {
                                     type="button"
                                     onClick={() => setIsPublicRegisterOpen(true)}
                                     className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-blue-400 hover:text-blue-300 border border-blue-500/30 px-3.5 py-2 rounded-lg text-sm font-medium transition-all shadow-sm"
+                                    title="Registrarse como empresa"
                                 >
                                     <Building2 className="w-4 h-4" />
                                     <span className="hidden md:inline">Registrarse como empresa</span>
-                                    <span className="md:hidden">Registro Empresa</span>
+                                    <span className="md:hidden hidden sm:inline">Registro Empresa</span>
                                 </button>
 
                                 {/* Botón "Acceso Admin" */}
                                 <Link
                                     to="/login"
                                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-md"
+                                    title="Acceso Admin"
                                 >
                                     <LogIn className="w-4 h-4" />
-                                    <span>Acceso Admin</span>
+                                    <span className="hidden sm:inline">Acceso Admin</span>
                                 </Link>
                             </>
                         )}
@@ -155,15 +162,21 @@ export const AdminLayout = () => {
             </header>
 
             {/* Estructura Principal */}
-            <div className="flex-1 flex overflow-hidden w-full h-full">
-                {/* El menú lateral con su propio scroll */}
+            <div className="flex-1 flex overflow-hidden w-full h-full relative">
+                {/* El menú lateral */}
                 {user && (
-                    <div className="h-full overflow-y-auto shrink-0">
-                        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-                    </div>
+                    <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
                 )}
 
-                {/* El área de contenido principal con su propio scroll independiente */}
+                {/* Backdrop interactivó SOLO en modo responsivo (lg:hidden) */}
+                {user && isSidebarOpen && (
+                    <div
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="fixed inset-0 top-16 bg-slate-950/50 backdrop-blur-[2px] z-30 lg:hidden cursor-pointer"
+                    />
+                )}
+
+                {/* El área de contenido principal */}
                 <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto transition-all h-full">
                     <div className="max-w-7xl mx-auto">
                         <Outlet />

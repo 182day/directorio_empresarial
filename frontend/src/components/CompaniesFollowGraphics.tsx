@@ -1,3 +1,4 @@
+// src/components/CompaniesFollowGraphics.tsx
 import { useMemo, type ReactNode } from 'react';
 import { X, BarChart3 } from 'lucide-react';
 import {

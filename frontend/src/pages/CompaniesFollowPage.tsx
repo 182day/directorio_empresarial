@@ -925,6 +925,22 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                 </div>
             ) : (
                 <>
+                    {/* CONTADOR DE RESULTADOS ENCONTRADOS */}
+                    {!loading && filteredFollows.length > 0 && (
+                        <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-800/60 border border-slate-700/60 px-4 py-2.5 rounded-lg text-sm text-slate-300 shadow-sm gap-1">
+                            <span className="font-medium">
+                                Se {filteredFollows.length === 1 ? 'encontró' : 'encontraron'}{' '}
+                                <strong className="text-blue-400 font-semibold">{filteredFollows.length}</strong>{' '}
+                                {filteredFollows.length === 1 ? 'resultado' : 'resultados'}
+                            </span>
+
+                            {totalFiltrosActivos > 0 && filteredFollows.length !== follows.length && (
+                                <span className="text-xs text-slate-400">
+                                    (filtrados de un total de {follows.length})
+                                </span>
+                            )}
+                        </div>
+                    )}
                     {tipoVista === 'tabla' && (
                         <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
                             <div className="overflow-x-auto">

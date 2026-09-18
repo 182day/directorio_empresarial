@@ -3,7 +3,7 @@ import { useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import {
-    FolderSearch, Building2, Users, /*BarChart2,*/ ChartGantt, History, Settings, X, ChevronRight
+    ChartLine, Building2, Users, ChartGantt, History, Settings, X, ChevronRight
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -14,54 +14,26 @@ interface SidebarProps {
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     const { user } = useContext(AuthContext);
 
-    // Las rutas ahora coinciden exactamente con la estructura del Router.tsx
     const navItems = [
-        {
-            path: '/',
-            label: 'Directorio',
-            icon: FolderSearch,
-            allowedRoles: ['admin', 'editor', 'lector']
-        },
-        {
-            path: '/empresas',
-            label: 'Empresas',
-            icon: Building2,
-            allowedRoles: ['admin', 'editor', 'lector']
-        },
-        {
-            path: '/usuarios',
-            label: 'Usuarios',
-            icon: Users,
-            allowedRoles: ['admin']
-        },
-        {
-            path: '/empresas/seguimientos',
-            label: 'Seguimientos',
-            icon: ChartGantt,
-            allowedRoles: ['admin', 'editor', 'lector']
-        },
-        {
-            path: '/auditoria',
-            label: 'Auditoría',
-            icon: History,
-            allowedRoles: ['admin']
-        },
-        {
-            path: '/micuenta',
-            label: 'Mi Cuenta',
-            icon: Settings,
-            allowedRoles: ['admin', 'editor', 'lector']
-        },
+        { path: '/', label: 'Estadísticas', icon: ChartLine, allowedRoles: ['admin', 'editor', 'lector'] },
+        { path: '/empresas', label: 'Empresas', icon: Building2, allowedRoles: ['admin', 'editor', 'lector'] },
+        { path: '/empresas/seguimientos', label: 'Seguimientos', icon: ChartGantt, allowedRoles: ['admin', 'editor', 'lector'] },
+        { path: '/auditoria', label: 'Auditoría', icon: History, allowedRoles: ['admin'] },
+        { path: '/usuarios', label: 'Usuarios', icon: Users, allowedRoles: ['admin'] },
+        { path: '/micuenta', label: 'Mi Cuenta', icon: Settings, allowedRoles: ['admin', 'editor', 'lector'] },
     ];
 
-    // Filtramos las opciones del menú según el rol del usuario logueado
     const filteredNavItems = navItems.filter((item) =>
         user?.rol ? item.allowedRoles.includes(user.rol) : false
     );
 
     return (
         <aside
-            className={`bg-slate-800 border-r border-slate-700 transition-all duration-300 ease-in-out flex flex-col shrink-0 h-full ${isOpen ? 'w-64' : 'w-0 overflow-hidden border-none'
+            className={`fixed lg:relative top-16 lg:top-0 left-0 z-40 lg:z-auto bg-slate-800 border-r border-slate-700 
+                transition-all duration-300 ease-in-out flex flex-col shrink-0 h-[calc(100vh-4rem)] lg:h-full 
+                ${isOpen
+                    ? 'w-full sm:w-64 translate-x-0' // 👈 100% de ancho en móviles (<640px) y 256px a partir de 'sm'
+                    : '-translate-x-full lg:translate-x-0 lg:w-0 overflow-hidden border-none'
                 }`}
         >
             {/* Cabecera del sidebar */}
@@ -69,8 +41,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Navegación
                 </span>
-                <button onClick={onClose} className="...">
-                    <X className="w-4 h-4" />
+                <button
+                    onClick={onClose}
+                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors"
+                >
+                    <X className="w-5 h-5" />
                 </button>
             </div>
 
@@ -81,8 +56,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                         <NavLink
                             key={item.path}
                             to={item.path}
-                            // Agregamos '/empresas' para que solo se active en su ruta exacta y no coincida con '/empresas/seguimientos'
                             end={item.path === '/' || item.path === '/empresas'}
+                            onClick={() => {
+                                // Cierra el menú al presionar una opción en dispositivos móviles
+                                if (window.innerWidth < 1024) onClose();
+                            }}
                             className={({ isActive }) =>
                                 `flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors font-medium ${isActive
                                     ? 'bg-blue-600/20 text-blue-400'

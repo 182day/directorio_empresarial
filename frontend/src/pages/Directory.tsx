@@ -1,27 +1,59 @@
 // src/pages/Directory.tsx
 import { useState, useEffect, useMemo } from 'react';
 import api from '../api/axios';
-import { Search, Building2, MapPin, Globe, ShieldCheck, Layers, X } from 'lucide-react';
+import { Layers, MapPin, Activity, Truck, Globe, Send, Briefcase, Award, Building } from 'lucide-react';
 import CountUpModule from 'react-countup';
 const CountUp = (CountUpModule as any).default || CountUpModule;
 import { type DirectoryCompany as Company } from '../interfaces/company.interface';
 
+interface DirectoryExtendedCompany extends Company {
+  tipoSuministro?: string[];
+  informacionEmpresa?: {
+    paisOrigen?: string;
+    destinoExportaciones?: string[];
+    sectoresPertenece?: {
+      lista?: string[];
+      otroEspecifique?: string;
+    };
+    certificaciones?: {
+      lista?: string[];
+      otroEspecifique?: string;
+    };
+  };
+}
+
+// Helper para agrupar elementos con frecuencia = 1 en "Otros"
+const agruparUnicosEnOtros = (conteo: Record<string, number>): Record<string, number> => {
+  const resultado: Record<string, number> = {};
+  let totalOtros = 0;
+
+  Object.entries(conteo).forEach(([key, cantidad]) => {
+    if (cantidad === 1) {
+      totalOtros += 1;
+    } else {
+      resultado[key] = cantidad;
+    }
+  });
+
+  if (totalOtros > 0) {
+    resultado['Otros'] = totalOtros;
+  }
+
+  return resultado;
+};
+
 export const Directory = () => {
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [search, setSearch] = useState('');
+  const [companies, setCompanies] = useState<DirectoryExtendedCompany[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtroTamano, setFiltroTamano] = useState<string | null>(null); // 👈 Nuevo estado para el filtro por tamaño
 
   useEffect(() => {
     fetchCompanies();
-  }, [search]);
+  }, []);
 
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/companies', {
-        params: { busqueda: search }
-      });
+      const response = await api.get('/companies');
       setCompanies(response.data);
     } catch (error) {
       console.error('Error al cargar empresas:', error);
@@ -30,183 +62,258 @@ export const Directory = () => {
     }
   };
 
-  // Filtrar solo las activas
   const empresasActivas = useMemo(() => {
     return companies.filter(p => p.activa === true);
   }, [companies]);
 
-  // Calcular contadores por tamaño dinámicamente basados en empresas activas
+  // 1. Conteo por Tamaño
   const conteoTamano = useMemo(() => {
-    const conteo: Record<string, number> = {
-      Micro: 0,
-      Pequeña: 0,
-      Mediana: 0,
-      Grande: 0
-    };
-
+    const conteo: Record<string, number> = { Micro: 0, Pequeña: 0, Mediana: 0, Grande: 0 };
     empresasActivas.forEach(c => {
       const tam = (c.tamanoEmpresa || c.tamanio || 'Micro').trim();
-      if (conteo[tam] !== undefined) {
-        conteo[tam] += 1;
-      } else {
-        conteo[tam] = (conteo[tam] || 0) + 1;
-      }
+      conteo[tam] = (conteo[tam] || 0) + 1;
     });
-
     return conteo;
   }, [empresasActivas]);
 
-  // 🔍 Aplicar el filtro de tamaño junto con el listado activo
-  const empresasFiltradas = useMemo(() => {
-    if (!filtroTamano) return empresasActivas;
-    return empresasActivas.filter(c => {
-      const tam = (c.tamanoEmpresa || c.tamanio || 'Micro').trim();
-      return tam === filtroTamano;
+  // 2. Conteo por Estado (Ubicación)
+  const conteoEstado = useMemo(() => {
+    const conteo: Record<string, number> = {};
+    empresasActivas.forEach(c => {
+      const estado = c.ubicacion?.estado?.trim();
+      if (estado) {
+        conteo[estado] = (conteo[estado] || 0) + 1;
+      }
     });
-  }, [empresasActivas, filtroTamano]);
+    return conteo;
+  }, [empresasActivas]);
+
+  // 3. Conteo por Municipio (Solo cuando el Estado sea Querétaro)
+  const conteoMunicipioQueretaro = useMemo(() => {
+    const conteo: Record<string, number> = {};
+    empresasActivas.forEach(c => {
+      const estado = c.ubicacion?.estado?.trim().toLowerCase() || '';
+      const municipio = c.ubicacion?.municipio?.trim();
+
+      // Validar si es del estado de Querétaro
+      const esQueretaro = estado.includes('querétaro') || estado.includes('queretaro') || estado === 'qro';
+
+      if (esQueretaro && municipio) {
+        conteo[municipio] = (conteo[municipio] || 0) + 1;
+      }
+    });
+    return conteo;
+  }, [empresasActivas]);
+
+  // 4. Conteo por Tipo de Operaciones
+  const conteoOperaciones = useMemo(() => {
+    const conteo: Record<string, number> = {};
+    empresasActivas.forEach(c => {
+      if (Array.isArray(c.tipoOperaciones)) {
+        c.tipoOperaciones.forEach(op => {
+          const key = op.trim();
+          if (key) conteo[key] = (conteo[key] || 0) + 1;
+        });
+      }
+    });
+    return conteo;
+  }, [empresasActivas]);
+
+  // 5. Conteo por Tipo de Suministro
+  const conteoSuministro = useMemo(() => {
+    const conteo: Record<string, number> = {};
+    empresasActivas.forEach(c => {
+      if (Array.isArray(c.tipoSuministro)) {
+        c.tipoSuministro.forEach(sum => {
+          const key = sum.trim();
+          if (key) conteo[key] = (conteo[key] || 0) + 1;
+        });
+      }
+    });
+    return conteo;
+  }, [empresasActivas]);
+
+  // 6. Conteo por Sectores a los que Pertenece (Se MUESTRAN TODOS)
+  const conteoSectoresPertenece = useMemo(() => {
+    const conteo: Record<string, number> = {};
+    empresasActivas.forEach(c => {
+      const listaSectores = c.informacionEmpresa?.sectoresPertenece?.lista;
+      if (Array.isArray(listaSectores)) {
+        listaSectores.forEach(sec => {
+          const key = sec.trim();
+          if (key) conteo[key] = (conteo[key] || 0) + 1;
+        });
+      }
+    });
+    return conteo;
+  }, [empresasActivas]);
+
+  // 7. Conteo por Certificaciones
+  const conteoCertificaciones = useMemo(() => {
+    const conteo: Record<string, number> = {};
+    empresasActivas.forEach(c => {
+      const listaCert = c.informacionEmpresa?.certificaciones?.lista;
+      if (Array.isArray(listaCert)) {
+        listaCert.forEach(cert => {
+          const key = cert.trim();
+          if (key) conteo[key] = (conteo[key] || 0) + 1;
+        });
+      }
+    });
+    return conteo;
+  }, [empresasActivas]);
+
+  // 8. Conteo por País de Origen (Aplica agrupación para valores igual a 1)
+  const conteoPaisOrigen = useMemo(() => {
+    const conteo: Record<string, number> = {};
+    empresasActivas.forEach(c => {
+      const pais = c.informacionEmpresa?.paisOrigen?.trim();
+      if (pais) {
+        conteo[pais] = (conteo[pais] || 0) + 1;
+      }
+    });
+    return agruparUnicosEnOtros(conteo);
+  }, [empresasActivas]);
+
+  // 9. Conteo por Destino de Exportaciones (Aplica agrupación para valores igual a 1)
+  const conteoDestinoExportacion = useMemo(() => {
+    const conteo: Record<string, number> = {};
+    empresasActivas.forEach(c => {
+      const destinos = c.informacionEmpresa?.destinoExportaciones;
+      if (Array.isArray(destinos)) {
+        destinos.forEach(dest => {
+          const key = dest.trim();
+          if (key) conteo[key] = (conteo[key] || 0) + 1;
+        });
+      }
+    });
+    return agruparUnicosEnOtros(conteo);
+  }, [empresasActivas]);
+
+  const renderMetricGrid = (
+    titulo: string, 
+    data: Record<string, number>, 
+    icon: React.ReactNode, 
+    emptyMessage: string
+  ) => {
+    const entries = Object.entries(data);
+    return (
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+          {icon}
+          <span>{titulo}</span>
+        </h3>
+        {entries.length === 0 ? (
+          <p className="text-xs text-slate-500 italic bg-slate-800/30 p-3 rounded-lg border border-slate-800">
+            {emptyMessage}
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {entries.map(([label, cantidad]) => (
+              <div key={label} className="bg-slate-800/60 border border-slate-700/80 rounded-xl p-4 text-center shadow-md">
+                <span className="text-xs font-medium text-slate-400 block truncate mb-1" title={label}>
+                  {label}
+                </span>
+                <div className="text-2xl font-black text-white">
+                  <CountUp end={cantidad} duration={1.5} separator="," />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="w-full space-y-8">
-      {/* Hero & Buscador */}
+      {/* Hero */}
       <div className="text-center max-w-2xl mx-auto">
         <h2 className="text-3xl font-extrabold text-white mb-3">
-          Encuentra empresas e industrias clave
+          Estadísticas del Directorio Empresarial
         </h2>
         <p className="text-slate-400 text-sm">
-          Explora las organizaciones registradas, ubicaciones y sectores de operación.
+          Métricas consolidadas de las empresas registradas en la plataforma.
         </p>
-
-        {/* Campo de Búsqueda */}
-        <div className="relative mt-6">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar por Nombre Comercial, Razón Social o RFC..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 shadow-lg transition-colors"
-          />
-        </div>
       </div>
 
-      {/* 📊 PANEL DE ESTADÍSTICAS / FILTROS CON REACT-COUNTUP */}
-      {!loading && empresasActivas.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Filtrar por tamaño de empresa:
-            </span>
-            {filtroTamano && (
-              <button
-                onClick={() => setFiltroTamano(null)}
-                className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 px-2.5 py-1 rounded-full border border-blue-500/20"
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>Limpiar filtro ({filtroTamano})</span>
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Object.entries(conteoTamano).map(([tamano, cantidad]) => {
-              const isSelected = filtroTamano === tamano;
-              return (
-                <div 
-                  key={tamano}
-                  onClick={() => setFiltroTamano(isSelected ? null : tamano)} // 👈 Alternar selección al hacer clic
-                  className={`cursor-pointer rounded-xl p-4 text-center shadow-md transition-all border ${
-                    isSelected 
-                      ? 'bg-blue-600/20 border-blue-500 shadow-blue-500/10 ring-1 ring-blue-500' 
-                      : 'bg-slate-800/60 border-slate-700/80 hover:border-slate-600 hover:bg-slate-800'
-                  }`}
-                >
-                  <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-slate-400 mb-1">
-                    <Layers className={`w-3.5 h-3.5 ${isSelected ? 'text-blue-400' : 'text-slate-400'}`} />
-                    <span>{tamano}</span>
-                  </div>
-                  <div className="text-2xl font-black text-white">
-                    <CountUp end={cantidad} duration={1.5} separator="," />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Listado de Tarjetas */}
       {loading ? (
         <div className="text-center py-16 text-slate-400">
-          Cargando empresas...
-        </div>
-      ) : empresasFiltradas.length === 0 ? (
-        <div className="text-center py-16 bg-slate-800/40 rounded-2xl border border-slate-800">
-          <Building2 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-400 text-lg">No se encontraron empresas con esos criterios.</p>
+          Cargando estadísticas...
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">     
-          {empresasFiltradas.map((company) => (
-            <div
-              key={company._id}
-              className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl hover:border-slate-600 transition-all flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <h3 className="text-lg font-bold text-white leading-snug">
-                    {company.nombreComercial}
-                  </h3>
-                  <span className="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-semibold rounded-full whitespace-nowrap">
-                    {company.tamanoEmpresa || company.tamanio || 'Micro'}
-                  </span>
-                </div>
+        <div className="space-y-8">
+          {/* 1. Tamaño de Empresa */}
+          {renderMetricGrid(
+            "Distribución por Tamaño de Empresa", 
+            conteoTamano, 
+            <Layers className="w-4 h-4 text-blue-400" />,
+            "No hay datos de tamaño registrados."
+          )}
 
-                <p className="text-xs text-slate-400 mb-4">{company.razonSocial}</p>
+          {/* 2. Ubicación por Estado */}
+          {renderMetricGrid(
+            "Distribución por Estado", 
+            conteoEstado, 
+            <MapPin className="w-4 h-4 text-emerald-400" />,
+            "No hay estados registrados."
+          )}
 
-                <div className="space-y-2 text-sm text-slate-300">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-slate-500 shrink-0" />
-                    <span>
-                      {company.ubicacion?.municipio}, {company.ubicacion?.estado}
-                    </span>
-                  </div>
+          {/* 3. Ubicación por Municipio (Querétaro) */}
+          {renderMetricGrid(
+            "Municipios de Querétaro", 
+            conteoMunicipioQueretaro, 
+            <Building className="w-4 h-4 text-teal-400" />,
+            "No hay municipios registrados para Querétaro."
+          )}
 
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-slate-500 shrink-0" />
-                    <span>RFC: {company.rfc}</span>
-                  </div>
-                </div>
+          {/* 4. Tipos de Operaciones */}
+          {renderMetricGrid(
+            "Tipos de Operaciones", 
+            conteoOperaciones, 
+            <Activity className="w-4 h-4 text-indigo-400" />,
+            "No hay operaciones registradas."
+          )}
 
-                {/* Badges de Operaciones */}
-                {company.tipoOperaciones && company.tipoOperaciones.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-1.5">
-                    {company.tipoOperaciones.map((op, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-0.5 bg-slate-900 text-slate-400 text-xs rounded border border-slate-700"
-                      >
-                        {op}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+          {/* 5. Tipos de Suministro */}
+          {renderMetricGrid(
+            "Tipos de Suministro", 
+            conteoSuministro, 
+            <Truck className="w-4 h-4 text-amber-400" />,
+            "No hay tipos de suministro registrados."
+          )}
 
-              {company.sitioWeb && (
-                <div className="mt-6 pt-4 border-t border-slate-700/60">
-                  <a
-                    href={company.sitioWeb.startsWith('http') ? company.sitioWeb : `https://${company.sitioWeb}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
-                  >
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>Visitar Sitio Web</span>
-                  </a>
-                </div>
-              )}
-            </div>
-          ))}
+          {/* 6. Sectores a los que Pertenece */}
+          {renderMetricGrid(
+            "Sectores a los que Pertenece", 
+            conteoSectoresPertenece, 
+            <Briefcase className="w-4 h-4 text-purple-400" />,
+            "No hay sectores registrados."
+          )}
+
+          {/* 7. Certificaciones */}
+          {renderMetricGrid(
+            "Certificaciones", 
+            conteoCertificaciones, 
+            <Award className="w-4 h-4 text-yellow-400" />,
+            "No hay certificaciones registradas."
+          )}
+
+          {/* 8. País de Origen */}
+          {renderMetricGrid(
+            "País de Origen", 
+            conteoPaisOrigen, 
+            <Globe className="w-4 h-4 text-cyan-400" />,
+            "No hay países de origen registrados."
+          )}
+
+          {/* 9. Destino de Exportaciones */}
+          {renderMetricGrid(
+            "Destinos de Exportación", 
+            conteoDestinoExportacion, 
+            <Send className="w-4 h-4 text-rose-400" />,
+            "No hay destinos de exportación registrados."
+          )}
         </div>
       )}
     </div>

@@ -115,19 +115,19 @@ export const Login = () => {
         </form>
 
         {/* Botón para abrir el Modal de Crear Cuenta */}
-        <div className="mt-6 pt-6 border-t border-slate-700/60 text-center">
+        {/* <div className="mt-6 pt-6 border-t border-slate-700/60 text-center">
           <p className="text-xs text-slate-400 mb-3">
             ¿Aún no tienes una cuenta registrada?
           </p>
           <button
             type="button"
-            onClick={() => {/*setIsRegisterOpen(true)*/}}
+            onClick={() => setIsRegisterOpen(true)}
             className="inline-flex items-center justify-center gap-2 w-full py-2 px-4 bg-slate-700/50 hover:bg-slate-700 text-slate-200 border border-slate-600/50 rounded-lg text-sm transition-colors font-medium"
           >
             <UserPlus className="w-4 h-4 text-blue-400" />
             <span>Crear una cuenta</span>
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );

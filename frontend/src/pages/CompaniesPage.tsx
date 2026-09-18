@@ -515,7 +515,7 @@ export const CompaniesPage = () => {
                             >
                                 <ListChecks className="w-4 h-4" />
                                 <span className="hidden sm:inline">
-                                    {allVisibleSelected ? 'Deseleccionar visibles' : 'Seleccionar las visibles'}
+                                    {allVisibleSelected ? 'Deseleccionar visibles' : 'Seleccionar visibles'}
                                 </span>
                             </button>
 
@@ -881,41 +881,43 @@ export const CompaniesPage = () => {
                                                         </td>
                                                     )}
 
-                                                    <td className="px-6 py-4 text-right space-x-2">
-                                                        <button
-                                                            onClick={() => handleOpenDetails(comp)}
-                                                            className="p-1.5 bg-slate-700 hover:bg-slate-600 text-blue-400 rounded-md transition-colors"
-                                                            title="Ver detalles"
-                                                        >
-                                                            <Eye className="w-4 h-4" />
-                                                        </button>
+                                                    <td className="px-6 py-4 text-right whitespace-nowrap">
+                                                        <div className="flex items-center justify-end gap-1.5">
+                                                            <button
+                                                                onClick={() => handleOpenDetails(comp)}
+                                                                className="p-1.5 bg-slate-700 hover:bg-slate-600 text-blue-400 rounded-md transition-colors"
+                                                                title="Ver detalles"
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                            </button>
 
-                                                        <button
-                                                            onClick={() => handleOpenFollow(comp)}
-                                                            className="p-1.5 bg-slate-700 hover:bg-slate-600 text-amber-400 rounded-md transition-colors"
-                                                            title="Ver seguimientos"
-                                                        >
-                                                            <ChartGantt className="w-4 h-4" />
-                                                        </button>
+                                                            <button
+                                                                onClick={() => handleOpenFollow(comp)}
+                                                                className="p-1.5 bg-slate-700 hover:bg-slate-600 text-amber-400 rounded-md transition-colors"
+                                                                title="Ver seguimientos"
+                                                            >
+                                                                <ChartGantt className="w-4 h-4" />
+                                                            </button>
 
-                                                        {canEdit && (
-                                                            <>
-                                                                <button
-                                                                    onClick={() => openModal(comp)}
-                                                                    className="p-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md transition-colors"
-                                                                    title="Editar"
-                                                                >
-                                                                    <Pencil className="w-4 h-4" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => comp._id && handleDelete(comp._id, comp.nombreComercial)}
-                                                                    className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/20 transition-colors"
-                                                                    title="Eliminar"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            </>
-                                                        )}
+                                                            {canEdit && (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => openModal(comp)}
+                                                                        className="p-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md transition-colors"
+                                                                        title="Editar"
+                                                                    >
+                                                                        <Pencil className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => comp._id && handleDelete(comp._id, comp.nombreComercial)}
+                                                                        className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/20 transition-colors"
+                                                                        title="Eliminar"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );

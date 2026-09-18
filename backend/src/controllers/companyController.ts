@@ -296,16 +296,16 @@ export const deleteCompany = async (req: AuthRequest, res: Response): Promise<vo
 // POST: Registrar seguimiento de empresa
 export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { 
-      empresaId, 
-      fechaSeguimiento, 
-      horaSeguimiento, 
-      tipoSeguimiento, 
-      medioAtencion, 
-      asunto, 
-      descripcion, 
-      atencionSeguimiento, 
-      estatus 
+    const {
+      empresaId,
+      fechaSeguimiento,
+      horaSeguimiento,
+      tipoSeguimiento,
+      medioAtencion,
+      asunto,
+      descripcion,
+      atencionSeguimiento,
+      estatus
     } = req.body;
 
     if (!empresaId || !asunto || !descripcion) {
@@ -472,15 +472,15 @@ export const deleteCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
 export const getCompanyFollowUps = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { companyId } = req.params;
-    const { 
-      search, 
-      tipo, 
-      medio, 
-      estatus, 
-      empresa, 
-      usuario, 
-      fechaDesde, 
-      fechaHasta 
+    const {
+      search,
+      tipo,
+      medio,
+      estatus,
+      empresa,
+      usuario,
+      fechaDesde,
+      fechaHasta
     } = req.query;
 
     const matchStage: any = {};
@@ -506,14 +506,19 @@ export const getCompanyFollowUps = async (req: AuthRequest, res: Response): Prom
       matchStage.estatus = { $in: estatusArray };
     }
 
-    // 3. Filtro por Rango de Fechas
+    // Si fechaSeguimiento sigue siendo String en el backend
     if (fechaDesde || fechaHasta) {
-      matchStage.fechaSeguimiento = {};
+      matchStage.$expr = matchStage.$expr || { $and: [] };
+
       if (fechaDesde) {
-        matchStage.fechaSeguimiento.$gte = new Date(`${fechaDesde}T00:00:00.000Z`);
+        matchStage.$expr.$and.push({
+          $gte: [{ $substr: ["$fechaSeguimiento", 0, 10] }, fechaDesde]
+        });
       }
       if (fechaHasta) {
-        matchStage.fechaSeguimiento.$lte = new Date(`${fechaHasta}T23:59:59.999Z`);
+        matchStage.$expr.$and.push({
+          $lte: [{ $substr: ["$fechaSeguimiento", 0, 10] }, fechaHasta]
+        });
       }
     }
 
