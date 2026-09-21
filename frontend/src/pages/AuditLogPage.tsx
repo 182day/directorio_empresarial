@@ -393,6 +393,23 @@ export const AuditLogPage = () => {
                 </div>
             )}
 
+            {/* CONTADOR DE RESULTADOS ENCONTRADOS */}
+            {hasSearched && !loading && logs.length > 0 && (
+                <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-800/60 border border-slate-700/60 px-4 py-2.5 rounded-lg text-sm text-slate-300 shadow-sm gap-1">
+                    <span className="font-medium">
+                        Se {logs.length === 1 ? 'encontró' : 'encontraron'}{' '}
+                        <strong className="text-blue-400 font-semibold">{totalItems}</strong>{' '}
+                        {totalItems === 1 ? 'resultado' : 'resultados'}
+                    </span>
+
+                    {totalFiltrosActivos > 0 && (
+                        <span className="text-xs text-slate-400">
+                            (con filtros aplicados)
+                        </span>
+                    )}
+                </div>
+            )}
+
             {/* CONTENIDO PRINCIPAL / TABLA */}
             {!hasSearched ? (
                 <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-3">

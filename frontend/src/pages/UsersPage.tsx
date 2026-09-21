@@ -9,7 +9,7 @@ import { Plus, Edit2, Trash2, Search, X, CheckCircle2, XCircle } from 'lucide-re
 
 export const UsersPage = () => {
     const { users, loading, fetchUsers, createUser, updateUser, deleteUser } = useUserStore();
-    
+
     const [search, setSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -115,6 +115,23 @@ export const UsersPage = () => {
                 </button>
             </div>
 
+            {/* CONTADOR DE RESULTADOS ENCONTRADOS */}
+            {!loading && filteredUsers.length > 0 && (
+                <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-800/60 border border-slate-700/60 px-4 py-2.5 rounded-lg text-sm text-slate-300 shadow-sm gap-1">
+                    <span className="font-medium">
+                        Se {filteredUsers.length === 1 ? 'encontró' : 'encontraron'}{' '}
+                        <strong className="text-blue-400 font-semibold">{filteredUsers.length}</strong>{' '}
+                        {filteredUsers.length === 1 ? 'resultado' : 'resultados'}
+                    </span>
+
+                    {search.trim() !== '' && filteredUsers.length !== users.length && (
+                        <span className="text-xs text-slate-400">
+                            (filtrados de un total de {users.length})
+                        </span>
+                    )}
+                </div>
+            )}
+
             {loading ? (
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
                     Cargando usuarios...
@@ -152,8 +169,8 @@ export const UsersPage = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${u.activo
-                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                                                 }`}>
                                                 {u.activo ? (
                                                     <>
