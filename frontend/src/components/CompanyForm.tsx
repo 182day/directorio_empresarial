@@ -267,7 +267,7 @@ export const CompanyForm = ({
         }
     }, [baseData]);
 
-    const sectoresSeleccionados = formData.informacionEmpresa.sectoresPertenece.lista;
+    const sectoresSeleccionados = formData.informacionEmpresa?.sectoresPertenece?.lista || [];
     const esSectorPlasticosSeleccionado = sectoresSeleccionados.includes('Plásticos');
     const esSectorMetalmecanicoSeleccionado = sectoresSeleccionados.includes('Metalmecánico');
     const esSectorElectricaElectronicaSeleccionado = sectoresSeleccionados.includes('Eléctrica-Electrónica');
@@ -1650,10 +1650,10 @@ export const CompanyForm = ({
 
                                 if (!isVisible) return null;
 
-                                const sectorData = formData.informacionEmpresa[sector.keyName] as {
-                                    lista: string[];
+                                const sectorData = (formData.informacionEmpresa?.[sector.keyName] as {
+                                    lista?: string[];
                                     otroEspecifique?: string;
-                                };
+                                }) || { lista: [], otroEspecifique: '' };
 
                                 return (
                                     <SectorCheckboxGroup
@@ -1662,8 +1662,8 @@ export const CompanyForm = ({
                                         title={sector.title}
                                         colorTheme={sector.colorTheme}
                                         options={sector.options}
-                                        selectedItems={sectorData.lista}
-                                        otherValue={sectorData.otroEspecifique}
+                                        selectedItems={sectorData.lista || []}
+                                        otherValue={sectorData.otroEspecifique || ''}
                                         listPath={`informacionEmpresa.${sector.keyName}.lista`}
                                         otherPath={`informacionEmpresa.${sector.keyName}.otroEspecifique`}
                                         hasError={!!errors[`informacionEmpresa.${sector.keyName}.lista`]}

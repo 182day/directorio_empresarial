@@ -1,6 +1,7 @@
 // src/pages/AuditLogPage.tsx
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
+import { useCompanyStore } from '../stores/useCompanyStore';
 import { useUserStore } from '../stores/useUserStore';
 import { Pagination } from '../components/Pagination';
 import {
@@ -28,14 +29,16 @@ interface AuditLogItem {
     };
     accion: string;
     modulo: string;
+    empresaId?: string;
     detalles?: any;
     ip?: string;
     createdAt: string;
 }
 
 export const AuditLogPage = () => {
-    // Reutilizar Store de Usuarios
+    // Reutilizar Store
     const { users, fetchUsers } = useUserStore();
+    const { companies } = useCompanyStore();
 
     // Estados de Datos
     const [logs, setLogs] = useState<AuditLogItem[]>([]);
@@ -63,6 +66,7 @@ export const AuditLogPage = () => {
     // Cargar Usuarios desde el Store de Zustand al montar
     useEffect(() => {
         fetchUsers();
+        //fetchCompanies();
     }, [fetchUsers]);
 
     // Petición al backend con Filtros y Paginación
@@ -322,6 +326,7 @@ export const AuditLogPage = () => {
                             <option value="">Todos los módulos</option>
                             <option value="Empresas">Empresas</option>
                             <option value="Usuarios">Usuarios</option>
+                            <option value="SeguimientoEmpresas">Seguimientos</option>
                             <option value="Auth">Auth</option>
                             <option value="General">General</option>
                         </select>
@@ -457,11 +462,13 @@ export const AuditLogPage = () => {
                                                     ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
                                                     : log.modulo === 'Usuarios'
                                                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                        : log.modulo === 'Auth'
-                                                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                                            : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                        : log.modulo === 'SeguimientoEmpresas'
+                                                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                                                            : log.modulo === 'Auth'
+                                                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                                                : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                                                     }`}>
-                                                    {log.modulo || 'General'}
+                                                    {log.modulo === 'SeguimientoEmpresas' ? 'Seguimiento' : log.modulo || 'General'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 font-medium text-white whitespace-nowrap">
@@ -520,19 +527,30 @@ export const AuditLogPage = () => {
                         </div>
 
                         <div className="p-6 overflow-y-auto space-y-4">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-800/40 p-3 rounded-xl border border-slate-800 text-xs">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-800/40 p-3 rounded-xl border border-slate-800 text-xs">
                                 <div>
                                     <span className="text-slate-500 block">Acción</span>
                                     <span className="font-semibold text-white">{selectedLogDetails.accion}</span>
                                 </div>
                                 <div>
                                     <span className="text-slate-500 block">Módulo</span>
-                                    <span className="text-blue-400 font-medium">{selectedLogDetails.modulo || 'General'}</span>
+                                    <span className="text-blue-400 font-medium">{selectedLogDetails.modulo === 'SeguimientoEmpresas' ? 'Seguimiento' : selectedLogDetails.modulo || 'General'}</span>
                                 </div>
                                 <div>
                                     <span className="text-slate-500 block">Usuario</span>
                                     <span className="text-white font-medium">{selectedLogDetails.usuario?.nombre || 'Sistema'}</span>
                                 </div>
+                                {selectedLogDetails.modulo === 'SeguimientoEmpresas' && (
+                                    <div>
+                                        <span className="text-slate-500 block">Empresa</span>
+                                        <span className="text-white font-medium">
+                                            {companies.find((c) => c._id === selectedLogDetails.empresaId)?.nombreComercial ||
+                                                companies.find((c) => c._id === selectedLogDetails.empresaId)?.razonSocial ||
+                                                'Empresa no registrada'}
+                                        </span>
+                                    </div>
+                                )}
+
                             </div>
 
                             <div>
