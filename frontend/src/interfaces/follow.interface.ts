@@ -3,9 +3,19 @@ export type FollowUpType = 'Apoyo' | 'Asesoría' | 'Capacitación'| 'Evento' | '
 export type AttentionMedium = 'Correo' | 'Llamada telefónica' | 'Reunión' | 'Visita' | 'Otro';
 export type FollowStatus = 'Nuevo' | 'En Proceso' | 'Completado' | 'Cancelado';
 
+export interface OtraEmpresaData {
+  nombreEmpresa: string;     // Obligatorio
+  rfc?: string;              // Opcional
+  estado?: string;           // Opcional
+  municipio?: string;        // Opcional
+  nombreContacto?: string;   // Opcional
+  telefonoContacto?: string; // Opcional
+  correoElectronico?: string;// Opcional
+}
+
 export interface FollowRecord {
   _id?: string;
-  empresaId: string;
+  empresaId: string;  // Puede ser un ID de la base de datos o "OTRA"
   companyName?: string;       // Opcional para vistas en tabla/tarjetas
   fechaSeguimiento: string;
   horaSeguimiento?: string;
@@ -17,4 +27,5 @@ export interface FollowRecord {
   estatus: FollowStatus | string;
   usuario?: string;
   empresasVinculadas?: string[];
+  otraEmpresa?: OtraEmpresaData; // Datos capturados si empresaId === 'OTRA'
 }

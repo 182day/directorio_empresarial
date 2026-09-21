@@ -105,9 +105,11 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         selectedEmpresa.length +
         selectedUsuario.length +
         (fechaDesde ? 1 : 0) +
-        (fechaHasta ? 1 : 0);
+        (fechaHasta ? 1 : 0) +
+        (search.trim() ? 1 : 0);
 
     const clearAllFilters = () => {
+        setSearch('');
         setSelectedTipo([]);
         setSelectedMedio([]);
         setSelectedEstatus([]);
@@ -176,7 +178,8 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
             const normalizedData: FollowRecord[] = res.data.map((item: any) => ({
                 _id: item._id,
                 empresaId: item.empresaId?._id || item.empresaId || '',
-                companyName: item.empresaId?.nombreComercial || 'Empresa Sin Nombre',
+                companyName: item.empresaId?.nombreComercial || item.otraEmpresa?.nombreEmpresa || 'Empresa No Registrada',
+                otraEmpresa: item.otraEmpresa,
                 tipoSeguimiento: item.tipoSeguimiento || 'General',
                 medioAtencion: item.medioAtencion || 'Llamada telefónica',
                 asunto: item.asunto || '',
@@ -825,6 +828,23 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                     <div className="flex items-center gap-2 flex-wrap bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
                         <span className="text-xs text-slate-400 font-medium">Filtros aplicados:</span>
 
+                        {/* 👈 Chip para el buscador de texto general */}
+                        {search.trim() && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-600">
+                                <Search className="w-3 h-3 text-slate-400" />
+                                Búsqueda: "{search.trim()}"
+                                <button
+                                    onClick={() => {
+                                        setSearch('');
+                                        if (!company) fetchFollows(); // Reconsulta si estás en la vista global
+                                    }}
+                                    className="hover:text-white ml-0.5"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </span>
+                        )}
+
                         {selectedTipo.map((tipo) => (
                             <span key={tipo} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20">
                                 Tipo: {tipo}
@@ -1154,29 +1174,57 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                 <div className="space-y-6 text-sm text-slate-300">
 
                                     {/* Bloque Destacado: Empresa */}
-                                    <div className="flex items-center justify-between bg-slate-800/80 border border-slate-700/60 p-4 rounded-xl">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2.5 bg-blue-600/10 border border-blue-500/20 text-blue-400 rounded-xl shrink-0">
-                                                <Building2 className="w-6 h-6" />
+                                    <div className="bg-slate-800/80 border border-slate-700/60 p-4 rounded-xl space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2.5 rounded-xl shrink-0 border ${selectedFollow.otraEmpresa
+                                                    ? 'bg-amber-600/10 border-amber-500/20 text-amber-400'
+                                                    : 'bg-blue-600/10 border-blue-500/20 text-blue-400'
+                                                    }`}>
+                                                    <Building2 className="w-6 h-6" />
+                                                </div>
+                                                <div>
+                                                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                                                        {selectedFollow.otraEmpresa ? 'Empresa No Registrada (Manual)' : 'Empresa Registrada'}
+                                                    </span>
+                                                    <p className="text-base text-white font-bold tracking-wide">
+                                                        {selectedFollow.companyName}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                                                    Empresa Registrada
-                                                </span>
-                                                <p className="text-base text-white font-bold tracking-wide">
-                                                    {selectedFollow.companyName}
-                                                </p>
-                                            </div>
+
+                                            {/* Estatus Badge */}
+                                            <span className={`px-3 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 ${selectedFollow.estatus === 'Completado'
+                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                                : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                                                }`}>
+                                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                                {selectedFollow.estatus}
+                                            </span>
                                         </div>
 
-                                        {/* Estatus Badge */}
-                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 ${selectedFollow.estatus === 'Completado'
-                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                                            : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                                            }`}>
-                                            <CheckCircle2 className="w-3.5 h-3.5" />
-                                            {selectedFollow.estatus}
-                                        </span>
+                                        {/* Si fue registrada como OTRA empresa, mostrar sus datos adicionales */}
+                                        {selectedFollow.otraEmpresa && (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-700/50 text-xs text-slate-300">
+                                                {selectedFollow.otraEmpresa.rfc && (
+                                                    <div><span className="text-slate-400">RFC:</span> {selectedFollow.otraEmpresa.rfc}</div>
+                                                )}
+                                                {selectedFollow.otraEmpresa.nombreContacto && (
+                                                    <div><span className="text-slate-400">Contacto:</span> {selectedFollow.otraEmpresa.nombreContacto}</div>
+                                                )}
+                                                {selectedFollow.otraEmpresa.telefonoContacto && (
+                                                    <div><span className="text-slate-400">Teléfono:</span> {selectedFollow.otraEmpresa.telefonoContacto}</div>
+                                                )}
+                                                {selectedFollow.otraEmpresa.correoElectronico && (
+                                                    <div><span className="text-slate-400">Correo:</span> {selectedFollow.otraEmpresa.correoElectronico}</div>
+                                                )}
+                                                {(selectedFollow.otraEmpresa.estado || selectedFollow.otraEmpresa.municipio) && (
+                                                    <div>
+                                                        <span className="text-slate-400">Ubicación:</span> {[selectedFollow.otraEmpresa.municipio, selectedFollow.otraEmpresa.estado].filter(Boolean).join(', ')}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Metadatos en Grilla */}
@@ -1288,7 +1336,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                 </div>
                             ) : (
                                 <CompanyFollowForm
-                                    companyId={company?._id || selectedFollow?.empresaId}
+                                    companyId={company?._id || (selectedFollow?.otraEmpresa ? 'OTRA' : selectedFollow?.empresaId)}
                                     initialData={selectedFollow}
                                     onClose={() => setShowModal(false)}
                                     onSuccess={() => {

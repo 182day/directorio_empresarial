@@ -119,17 +119,25 @@ export interface CompanyFormData {
 // 2. Interfaz Reducida (Usada en Directory.tsx y listados simples)
 export interface DirectoryCompany {
   _id: string;
-  nombreComercial: string;
-  razonSocial: string;
-  rfc: string;
   tamanoEmpresa?: string;
   tamanio?: string; // Para compatibilidad si el backend devuelve tamanio
-  anioInicio: number;
-  sitioWeb?: string;
   tipoOperaciones: string[];
   ubicacion: {
     estado: string;
     municipio: string;
   };
   activa: boolean;
+  tipoSuministro?: string[];
+  informacionEmpresa?: {
+    paisOrigen?: string;
+    destinoExportaciones?: string[];
+    sectoresPertenece?: {
+      lista?: string[];
+      otroEspecifique?: string;
+    };
+    certificaciones?: {
+      lista?: string[];
+      otroEspecifique?: string;
+    };
+  };
 }

@@ -6,22 +6,6 @@ import CountUpModule from 'react-countup';
 const CountUp = (CountUpModule as any).default || CountUpModule;
 import { type DirectoryCompany as Company } from '../interfaces/company.interface';
 
-interface DirectoryExtendedCompany extends Company {
-  tipoSuministro?: string[];
-  informacionEmpresa?: {
-    paisOrigen?: string;
-    destinoExportaciones?: string[];
-    sectoresPertenece?: {
-      lista?: string[];
-      otroEspecifique?: string;
-    };
-    certificaciones?: {
-      lista?: string[];
-      otroEspecifique?: string;
-    };
-  };
-}
-
 // Helper para agrupar elementos con frecuencia = 1 en "Otros"
 const agruparUnicosEnOtros = (conteo: Record<string, number>): Record<string, number> => {
   const resultado: Record<string, number> = {};
@@ -43,7 +27,7 @@ const agruparUnicosEnOtros = (conteo: Record<string, number>): Record<string, nu
 };
 
 export const Directory = () => {
-  const [companies, setCompanies] = useState<DirectoryExtendedCompany[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

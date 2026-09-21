@@ -308,15 +308,23 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       descripcion,
       atencionSeguimiento,
       estatus,
-      empresasVinculadas // 👈 Extraer de req.body
+      empresasVinculadas,
+      otraEmpresa // 👈 Extraer objeto enviado por frontend
     } = req.body;
 
     if (!empresaId || !asunto || !descripcion) {
-      res.status(400).json({ message: 'Los campos empresaId, asunto y descripción son obligatorios.' });
+      res.status(400).json({ message: 'Los campos empresa, asunto y descripción son obligatorios.' });
       return;
     }
 
-    if (!Types.ObjectId.isValid(empresaId)) {
+    // Validar 'otraEmpresa' si se seleccionó la opción manual
+    if (empresaId === 'OTRA' && (!otraEmpresa || !otraEmpresa.nombreEmpresa?.trim())) {
+      res.status(400).json({ message: 'El nombre de la empresa es obligatorio al seleccionar "Otra".' });
+      return;
+    }
+
+    // Validar ID solo si NO es la opción 'OTRA'
+    if (empresaId !== 'OTRA' && !Types.ObjectId.isValid(empresaId)) {
       res.status(400).json({ message: 'El ID de la empresa no tiene un formato válido.' });
       return;
     }
@@ -324,15 +332,16 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
     const userId = req.user?.id || req.user?._id;
     const parsedDate = fechaSeguimiento ? new Date(fechaSeguimiento) : new Date();
 
-    // Mapear arreglo de IDs validando ObjectId
     const vinculadasArray = Array.isArray(empresasVinculadas)
       ? empresasVinculadas
           .filter((id: string) => Types.ObjectId.isValid(id))
           .map((id: string) => new Types.ObjectId(id))
       : [];
 
+    const isOtra = empresaId === 'OTRA';
+
     const followUp = new CompanyFollowUp({
-      empresaId: new Types.ObjectId(empresaId as string),
+      empresaId: isOtra ? null : new Types.ObjectId(empresaId as string),
       usuarioId: userId && Types.ObjectId.isValid(userId as string) ? new Types.ObjectId(userId as string) : undefined,
       fechaSeguimiento: parsedDate,
       horaSeguimiento,
@@ -342,7 +351,8 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       descripcion,
       atencionSeguimiento,
       estatus,
-      empresasVinculadas: tipoSeguimiento === 'Vinculación' ? vinculadasArray : [] // 👈 Solo guardar si es Vinculación
+      empresasVinculadas: tipoSeguimiento === 'Vinculación' ? vinculadasArray : [],
+      otraEmpresa: isOtra ? otraEmpresa : undefined // 👈 Guardar datos de otra empresa
     });
 
     const savedFollowUp = await followUp.save();
@@ -351,9 +361,9 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       await AuditLog.create({
         accion: 'CREAR',
         modulo: 'SeguimientoEmpresas',
-        empresaId: new Types.ObjectId(empresaId as string),
+        empresaId: isOtra ? undefined : new Types.ObjectId(empresaId as string),
         usuarioId: new Types.ObjectId(userId as string),
-        detalles: { asunto, tipoSeguimiento },
+        detalles: { asunto, tipoSeguimiento, esOtraEmpresa: isOtra },
         ip: getClientIp(req)
       });
     }
@@ -379,7 +389,8 @@ export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       descripcion,
       atencionSeguimiento,
       estatus,
-      empresasVinculadas // 👈 Extraer de req.body
+      empresasVinculadas,
+      otraEmpresa // 👈 Extraer objeto
     } = req.body;
 
     if (!id || !Types.ObjectId.isValid(id as string)) {
@@ -395,6 +406,8 @@ export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
           .map((vId: string) => new Types.ObjectId(vId))
       : [];
 
+    const isOtra = empresaId === 'OTRA';
+
     const updatePayload: any = {
       fechaSeguimiento: parsedDate,
       horaSeguimiento,
@@ -407,8 +420,12 @@ export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       empresasVinculadas: tipoSeguimiento === 'Vinculación' ? vinculadasArray : []
     };
 
-    if (empresaId && Types.ObjectId.isValid(empresaId as string)) {
+    if (isOtra) {
+      updatePayload.empresaId = null;
+      updatePayload.otraEmpresa = otraEmpresa;
+    } else if (empresaId && Types.ObjectId.isValid(empresaId as string)) {
       updatePayload.empresaId = new Types.ObjectId(empresaId as string);
+      updatePayload.otraEmpresa = undefined; // Limpiar si se reasigna a una existente
     }
 
     const updatedFollowUp = await CompanyFollowUp.findByIdAndUpdate(
@@ -427,7 +444,7 @@ export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       await AuditLog.create({
         accion: 'EDITAR',
         modulo: 'SeguimientoEmpresas',
-        empresaId: updatedFollowUp.empresaId,
+        empresaId: updatedFollowUp.empresaId || undefined,
         usuarioId: new Types.ObjectId(userId as string),
         detalles: { seguimientoId: id, asunto },
         ip: getClientIp(req)
@@ -541,8 +558,9 @@ export const getCompanyFollowUps = async (req: AuthRequest, res: Response): Prom
         { descripcion: regex },
         { asunto: regex },
         { 'empresaId.nombreComercial': regex },
+        { 'otraEmpresa.nombreEmpresa': regex }, // 👈 Incluye búsqueda por nombre de empresa no registrada
         { 'usuarioId.nombre': regex },
-        { 'empresasVinculadas.nombreComercial': regex } // 👈 Permite buscar por nombre de empresas vinculadas
+        { 'empresasVinculadas.nombreComercial': regex }
       ];
     }
 
@@ -585,7 +603,8 @@ export const deleteCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       await AuditLog.create({
         accion: 'ELIMINAR',
         modulo: 'SeguimientoEmpresas',
-        empresaId: deletedFollowUp.empresaId,
+        empresaId: deletedFollowUp.empresaId || undefined,
+        //empresaId: deletedFollowUp.empresaId ? new Types.ObjectId(deletedFollowUp.empresaId as any) : undefined,
         usuarioId: new Types.ObjectId(userId as string),
         detalles: { seguimientoId: id, asunto: deletedFollowUp.asunto },
         ip: getClientIp(req)

@@ -2,19 +2,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { type CompanyFormData } from '../interfaces/company.interface';
-import { formatDateForInput } from '../utils/formUtils';
+import { formatDateForInput, sanitizePhoneNumber } from '../utils/formUtils';
 import {
   type FollowRecord,
   type FollowUpType,
   type AttentionMedium,
-  type FollowStatus
+  type FollowStatus,
+  type OtraEmpresaData
 } from '../interfaces/follow.interface';
 import {
   OPCIONES_TIPO_SEGUIMIENTO,
   OPCIONES_MEDIO_ATENCION,
   OPCIONES_ESTATUS_SEGUIMIENTO
 } from '../data/followCatalog';
-import { Save, X, FileText, Building2, Search, ChevronDown } from 'lucide-react';
+import { ESTADOS_MEXICO, getMunicipiosByEstado } from '../data/locationCatalog';
+import { Save, X, FileText, Building2, Search, ChevronDown, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -59,6 +61,17 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
       : []
   });
 
+  // Estado para capturar datos cuando se selecciona la opción "Otra"
+  const [otraEmpresaData, setOtraEmpresaData] = useState<OtraEmpresaData>({
+    nombreEmpresa: initialData?.otraEmpresa?.nombreEmpresa || '',
+    rfc: initialData?.otraEmpresa?.rfc || '',
+    estado: initialData?.otraEmpresa?.estado || '',
+    municipio: initialData?.otraEmpresa?.municipio || '',
+    nombreContacto: initialData?.otraEmpresa?.nombreContacto || '',
+    telefonoContacto: initialData?.otraEmpresa?.telefonoContacto || '',
+    correoElectronico: initialData?.otraEmpresa?.correoElectronico || ''
+  });
+
   // Cargar catálogo de empresas
   useEffect(() => {
     const fetchEmpresas = async () => {
@@ -75,7 +88,7 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
   // Cargar información de la empresa principal si existe companyId
   useEffect(() => {
     const targetCompanyId = companyId || initialData?.empresaId;
-    if (targetCompanyId) {
+    if (targetCompanyId && targetCompanyId !== 'OTRA') {
       const fetchCompanyDetail = async () => {
         try {
           const res = await api.get(`/companies/${targetCompanyId}`);
@@ -86,6 +99,8 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
         }
       };
       fetchCompanyDetail();
+    } else if (targetCompanyId === 'OTRA') {
+      setSearchTerm('Otra (Registrar manualmente)');
     }
   }, [companyId, initialData?.empresaId]);
 
@@ -107,14 +122,10 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
         empresasVinculadas: rawVinculadas.map((item: any) => typeof item === 'string' ? item : item._id)
       });
 
-      // CASO A: Vienen como Objetos completos desde el backend
       const isObjectArray = rawVinculadas.length > 0 && typeof rawVinculadas[0] === 'object';
       if (isObjectArray) {
-        // Uso de (rawVinculadas as unknown as CompanyFormData[]) para evitar la advertencia de TypeScript
         setSelectedVinculadas(rawVinculadas as unknown as CompanyFormData[]);
-      }
-      // CASO B: Vienen solo los IDs (string[]) -> Esperamos a que cargue el catálogo de 'empresas'
-      else if (rawVinculadas.length > 0 && empresas.length > 0) {
+      } else if (rawVinculadas.length > 0 && empresas.length > 0) {
         const ids = rawVinculadas as unknown as string[];
         const vinculadas = empresas.filter((emp) => emp._id && ids.includes(emp._id));
         setSelectedVinculadas(vinculadas);
@@ -153,6 +164,35 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
     }
   };
 
+  // Handler para seleccionar "Otra"
+  const handleSelectOtra = () => {
+    setFormData({ ...formData, empresaId: 'OTRA' });
+    setSelectedCompany(null);
+    setSearchTerm('Otra (Registrar manualmente)');
+    setIsDropdownOpen(false);
+    if (errors.empresaId) {
+      setErrors((prev) => ({ ...prev, empresaId: false }));
+    }
+  };
+
+  // Handlers para el objeto otraEmpresaData
+  const handleOtraEmpresaChange = (field: keyof OtraEmpresaData, value: string) => {
+    const finalValue = field === 'rfc' ? value.toUpperCase() : value;
+    setOtraEmpresaData((prev) => ({ ...prev, [field]: finalValue }));
+    if (errors[`otraEmpresa.${field}`]) {
+      setErrors((prev) => ({ ...prev, [`otraEmpresa.${field}`]: false }));
+    }
+  };
+
+  const handleOtraEmpresaEstadoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nuevoEstado = e.target.value;
+    setOtraEmpresaData((prev) => ({
+      ...prev,
+      estado: nuevoEstado,
+      municipio: '' // Reinicia municipio al cambiar de estado
+    }));
+  };
+
   // Handlers para selección múltiple de empresas vinculadas
   const handleAddVinculada = (emp: CompanyFormData) => {
     if (!selectedVinculadas.some((item) => item._id === emp._id)) {
@@ -181,7 +221,8 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
     emp.rfc?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Filtra empresas excluyendo la principal seleccionada y las ya agregadas
+  const municipiosDisponibles = getMunicipiosByEstado(otraEmpresaData.estado || '');
+
   const filteredVinculadasCompanies = empresas.filter((emp) => {
     const isCurrentCompany = emp._id === (companyId || formData.empresaId);
     const isAlreadySelected = selectedVinculadas.some((v) => v._id === emp._id);
@@ -196,6 +237,12 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
     const newErrors: Record<string, boolean> = {};
 
     if (!companyId && !formData.empresaId.trim()) newErrors.empresaId = true;
+
+    // Validación específica en caso de seleccionar "Otra"
+    if (formData.empresaId === 'OTRA' && !otraEmpresaData.nombreEmpresa.trim()) {
+      newErrors['otraEmpresa.nombreEmpresa'] = true;
+    }
+
     if (!formData.fechaSeguimiento.trim()) newErrors.fechaSeguimiento = true;
     if (!formData.horaSeguimiento.trim()) newErrors.horaSeguimiento = true;
     if (!formData.tipoSeguimiento.trim()) newErrors.tipoSeguimiento = true;
@@ -209,6 +256,8 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
     if (Object.keys(newErrors).length > 0) {
       if (newErrors.empresaId) {
         toast.error('Por favor selecciona una empresa de la lista.');
+      } else if (newErrors['otraEmpresa.nombreEmpresa']) {
+        toast.error('El nombre de la empresa es obligatorio al seleccionar "Otra".');
       } else {
         toast.error('Por favor, completa los campos obligatorios marcados en rojo.');
       }
@@ -223,10 +272,10 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
 
     if (!validateForm()) return;
 
-    // Si no es tipo 'Vinculación', limpiamos el campo opcional
     const payload = {
       ...formData,
-      empresasVinculadas: formData.tipoSeguimiento === 'Vinculación' ? formData.empresasVinculadas : []
+      empresasVinculadas: formData.tipoSeguimiento === 'Vinculación' ? formData.empresasVinculadas : [],
+      otraEmpresa: formData.empresaId === 'OTRA' ? otraEmpresaData : undefined
     };
 
     setLoading(true);
@@ -294,10 +343,18 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
                       </li>
                     ))
                   ) : (
-                    <li className="px-4 py-3 text-slate-400 text-center">
-                      No se encontraron empresas
+                    <li className="px-4 py-2 text-slate-400 text-center text-xs">
+                      No se encontraron empresas registradas
                     </li>
                   )}
+                  {/* Opción 'Otra' siempre visible al final */}
+                  <li
+                    onClick={handleSelectOtra}
+                    className="px-4 py-2.5 bg-slate-700/50 hover:bg-blue-600 hover:text-white text-blue-300 cursor-pointer transition-colors font-medium border-t border-slate-700/80 flex items-center gap-2"
+                  >
+                    <PlusCircle size={15} />
+                    <span>Otra (Registrar manualmente)</span>
+                  </li>
                 </ul>
               )}
             </div>
@@ -308,6 +365,122 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
               </label>
               <div className="w-full bg-slate-800/80 border border-slate-700/80 rounded-lg px-3 py-2 text-sm text-slate-200 font-medium">
                 {selectedCompany ? `${selectedCompany.nombreComercial} (${selectedCompany.rfc})` : 'Cargando datos de la empresa...'}
+              </div>
+            </div>
+          )}
+
+          {/* CAMPOS DINÁMICOS PARA "OTRA" EMPRESA */}
+          {formData.empresaId === 'OTRA' && (
+            <div className="md:col-span-2 bg-slate-800/40 border border-slate-700 rounded-lg p-4 space-y-3">
+              <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                Datos de la Empresa no registrada
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Nombre de la empresa <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Escriba el nombre comercial o razón social"
+                    value={otraEmpresaData.nombreEmpresa}
+                    onChange={(e) => handleOtraEmpresaChange('nombreEmpresa', e.target.value)}
+                    className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${errors['otraEmpresa.nombreEmpresa'] ? 'border-red-500' : 'border-slate-700 focus:border-blue-500'
+                      }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                    RFC <span className="text-slate-500 font-normal">(Opcional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={13}
+                    placeholder="RFC de la empresa"
+                    value={otraEmpresaData.rfc}
+                    onChange={(e) => handleOtraEmpresaChange('rfc', e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                    Estado <span className="text-slate-500 font-normal">(Opcional)</span>
+                  </label>
+                  <select
+                    value={otraEmpresaData.estado}
+                    onChange={handleOtraEmpresaEstadoChange}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  >
+                    <option value="">-- Selecciona un Estado --</option>
+                    {ESTADOS_MEXICO.map((item) => (
+                      <option key={item.estado} value={item.estado}>
+                        {item.estado}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {otraEmpresaData.estado && (
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      Municipio <span className="text-slate-500 font-normal">(Opcional)</span>
+                    </label>
+                    <select
+                      value={otraEmpresaData.municipio}
+                      onChange={(e) => handleOtraEmpresaChange('municipio', e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    >
+                      <option value="">-- Selecciona un Municipio --</option>
+                      {municipiosDisponibles.map((muni) => (
+                        <option key={muni} value={muni}>
+                          {muni}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                    Nombre del contacto <span className="text-slate-500 font-normal">(Opcional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Nombre completo"
+                    value={otraEmpresaData.nombreContacto}
+                    onChange={(e) => handleOtraEmpresaChange('nombreContacto', e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                    Teléfono de contacto <span className="text-slate-500 font-normal">(Opcional)</span>
+                  </label>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    placeholder="10 dígitos"
+                    value={otraEmpresaData.telefonoContacto}
+                    onChange={(e) => handleOtraEmpresaChange('telefonoContacto', sanitizePhoneNumber(e.target.value, 10))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                    Correo electrónico <span className="text-slate-500 font-normal">(Opcional)</span>
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="correo@ejemplo.com"
+                    value={otraEmpresaData.correoElectronico}
+                    onChange={(e) => handleOtraEmpresaChange('correoElectronico', e.target.value.toLowerCase())}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -366,7 +539,6 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
                 Empresas con las que se hizo vinculación <span className="text-slate-400 font-normal">(Opcional)</span>
               </label>
 
-              {/* Tags / Chips seleccionados */}
               {selectedVinculadas.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2 p-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
                   {selectedVinculadas.map((emp, index) => (
@@ -387,7 +559,6 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
                 </div>
               )}
 
-              {/* Input Typeahead */}
               <div className="relative">
                 <input
                   type="text"
@@ -404,7 +575,6 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
                 <ChevronDown size={16} className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" />
               </div>
 
-              {/* Dropdown de Opciones */}
               {isVinculadasDropdownOpen && (
                 <ul className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 text-sm text-slate-200">
                   {filteredVinculadasCompanies.length > 0 ? (

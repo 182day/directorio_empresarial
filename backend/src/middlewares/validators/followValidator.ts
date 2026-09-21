@@ -7,8 +7,27 @@ export const validateCompanyFollowUp = [
   body('empresaId')
     .notEmpty()
     .withMessage('El ID de la empresa es obligatorio.')
-    .custom((value) => Types.ObjectId.isValid(value))
-    .withMessage('El ID de la empresa no tiene un formato válido de MongoDB.'),
+    .custom((value) => {
+      // 👈 Permite el valor 'OTRA' o un ObjectId válido
+      if (value === 'OTRA' || Types.ObjectId.isValid(value)) {
+        return true;
+      }
+      throw new Error('El ID de la empresa no tiene un formato válido de MongoDB ni es "OTRA".');
+    }),
+
+  // 👈 Validar los datos de otraEmpresa únicamente si empresaId === 'OTRA'
+  body('otraEmpresa.nombreEmpresa')
+    .if(body('empresaId').equals('OTRA'))
+    .trim()
+    .notEmpty()
+    .withMessage('El nombre de la empresa es obligatorio cuando la empresa no está registrada.'),
+
+  body('otraEmpresa.correoElectronico')
+    .if(body('empresaId').equals('OTRA'))
+    .optional({ checkFalsy: true })
+    .trim()
+    .isEmail()
+    .withMessage('El correo electrónico no tiene un formato válido.'),
 
   body('fechaSeguimiento')
     .notEmpty()
@@ -52,7 +71,7 @@ export const validateCompanyFollowUp = [
     .optional()
     .trim(),
 
-  // Middleware para verificar errores y mostrarlos detallados en la consola si vuelve a fallar
+  // Middleware para verificar errores y mostrarlos detallados en la consola
   (req: Request, res: Response, next: NextFunction): void => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
