@@ -1,14 +1,15 @@
 // src/components/UserForm.tsx
 import { useState, useEffect } from 'react';
 import { Sun, Moon } from 'lucide-react';
+import { type UserFormData, type UserRole } from '../interfaces/user.interface';
 
-export interface UserFormData {
-    nombre: string;
-    email: string;
-    password?: string;
-    rol: 'admin' | 'editor' | 'lector';
-    activo: boolean;
-}
+// export interface UserFormData {
+//     nombre: string;
+//     email: string;
+//     password?: string;
+//     rol: 'admin' | 'editor' | 'lector';
+//     activo: boolean;
+// }
 
 interface UserFormProps {
     initialData?: UserFormData;
@@ -29,7 +30,7 @@ export const UserForm = ({
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [rol, setRol] = useState<'admin' | 'editor' | 'lector'>('lector');
+    const [rol, setRol] = useState<UserRole>('lector');
     const [activo, setActivo] = useState(true);
 
     // Estado local para el tema visual
@@ -215,7 +216,7 @@ export const UserForm = ({
                         </label>
                         <select
                             value={rol}
-                            onChange={(e) => setRol(e.target.value as any)}
+                            onChange={(e) => setRol(e.target.value as UserRole)}
                             className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
                         >
                             <option value="lector">Lector</option>

@@ -1,6 +1,7 @@
 // src/pages/AuditLogPage.tsx
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
+import { useUserStore } from '../stores/useUserStore';
 import { Pagination } from '../components/Pagination';
 import {
     Search,
@@ -32,16 +33,12 @@ interface AuditLogItem {
     createdAt: string;
 }
 
-interface UsuarioOption {
-    _id: string;
-    nombre: string;
-    email: string;
-}
-
 export const AuditLogPage = () => {
+    // Reutilizar Store de Usuarios
+    const { users, fetchUsers } = useUserStore();
+
     // Estados de Datos
     const [logs, setLogs] = useState<AuditLogItem[]>([]);
-    const [usuariosList, setUsuariosList] = useState<UsuarioOption[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
 
     // Control de primera búsqueda
@@ -63,16 +60,10 @@ export const AuditLogPage = () => {
     const [pageSize, setPageSize] = useState<number | 'all'>(10);
     const [totalItems, setTotalItems] = useState<number>(0);
 
-    // Cargar Lista de Usuarios solo para el Dropdown
-    const fetchUsuarios = async () => {
-        try {
-            const res = await api.get('/users');
-            const data = res.data.users || res.data;
-            setUsuariosList(data);
-        } catch (err) {
-            console.error('Error al cargar la lista de usuarios para filtros:', err);
-        }
-    };
+    // Cargar Usuarios desde el Store de Zustand al montar
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
 
     // Petición al backend con Filtros y Paginación
     const fetchLogs = useCallback(async (page: number = currentPage, limit: number | 'all' = pageSize) => {
@@ -102,11 +93,7 @@ export const AuditLogPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [search, selectedUser, selectedModulo, startDate, endDate, currentPage, pageSize]); // 👈 Añadido selectedModulo aquí
-
-    useEffect(() => {
-        fetchUsuarios();
-    }, []);
+    }, [search, selectedUser, selectedModulo, startDate, endDate, currentPage, pageSize]);
 
     const handlePageChange = (newPage: number) => {
         setCurrentPage(newPage);
@@ -127,7 +114,7 @@ export const AuditLogPage = () => {
     const clearAllFilters = () => {
         setSearch('');
         setSelectedUser('');
-        setSelectedModulo(''); // 👈 Limpiar módulo
+        setSelectedModulo('');
         setStartDate('');
         setEndDate('');
         setCurrentPage(1);
@@ -136,7 +123,7 @@ export const AuditLogPage = () => {
     const totalFiltrosActivos =
         (search.trim() ? 1 : 0) +
         (selectedUser ? 1 : 0) +
-        (selectedModulo ? 1 : 0) + // 👈 Sumar al contador
+        (selectedModulo ? 1 : 0) +
         (startDate ? 1 : 0) +
         (endDate ? 1 : 0);
 
@@ -290,7 +277,7 @@ export const AuditLogPage = () => {
                             className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
                         >
                             <option value="">Todos los usuarios</option>
-                            {usuariosList.map((u) => (
+                            {users.map((u) => (
                                 <option key={u._id} value={u._id}>
                                     {u.nombre} ({u.email})
                                 </option>
@@ -322,7 +309,7 @@ export const AuditLogPage = () => {
                         />
                     </div>
 
-                    {/* Selector de Módulo en el Panel Desplegable */}
+                    {/* Selector de Módulo */}
                     <div>
                         <label className="text-xs font-medium text-slate-400 mb-1 flex items-center gap-1.5">
                             <SlidersHorizontal className="w-3.5 h-3.5" /> Filtrar por Módulo
@@ -358,7 +345,7 @@ export const AuditLogPage = () => {
 
                     {selectedUser && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20">
-                            Usuario: {usuariosList.find(u => u._id === selectedUser)?.nombre || selectedUser}
+                            Usuario: {users.find(u => u._id === selectedUser)?.nombre || selectedUser}
                             <button onClick={() => setSelectedUser('')} className="hover:text-white">
                                 <X className="w-3.5 h-3.5" />
                             </button>
@@ -441,67 +428,58 @@ export const AuditLogPage = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-700/60">
-                                    {logs.map((log) => {
-                                        // const detallesTexto = typeof log.detalles === 'object' && log.detalles !== null
-                                        //     ? JSON.stringify(log.detalles)
-                                        //     : (log.detalles || '-');
-
-                                        return (
-                                            <tr key={log._id} className="hover:bg-slate-700/30 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-400">
-                                                    {new Date(log.createdAt).toLocaleString('es-MX', {
-                                                        day: '2-digit',
-                                                        month: '2-digit',
-                                                        year: 'numeric',
-                                                        hour: '2-digit',
-                                                        minute: '2-digit',
-                                                        second: '2-digit'
-                                                    })}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    {log.usuario ? (
-                                                        <div>
-                                                            <div className="font-medium text-white">{log.usuario.nombre}</div>
-                                                            <div className="text-xs text-slate-500">{log.usuario.email}</div>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-xs text-slate-500 italic">
-                                                            Sistema / Desconocido
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`px-2.5 py-1 text-xs rounded-md border font-semibold inline-block ${log.modulo === 'Empresas'
-                                                        ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                                                        : log.modulo === 'Usuarios'
-                                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                            : log.modulo === 'Auth'
-                                                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                                                : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                                                        }`}>
-                                                        {log.modulo || 'General'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 font-medium text-white whitespace-nowrap">
-                                                    {log.accion}
-                                                </td>
-                                                <td className="px-6 py-4 text-xs text-slate-400 max-w-xs xl:max-w-md">
-                                                    <div className="flex items-center gap-2">
-                                                        {/* <span className="truncate flex-1" title={detallesTexto}>
-                                                            {detallesTexto}
-                                                        </span> */}
-                                                        <button
-                                                            onClick={() => setSelectedLogDetails(log)}
-                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-700 hover:bg-blue-600 hover:text-white text-slate-300 text-xs font-medium rounded-lg transition-colors border border-slate-600 shrink-0"
-                                                        >
-                                                            <Eye className="w-3.5 h-3.5" />
-                                                            Ver detalles
-                                                        </button>
+                                    {logs.map((log) => (
+                                        <tr key={log._id} className="hover:bg-slate-700/30 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-400">
+                                                {new Date(log.createdAt).toLocaleString('es-MX', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                    second: '2-digit'
+                                                })}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {log.usuario ? (
+                                                    <div>
+                                                        <div className="font-medium text-white">{log.usuario.nombre}</div>
+                                                        <div className="text-xs text-slate-500">{log.usuario.email}</div>
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
+                                                ) : (
+                                                    <span className="text-xs text-slate-500 italic">
+                                                        Sistema / Desconocido
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`px-2.5 py-1 text-xs rounded-md border font-semibold inline-block ${log.modulo === 'Empresas'
+                                                    ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                                    : log.modulo === 'Usuarios'
+                                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                        : log.modulo === 'Auth'
+                                                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                                            : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                    }`}>
+                                                    {log.modulo || 'General'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 font-medium text-white whitespace-nowrap">
+                                                {log.accion}
+                                            </td>
+                                            <td className="px-6 py-4 text-xs text-slate-400 max-w-xs xl:max-w-md">
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => setSelectedLogDetails(log)}
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-700 hover:bg-blue-600 hover:text-white text-slate-300 text-xs font-medium rounded-lg transition-colors border border-slate-600 shrink-0"
+                                                    >
+                                                        <Eye className="w-3.5 h-3.5" />
+                                                        Ver detalles
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
@@ -521,7 +499,6 @@ export const AuditLogPage = () => {
             {selectedLogDetails && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
                     <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-                        {/* Cabecera del Modal */}
                         <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-800/50">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">
@@ -542,7 +519,6 @@ export const AuditLogPage = () => {
                             </button>
                         </div>
 
-                        {/* Cuerpo del Modal */}
                         <div className="p-6 overflow-y-auto space-y-4">
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-800/40 p-3 rounded-xl border border-slate-800 text-xs">
                                 <div>
@@ -573,7 +549,6 @@ export const AuditLogPage = () => {
                             </div>
                         </div>
 
-                        {/* Pie del Modal */}
                         <div className="p-4 border-t border-slate-800 bg-slate-800/30 flex justify-end">
                             <button
                                 onClick={() => setSelectedLogDetails(null)}

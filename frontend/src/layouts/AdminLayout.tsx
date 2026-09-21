@@ -1,11 +1,12 @@
 // src/layouts/AdminLayout.tsx
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 //import api from '../api/axios';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Sidebar } from '../components/Sidebar';
 import { CompanyForm } from '../components/CompanyForm';
 import { ChartLine, Building2, Users, Menu, X, LogOut, LogIn, LayoutDashboard, History, Settings, ChartGantt } from 'lucide-react';
+import { useCompanyStore } from '../stores/useCompanyStore';
 //import { toast } from 'sonner';
 
 export const AdminLayout = () => {
@@ -13,6 +14,16 @@ export const AdminLayout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isPublicRegisterOpen, setIsPublicRegisterOpen] = useState(false); // 👈 Estado para abrir/cerrar el modal
     const location = useLocation();
+
+    // Extraemos la función de carga del store de Zustand
+    const fetchCompanies = useCompanyStore((state: any) => state.fetchCompanies);
+
+    // Carga inicial global de empresas al montar la estructura principal
+    useEffect(() => {
+        if (fetchCompanies) {
+            fetchCompanies();
+        }
+    }, [fetchCompanies]);
 
     // Determinar ícono y título dinámico según la ruta
     const getHeaderInfo = () => {

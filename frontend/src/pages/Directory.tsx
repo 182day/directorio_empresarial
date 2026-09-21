@@ -1,6 +1,7 @@
 // src/pages/Directory.tsx
-import { useState, useEffect, useMemo } from 'react';
-import api from '../api/axios';
+import { useMemo } from 'react';
+// IMPORTANTE: Ajusta esta ruta a donde tengas definido tu store de Zustand (ejemplo: useCompanyStore o useAppStore)
+import { useCompanyStore } from '../stores/useCompanyStore'; 
 import { Layers, MapPin, Activity, Truck, Globe, Send, Briefcase, Award, Building } from 'lucide-react';
 import CountUpModule from 'react-countup';
 const CountUp = (CountUpModule as any).default || CountUpModule;
@@ -27,26 +28,12 @@ const agruparUnicosEnOtros = (conteo: Record<string, number>): Record<string, nu
 };
 
 export const Directory = () => {
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Extraemos las empresas y el estado de carga directamente desde el Store de Zustand
+  const { companies, loading } = useCompanyStore() as { companies: Company[]; loading: boolean };
 
-  useEffect(() => {
-    fetchCompanies();
-  }, []);
-
-  const fetchCompanies = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/companies');
-      setCompanies(response.data);
-    } catch (error) {
-      console.error('Error al cargar empresas:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // 0. Filtrado de empresas activas
   const empresasActivas = useMemo(() => {
+    if (!Array.isArray(companies)) return [];
     return companies.filter(p => p.activa === true);
   }, [companies]);
 
@@ -72,14 +59,13 @@ export const Directory = () => {
     return conteo;
   }, [empresasActivas]);
 
-  // 3. Conteo por Municipio (Solo cuando el Estado sea Querétaro)
+  // 3. Conteo por Municipio (Solo Querétaro)
   const conteoMunicipioQueretaro = useMemo(() => {
     const conteo: Record<string, number> = {};
     empresasActivas.forEach(c => {
       const estado = c.ubicacion?.estado?.trim().toLowerCase() || '';
       const municipio = c.ubicacion?.municipio?.trim();
 
-      // Validar si es del estado de Querétaro
       const esQueretaro = estado.includes('querétaro') || estado.includes('queretaro') || estado === 'qro';
 
       if (esQueretaro && municipio) {
@@ -117,7 +103,7 @@ export const Directory = () => {
     return conteo;
   }, [empresasActivas]);
 
-  // 6. Conteo por Sectores a los que Pertenece (Se MUESTRAN TODOS)
+  // 6. Conteo por Sectores a los que Pertenece
   const conteoSectoresPertenece = useMemo(() => {
     const conteo: Record<string, number> = {};
     empresasActivas.forEach(c => {
@@ -147,7 +133,7 @@ export const Directory = () => {
     return conteo;
   }, [empresasActivas]);
 
-  // 8. Conteo por País de Origen (Aplica agrupación para valores igual a 1)
+  // 8. Conteo por País de Origen
   const conteoPaisOrigen = useMemo(() => {
     const conteo: Record<string, number> = {};
     empresasActivas.forEach(c => {
@@ -159,7 +145,7 @@ export const Directory = () => {
     return agruparUnicosEnOtros(conteo);
   }, [empresasActivas]);
 
-  // 9. Conteo por Destino de Exportaciones (Aplica agrupación para valores igual a 1)
+  // 9. Conteo por Destino de Exportaciones
   const conteoDestinoExportacion = useMemo(() => {
     const conteo: Record<string, number> = {};
     empresasActivas.forEach(c => {

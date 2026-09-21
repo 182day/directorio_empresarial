@@ -2,45 +2,28 @@
 import { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
-import api from '../api/axios';
-import { UserForm, type UserFormData } from '../components/UserForm';
-import {
-    Plus, Edit2, Trash2, Search, X, CheckCircle2, XCircle
-} from 'lucide-react';
-
-interface User {
-    _id: string;
-    nombre: string;
-    email: string;
-    rol: 'admin' | 'editor' | 'lector';
-    activo: boolean;
-    createdAt?: string;
-}
+import { UserForm } from '../components/UserForm';
+import { useUserStore } from '../stores/useUserStore';
+import { type User, type UserFormData } from '../interfaces/user.interface';
+import { Plus, Edit2, Trash2, Search, X, CheckCircle2, XCircle } from 'lucide-react';
 
 export const UsersPage = () => {
-    const [users, setUsers] = useState<User[]>([]);
+    const { users, loading, fetchUsers, createUser, updateUser, deleteUser } = useUserStore();
+    
     const [search, setSearch] = useState('');
-    const [loading, setLoading] = useState(true);
-
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
+    // Carga única inicial (si ya se cargó previamente en la app, no pedirá nada a la API)
     useEffect(() => {
         fetchUsers();
-    }, [search]);
+    }, [fetchUsers]);
 
-    const fetchUsers = async () => {
-        try {
-            setLoading(true);
-            const res = await api.get('/users', { params: { busqueda: search } });
-            setUsers(res.data);
-        } catch (err: any) {
-            console.error('Error al cargar usuarios:', err);
-            toast.error('No se pudo cargar la lista de usuarios.');
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Búsqueda/Filtrado puramente en el cliente
+    const filteredUsers = users.filter((u) =>
+        u.nombre.toLowerCase().includes(search.toLowerCase()) ||
+        u.email.toLowerCase().includes(search.toLowerCase())
+    );
 
     const openModal = (user?: User) => {
         setEditingUser(user || null);
@@ -55,38 +38,21 @@ export const UsersPage = () => {
     const handleFormSubmit = async (formData: UserFormData) => {
         try {
             if (editingUser) {
-                await api.put(`/users/${editingUser._id}`, formData);
+                await updateUser(editingUser._id, formData);
                 toast.success(`Usuario ${formData.nombre} actualizado correctamente.`);
             } else {
-                await api.post('/users', formData);
+                await createUser(formData);
                 toast.success(`Usuario ${formData.nombre} creado exitosamente.`);
             }
-
             closeModal();
-            fetchUsers();
         } catch (err: any) {
             const mensajeError =
                 err.response?.data?.message ||
                 err.response?.data?.error ||
                 'Error al procesar la solicitud en el servidor.';
-
             throw new Error(mensajeError);
         }
     };
-
-    // const handleToggleStatus = async (user: User) => {
-    //     try {
-    //         const nuevoEstado = !user.activo;
-    //         await api.put(`/users/${user._id}`, { activo: nuevoEstado });
-
-    //         toast.success(
-    //             `Cuenta de ${user.nombre} ${nuevoEstado ? 'activada' : 'desactivada'}.`
-    //         );
-    //         fetchUsers();
-    //     } catch (err: any) {
-    //         toast.error('No se pudo cambiar el estado del usuario.');
-    //     }
-    // };
 
     const handleDelete = (id: string, nombre: string) => {
         Swal.fire({
@@ -105,9 +71,8 @@ export const UsersPage = () => {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    await api.delete(`/users/${id}`);
+                    await deleteUser(id);
                     toast.success(`El usuario ${nombre} ha sido eliminado.`);
-                    fetchUsers();
                 } catch (err: any) {
                     const mensajeError = err.response?.data?.message || 'Error al eliminar el usuario.';
                     toast.error(mensajeError);
@@ -154,7 +119,7 @@ export const UsersPage = () => {
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
                     Cargando usuarios...
                 </div>
-            ) : users.length === 0 ? (
+            ) : filteredUsers.length === 0 ? (
                 <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
                     No se encontraron usuarios registrados.
                 </div>
@@ -172,7 +137,7 @@ export const UsersPage = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-700/60">
-                                {users.map((u) => (
+                                {filteredUsers.map((u) => (
                                     <tr key={u._id} className="hover:bg-slate-700/30 transition-colors">
                                         <td className="px-6 py-4 font-medium text-white">
                                             {u.nombre}
@@ -186,14 +151,10 @@ export const UsersPage = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <button
-                                                // onClick={() => handleToggleStatus(u)}
-                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${u.activo
-                                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                                                        : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'
-                                                    }`}
-                                                // title="Hacer clic para cambiar estado"
-                                            >
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${u.activo
+                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                                }`}>
                                                 {u.activo ? (
                                                     <>
                                                         <CheckCircle2 className="w-3.5 h-3.5" />
@@ -205,7 +166,7 @@ export const UsersPage = () => {
                                                         <span>Inactivo</span>
                                                     </>
                                                 )}
-                                            </button>
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 text-right space-x-2">
                                             <button

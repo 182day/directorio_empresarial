@@ -18,6 +18,7 @@ import {
 import { ESTADOS_MEXICO, getMunicipiosByEstado } from '../data/locationCatalog';
 import { Save, X, FileText, Building2, Search, ChevronDown, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCompanyStore } from '../stores/useCompanyStore';
 
 interface Props {
   companyId?: string;
@@ -27,7 +28,8 @@ interface Props {
 }
 
 export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onClose, onSuccess }) => {
-  const [empresas, setEmpresas] = useState<CompanyFormData[]>([]);
+  //const [empresas, setEmpresas] = useState<CompanyFormData[]>([]);
+  const empresas = useCompanyStore((state) => state.companies);
   const [selectedCompany, setSelectedCompany] = useState<CompanyFormData | null>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
@@ -73,17 +75,17 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
   });
 
   // Cargar catálogo de empresas
-  useEffect(() => {
-    const fetchEmpresas = async () => {
-      try {
-        const res = await api.get('/companies');
-        setEmpresas(res.data);
-      } catch (error) {
-        console.error('Error al obtener empresas:', error);
-      }
-    };
-    fetchEmpresas();
-  }, []);
+  // useEffect(() => {
+  //   const fetchEmpresas = async () => {
+  //     try {
+  //       const res = await api.get('/companies');
+  //       setEmpresas(res.data);
+  //     } catch (error) {
+  //       console.error('Error al obtener empresas:', error);
+  //     }
+  //   };
+  //   fetchEmpresas();
+  // }, []);
 
   // Cargar información de la empresa principal si existe companyId
   useEffect(() => {

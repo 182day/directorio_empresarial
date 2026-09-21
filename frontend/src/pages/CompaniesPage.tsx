@@ -21,6 +21,7 @@ import { CompaniesGraphics } from '../components/CompaniesGraphics';
 // Importación de React PDF
 import { CompaniesPDFDocument } from '../components/CompaniesPDFDocument';
 import { CompanySheetPDFDocument } from '../components/CompanySheetPDFDocument';
+import { useCompanyStore } from '../stores/useCompanyStore';
 
 const OPCIONES_TAMANO = ['Micro', 'Pequeña', 'Mediana', 'Grande'];
 
@@ -39,9 +40,11 @@ const SECTOR_PRODUCT_KEYS = [
 export const CompaniesPage = () => {
     const { user } = useContext(AuthContext);
     const canEdit = user?.rol === 'admin' || user?.rol === 'editor';
-    const [companies, setCompanies] = useState<CompanyFormData[]>([]);
+
+    // Consumir el estado y las acciones globales de Zustand
+    const { companies, loading, fetchCompanies } = useCompanyStore();
+
     const [search, setSearch] = useState('');
-    const [loading, setLoading] = useState(true);
     const [tipoVista, setTipoVista] = useState<'tabla' | 'cards'>('cards');
 
     // Estados para Paginación
@@ -106,22 +109,16 @@ export const CompaniesPage = () => {
         setIsFollowModalOpen(false);
     };
 
+    // Al montar la vista, se llama a fetchCompanies() sin parámetros.
+    // Zustand sabrá si ya las tiene cargadas o si necesita traerlas.
     useEffect(() => {
         fetchCompanies();
-    }, [search]);
+    }, [fetchCompanies]);
 
-    const fetchCompanies = async () => {
-        try {
-            setLoading(true);
-            const res = await api.get('/companies', { params: { busqueda: search } });
-            setCompanies(res.data);
-            setCurrentPage(1);
-        } catch (err) {
-            console.error('Error al cargar empresas:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Reseteamos a la primera página cuando cambie la búsqueda en el input
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search]);
 
     const opcionesEstados = useMemo(() => {
         const estados = companies
@@ -301,8 +298,16 @@ export const CompaniesPage = () => {
         setCurrentPage(1);
     };
 
+    // FILTRADO DE EMPRESAS EN EL CLIENTE
     const filteredCompanies = useMemo(() => {
         return companies.filter((comp: any) => {
+            // Filtro por término de búsqueda en Frontend (Nombre Comercial, Razón Social o RFC)
+            const query = search.toLowerCase().trim();
+            const matchSearch = !query ||
+                comp.nombreComercial?.toLowerCase().includes(query) ||
+                comp.razonSocial?.toLowerCase().includes(query) ||
+                comp.rfc?.toLowerCase().includes(query);
+
             const matchTamano = selectedTamanos.length === 0 || selectedTamanos.includes(comp.tamanoEmpresa);
             const matchEstado = selectedEstados.length === 0 || selectedEstados.includes(comp.ubicacion?.estado);
             const matchMunicipio = selectedMunicipios.length === 0 || selectedMunicipios.includes(comp.ubicacion?.municipio);
@@ -363,13 +368,13 @@ export const CompaniesPage = () => {
             const matchProductos = selectedProductos.length === 0 ||
                 selectedProductos.some((p) => productosEmpresa.includes(p));
 
-            return matchTamano && matchEstado && matchMunicipio && matchEstatus &&
+            return matchSearch && matchTamano && matchEstado && matchMunicipio && matchEstatus &&
                 matchEtiquetas && matchExporta && matchPaises && matchCert &&
                 matchApoyos && matchTipoOp && matchTipoSum && matchPaisOrigen &&
                 matchSectores && matchProductos;
         });
     }, [
-        companies, selectedTamanos, selectedEstados, selectedMunicipios,
+        companies, search, selectedTamanos, selectedEstados, selectedMunicipios,
         selectedEstatus, selectedEtiquetas, selectedExporta,
         selectedPaisesDestino, selectedCertificaciones, selectedApoyos,
         selectedTipoOperaciones, selectedTipoSuministro, selectedPaisOrigen,
@@ -440,7 +445,8 @@ export const CompaniesPage = () => {
                 try {
                     await api.delete(`/companies/${id}`);
                     toast.success(`La empresa ${nombre} ha sido eliminada correctamente.`);
-                    fetchCompanies();
+                    // Pasamos true para forzar la actualización de datos globales en Zustand
+                    fetchCompanies(true);
                 } catch (err: any) {
                     const mensajeError = err.response?.data?.message || 'Error al eliminar la empresa.';
                     toast.error(mensajeError);
@@ -1175,7 +1181,8 @@ export const CompaniesPage = () => {
                                             toast.success('Empresa registrada correctamente');
                                         }
                                         closeModal();
-                                        fetchCompanies();
+                                        // Forzamos actualización de la lista global tras crear/editar
+                                        fetchCompanies(true);
                                     } catch (error: any) {
                                         toast.error(error.response?.data?.message || 'Error al guardar');
                                     }
