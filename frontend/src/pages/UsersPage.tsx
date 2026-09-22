@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { UserForm } from '../components/UserForm';
 import { useUserStore } from '../stores/useUserStore';
 import { type User, type UserFormData } from '../interfaces/user.interface';
-import { Plus, Edit2, Trash2, Search, X, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, X, CheckCircle2, XCircle } from 'lucide-react';
 
 export const UsersPage = () => {
     const { users, loading, fetchUsers, createUser, updateUser, deleteUser } = useUserStore();
@@ -192,7 +192,7 @@ export const UsersPage = () => {
                                                 className="p-1.5 bg-app-button hover:bg-app-button-hover text-app-text rounded-md transition-colors"
                                                 title="Editar Usuario"
                                             >
-                                                <Edit2 className="w-4 h-4" />
+                                                <Pencil className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(u._id, u.nombre)}
