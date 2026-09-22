@@ -16,7 +16,7 @@ import {
   OPCIONES_ESTATUS_SEGUIMIENTO
 } from '../data/followCatalog';
 import { ESTADOS_MEXICO, getMunicipiosByEstado } from '../data/locationCatalog';
-import { Save, X, FileText, Building2, Search, ChevronDown, PlusCircle } from 'lucide-react';
+import { CheckCircle, X, FileText, Building2, Search, ChevronDown, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCompanyStore } from '../stores/useCompanyStore';
 
@@ -28,7 +28,6 @@ interface Props {
 }
 
 export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onClose, onSuccess }) => {
-  //const [empresas, setEmpresas] = useState<CompanyFormData[]>([]);
   const empresas = useCompanyStore((state) => state.companies);
   const [selectedCompany, setSelectedCompany] = useState<CompanyFormData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -73,19 +72,6 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
     telefonoContacto: initialData?.otraEmpresa?.telefonoContacto || '',
     correoElectronico: initialData?.otraEmpresa?.correoElectronico || ''
   });
-
-  // Cargar catálogo de empresas
-  // useEffect(() => {
-  //   const fetchEmpresas = async () => {
-  //     try {
-  //       const res = await api.get('/companies');
-  //       setEmpresas(res.data);
-  //     } catch (error) {
-  //       console.error('Error al obtener empresas:', error);
-  //     }
-  //   };
-  //   fetchEmpresas();
-  // }, []);
 
   // Cargar información de la empresa principal si existe companyId
   useEffect(() => {
@@ -166,7 +152,6 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
     }
   };
 
-  // Handler para seleccionar "Otra"
   const handleSelectOtra = () => {
     setFormData({ ...formData, empresaId: 'OTRA' });
     setSelectedCompany(null);
@@ -177,7 +162,6 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
     }
   };
 
-  // Handlers para el objeto otraEmpresaData
   const handleOtraEmpresaChange = (field: keyof OtraEmpresaData, value: string) => {
     const finalValue = field === 'rfc' ? value.toUpperCase() : value;
     setOtraEmpresaData((prev) => ({ ...prev, [field]: finalValue }));
@@ -191,11 +175,10 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
     setOtraEmpresaData((prev) => ({
       ...prev,
       estado: nuevoEstado,
-      municipio: '' // Reinicia municipio al cambiar de estado
+      municipio: ''
     }));
   };
 
-  // Handlers para selección múltiple de empresas vinculadas
   const handleAddVinculada = (emp: CompanyFormData) => {
     if (!selectedVinculadas.some((item) => item._id === emp._id)) {
       const updated = [...selectedVinculadas, emp];
@@ -240,7 +223,6 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
 
     if (!companyId && !formData.empresaId.trim()) newErrors.empresaId = true;
 
-    // Validación específica en caso de seleccionar "Otra"
     if (formData.empresaId === 'OTRA' && !otraEmpresaData.nombreEmpresa.trim()) {
       newErrors['otraEmpresa.nombreEmpresa'] = true;
     }
@@ -299,18 +281,22 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
     }
   };
 
+  // Clase utilitaria para los campos de entrada
+  const inputBaseClasses = "w-full bg-app-bg border text-app-text text-sm rounded-lg transition-colors focus:outline-none placeholder:text-app-muted";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="bg-slate-900/50 p-5 rounded-xl border border-slate-700/60 space-y-4">
-        <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-wider flex items-center gap-2 mb-2">
+      {/* SECCIÓN: INFORMACIÓN GENERAL */}
+      <div className="bg-app-card/60 p-5 rounded-xl border border-app-border space-y-4 transition-colors duration-200">
+        <h3 className="text-sm font-semibold text-accent-primary uppercase tracking-wider flex items-center gap-2 mb-2">
           <Building2 size={16} /> Información General
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {!companyId ? (
             <div className="md:col-span-2 relative" ref={dropdownRef}>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                Empresa <span className="text-red-400">*</span>
+              <label className="block text-xs font-medium text-app-text mb-1">
+                Empresa <span className="text-red-500">*</span>
               </label>
 
               <div className="relative">
@@ -324,15 +310,16 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
                     setFormData({ ...formData, empresaId: '' });
                     setIsDropdownOpen(true);
                   }}
-                  className={`w-full bg-slate-800 border rounded-lg pl-9 pr-8 py-2 text-sm text-white focus:outline-none transition-colors placeholder:text-slate-500 ${errors.empresaId ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-                    }`}
+                  className={`${inputBaseClasses} pl-9 pr-8 py-2 ${
+                    errors.empresaId ? 'border-red-500 focus:border-red-500' : 'border-app-border focus:border-blue-500'
+                  }`}
                 />
-                <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
-                <ChevronDown size={16} className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" />
+                <Search size={16} className="absolute left-3 top-2.5 text-app-muted" />
+                <ChevronDown size={16} className="absolute right-3 top-2.5 text-app-muted pointer-events-none" />
               </div>
 
               {isDropdownOpen && (
-                <ul className="absolute z-50 mt-1 w-full max-h-56 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 text-sm text-slate-200">
+                <ul className="absolute z-50 mt-1 w-full max-h-56 overflow-y-auto bg-app-card border border-app-border rounded-lg shadow-xl py-1 text-sm text-app-text">
                   {filteredCompanies.length > 0 ? (
                     filteredCompanies.map((emp) => (
                       <li
@@ -345,14 +332,13 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
                       </li>
                     ))
                   ) : (
-                    <li className="px-4 py-2 text-slate-400 text-center text-xs">
+                    <li className="px-4 py-2 text-app-muted text-center text-xs">
                       No se encontraron empresas registradas
                     </li>
                   )}
-                  {/* Opción 'Otra' siempre visible al final */}
                   <li
                     onClick={handleSelectOtra}
-                    className="px-4 py-2.5 bg-slate-700/50 hover:bg-blue-600 hover:text-white text-blue-300 cursor-pointer transition-colors font-medium border-t border-slate-700/80 flex items-center gap-2"
+                    className="px-4 py-2.5 bg-app-bg hover:bg-blue-600 hover:text-white text-blue-500 dark:text-blue-400 cursor-pointer transition-colors font-medium border-t border-app-border flex items-center gap-2"
                   >
                     <PlusCircle size={15} />
                     <span>Otra (Registrar manualmente)</span>
@@ -362,10 +348,10 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
             </div>
           ) : (
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-app-text mb-1">
                 Empresa
               </label>
-              <div className="w-full bg-slate-800/80 border border-slate-700/80 rounded-lg px-3 py-2 text-sm text-slate-200 font-medium">
+              <div className="w-full bg-app-bg border border-app-border rounded-lg px-3 py-2 text-sm text-app-text font-medium">
                 {selectedCompany ? `${selectedCompany.nombreComercial} (${selectedCompany.rfc})` : 'Cargando datos de la empresa...'}
               </div>
             </div>
@@ -373,28 +359,29 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
 
           {/* CAMPOS DINÁMICOS PARA "OTRA" EMPRESA */}
           {formData.empresaId === 'OTRA' && (
-            <div className="md:col-span-2 bg-slate-800/40 border border-slate-700 rounded-lg p-4 space-y-3">
-              <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+            <div className="md:col-span-2 bg-app-bg/50 border border-app-border rounded-lg p-4 space-y-3">
+              <h4 className="text-xs font-semibold text-app-text uppercase tracking-wider mb-2">
                 Datos de la Empresa no registrada
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Nombre de la empresa <span className="text-red-400">*</span>
+                  <label className="block text-xs font-medium text-app-text mb-1">
+                    Nombre de la empresa <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     placeholder="Escriba el nombre comercial o razón social"
                     value={otraEmpresaData.nombreEmpresa}
                     onChange={(e) => handleOtraEmpresaChange('nombreEmpresa', e.target.value)}
-                    className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${errors['otraEmpresa.nombreEmpresa'] ? 'border-red-500' : 'border-slate-700 focus:border-blue-500'
-                      }`}
+                    className={`${inputBaseClasses} px-3 py-2 ${
+                      errors['otraEmpresa.nombreEmpresa'] ? 'border-red-500' : 'border-app-border focus:border-blue-500'
+                    }`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    RFC <span className="text-slate-500 font-normal">(Opcional)</span>
+                  <label className="block text-xs font-medium text-app-muted mb-1">
+                    RFC <span className="text-app-muted/70 font-normal">(Opcional)</span>
                   </label>
                   <input
                     type="text"
@@ -402,18 +389,18 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
                     placeholder="RFC de la empresa"
                     value={otraEmpresaData.rfc}
                     onChange={(e) => handleOtraEmpresaChange('rfc', e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    className={`${inputBaseClasses} border-app-border focus:border-blue-500 px-3 py-2`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Estado <span className="text-slate-500 font-normal">(Opcional)</span>
+                  <label className="block text-xs font-medium text-app-muted mb-1">
+                    Estado <span className="text-app-muted/70 font-normal">(Opcional)</span>
                   </label>
                   <select
                     value={otraEmpresaData.estado}
                     onChange={handleOtraEmpresaEstadoChange}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    className={`${inputBaseClasses} border-app-border focus:border-blue-500 px-3 py-2`}
                   >
                     <option value="">-- Selecciona un Estado --</option>
                     {ESTADOS_MEXICO.map((item) => (
@@ -426,13 +413,13 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
 
                 {otraEmpresaData.estado && (
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
-                      Municipio <span className="text-slate-500 font-normal">(Opcional)</span>
+                    <label className="block text-xs font-medium text-app-muted mb-1">
+                      Municipio <span className="text-app-muted/70 font-normal">(Opcional)</span>
                     </label>
                     <select
                       value={otraEmpresaData.municipio}
                       onChange={(e) => handleOtraEmpresaChange('municipio', e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                      className={`${inputBaseClasses} border-app-border focus:border-blue-500 px-3 py-2`}
                     >
                       <option value="">-- Selecciona un Municipio --</option>
                       {municipiosDisponibles.map((muni) => (
@@ -445,21 +432,21 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
                 )}
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Nombre del contacto <span className="text-slate-500 font-normal">(Opcional)</span>
+                  <label className="block text-xs font-medium text-app-muted mb-1">
+                    Nombre del contacto <span className="text-app-muted/70 font-normal">(Opcional)</span>
                   </label>
                   <input
                     type="text"
                     placeholder="Nombre completo"
                     value={otraEmpresaData.nombreContacto}
                     onChange={(e) => handleOtraEmpresaChange('nombreContacto', e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    className={`${inputBaseClasses} border-app-border focus:border-blue-500 px-3 py-2`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Teléfono de contacto <span className="text-slate-500 font-normal">(Opcional)</span>
+                  <label className="block text-xs font-medium text-app-muted mb-1">
+                    Teléfono de contacto <span className="text-app-muted/70 font-normal">(Opcional)</span>
                   </label>
                   <input
                     type="tel"
@@ -467,20 +454,20 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
                     placeholder="10 dígitos"
                     value={otraEmpresaData.telefonoContacto}
                     onChange={(e) => handleOtraEmpresaChange('telefonoContacto', sanitizePhoneNumber(e.target.value, 10))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    className={`${inputBaseClasses} border-app-border focus:border-blue-500 px-3 py-2`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Correo electrónico <span className="text-slate-500 font-normal">(Opcional)</span>
+                  <label className="block text-xs font-medium text-app-muted mb-1">
+                    Correo electrónico <span className="text-app-muted/70 font-normal">(Opcional)</span>
                   </label>
                   <input
                     type="email"
                     placeholder="correo@ejemplo.com"
                     value={otraEmpresaData.correoElectronico}
                     onChange={(e) => handleOtraEmpresaChange('correoElectronico', e.target.value.toLowerCase())}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    className={`${inputBaseClasses} border-app-border focus:border-blue-500 px-3 py-2`}
                   />
                 </div>
               </div>
@@ -488,43 +475,46 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
           )}
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Fecha del Seguimiento <span className="text-red-400">*</span>
+            <label className="block text-xs font-medium text-app-text mb-1">
+              Fecha del Seguimiento <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
               name="fechaSeguimiento"
               value={formData.fechaSeguimiento}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${errors.fechaSeguimiento ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-                }`}
+              className={`${inputBaseClasses} px-3 py-2 ${
+                errors.fechaSeguimiento ? 'border-red-500 focus:border-red-500' : 'border-app-border focus:border-blue-500'
+              }`}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Hora del Seguimiento <span className="text-red-400">*</span>
+            <label className="block text-xs font-medium text-app-text mb-1">
+              Hora del Seguimiento <span className="text-red-500">*</span>
             </label>
             <input
               type="time"
               name="horaSeguimiento"
               value={formData.horaSeguimiento}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${errors.horaSeguimiento ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-                }`}
+              className={`${inputBaseClasses} px-3 py-2 ${
+                errors.horaSeguimiento ? 'border-red-500 focus:border-red-500' : 'border-app-border focus:border-blue-500'
+              }`}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Tipo de Seguimiento <span className="text-red-400">*</span>
+            <label className="block text-xs font-medium text-app-text mb-1">
+              Tipo de Seguimiento <span className="text-red-500">*</span>
             </label>
             <select
               name="tipoSeguimiento"
               value={formData.tipoSeguimiento}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${errors.tipoSeguimiento ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-                }`}
+              className={`${inputBaseClasses} px-3 py-2 ${
+                errors.tipoSeguimiento ? 'border-red-500 focus:border-red-500' : 'border-app-border focus:border-blue-500'
+              }`}
             >
               {OPCIONES_TIPO_SEGUIMIENTO.map((tipo) => (
                 <option key={tipo} value={tipo}>
@@ -537,22 +527,22 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
           {/* Campo Condicional: Empresas Vinculadas */}
           {formData.tipoSeguimiento === 'Vinculación' && (
             <div className="md:col-span-2 relative" ref={dropdownVinculadasRef}>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                Empresas con las que se hizo vinculación <span className="text-slate-400 font-normal">(Opcional)</span>
+              <label className="block text-xs font-medium text-app-text mb-1">
+                Empresas con las que se hizo vinculación <span className="text-app-muted font-normal">(Opcional)</span>
               </label>
 
               {selectedVinculadas.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2 p-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                <div className="flex flex-wrap gap-2 mb-2 p-2 bg-app-bg rounded-lg border border-app-border">
                   {selectedVinculadas.map((emp, index) => (
                     <span
                       key={emp._id || index}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-blue-600/30 text-blue-300 border border-blue-500/30"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30"
                     >
                       {emp.nombreComercial || emp.razonSocial || 'Empresa Vinculada'}
                       <button
                         type="button"
                         onClick={() => handleRemoveVinculada(emp._id)}
-                        className="hover:text-red-400 transition-colors"
+                        className="hover:text-red-500 transition-colors"
                       >
                         <X size={12} />
                       </button>
@@ -571,14 +561,14 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
                     setSearchVinculadasTerm(e.target.value);
                     setIsVinculadasDropdownOpen(true);
                   }}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-8 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-500"
+                  className={`${inputBaseClasses} border-app-border focus:border-blue-500 pl-9 pr-8 py-2`}
                 />
-                <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
-                <ChevronDown size={16} className="absolute right-3 top-2.5 text-slate-400 pointer-events-none" />
+                <Search size={16} className="absolute left-3 top-2.5 text-app-muted" />
+                <ChevronDown size={16} className="absolute right-3 top-2.5 text-app-muted pointer-events-none" />
               </div>
 
               {isVinculadasDropdownOpen && (
-                <ul className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 text-sm text-slate-200">
+                <ul className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto bg-app-card border border-app-border rounded-lg shadow-xl py-1 text-sm text-app-text">
                   {filteredVinculadasCompanies.length > 0 ? (
                     filteredVinculadasCompanies.map((emp) => (
                       <li
@@ -591,7 +581,7 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
                       </li>
                     ))
                   ) : (
-                    <li className="px-4 py-3 text-slate-400 text-center">
+                    <li className="px-4 py-3 text-app-muted text-center">
                       No hay más empresas disponibles
                     </li>
                   )}
@@ -601,15 +591,16 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
           )}
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Medio de Atención <span className="text-red-400">*</span>
+            <label className="block text-xs font-medium text-app-text mb-1">
+              Medio de Atención <span className="text-red-500">*</span>
             </label>
             <select
               name="medioAtencion"
               value={formData.medioAtencion}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${errors.medioAtencion ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-                }`}
+              className={`${inputBaseClasses} px-3 py-2 ${
+                errors.medioAtencion ? 'border-red-500 focus:border-red-500' : 'border-app-border focus:border-blue-500'
+              }`}
             >
               {OPCIONES_MEDIO_ATENCION.map((medio) => (
                 <option key={medio} value={medio}>
@@ -620,15 +611,16 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Estatus del Seguimiento <span className="text-red-400">*</span>
+            <label className="block text-xs font-medium text-app-text mb-1">
+              Estatus del Seguimiento <span className="text-red-500">*</span>
             </label>
             <select
               name="estatus"
               value={formData.estatus}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors ${errors.estatus ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-                }`}
+              className={`${inputBaseClasses} px-3 py-2 ${
+                errors.estatus ? 'border-red-500 focus:border-red-500' : 'border-app-border focus:border-blue-500'
+              }`}
             >
               {OPCIONES_ESTATUS_SEGUIMIENTO.map((estatus) => (
                 <option key={estatus} value={estatus}>
@@ -640,15 +632,16 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
         </div>
       </div>
 
-      <div className="bg-slate-900/50 p-5 rounded-xl border border-slate-700/60 space-y-4">
-        <h3 className="text-sm font-semibold text-blue-400 uppercase tracking-wider flex items-center gap-2 mb-2">
+      {/* SECCIÓN: DETALLES DEL SEGUIMIENTO */}
+      <div className="bg-app-card/60 p-5 rounded-xl border border-app-border space-y-4 transition-colors duration-200">
+        <h3 className="text-sm font-semibold text-accent-primary uppercase tracking-wider flex items-center gap-2 mb-2">
           <FileText size={16} /> Detalles del Seguimiento
         </h3>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Asunto <span className="text-red-400">*</span>
+            <label className="block text-xs font-medium text-app-text mb-1">
+              Asunto <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -656,14 +649,15 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
               placeholder="Ej. Revisión de propuesta / Renovación de convenio"
               value={formData.asunto}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors placeholder:text-slate-500 ${errors.asunto ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-                }`}
+              className={`${inputBaseClasses} px-3 py-2 ${
+                errors.asunto ? 'border-red-500 focus:border-red-500' : 'border-app-border focus:border-blue-500'
+              }`}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Descripción <span className="text-red-400">*</span>
+            <label className="block text-xs font-medium text-app-text mb-1">
+              Descripción <span className="text-red-500">*</span>
             </label>
             <textarea
               name="descripcion"
@@ -671,13 +665,14 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
               placeholder="Describa los detalles o minutas del seguimiento..."
               value={formData.descripcion}
               onChange={handleChange}
-              className={`w-full bg-slate-800 border rounded-lg p-3 text-sm text-white focus:outline-none transition-colors placeholder:text-slate-500 resize-none ${errors.descripcion ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-blue-500'
-                }`}
+              className={`${inputBaseClasses} p-3 resize-none ${
+                errors.descripcion ? 'border-red-500 focus:border-red-500' : 'border-app-border focus:border-blue-500'
+              }`}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
+            <label className="block text-xs font-medium text-app-text mb-1">
               Atención al Seguimiento
             </label>
             <textarea
@@ -686,28 +681,33 @@ export const CompanyFollowForm: React.FC<Props> = ({ companyId, initialData, onC
               placeholder="Observaciones o notas adicionales sobre la atención brindada (Opcional)..."
               value={formData.atencionSeguimiento}
               onChange={handleChange}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-500 resize-none"
+              className={`${inputBaseClasses} border-app-border focus:border-blue-500 p-3 resize-none`}
             />
           </div>
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors"
-        >
-          <X size={16} /> Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50"
-        >
-          <Save size={16} />
-          {loading ? 'Guardando...' : 'Guardar Seguimiento'}
-        </button>
+      {/* BOTONES DE ACCIÓN */}
+      <div className="flex justify-end gap-3 pt-4 border-t border-app-border">
+          {onClose && (
+              <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 bg-app-border/40 hover:bg-app-border text-app-muted hover:text-app-text rounded-lg text-sm transition-colors"
+              >
+                  Cancelar
+              </button>
+          )}
+          <button
+              type="submit"
+              disabled={loading}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium px-5 py-2 rounded-lg text-sm transition-colors shadow-lg disabled:opacity-50 cursor-pointer"
+          >
+              <CheckCircle className="w-4 h-4" />
+              <span>
+                  {loading ? 'Guardando...' : 'Guardar Seguimiento'}
+              </span>
+          </button>
       </div>
     </form>
   );

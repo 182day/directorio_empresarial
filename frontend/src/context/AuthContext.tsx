@@ -1,13 +1,14 @@
 // src/context/AuthContext.tsx
 import { createContext, useState, useEffect, type ReactNode } from 'react';
 import api from '../api/axios'; // Importa tu instancia configurada de Axios
+import { type User } from '../interfaces/user.interface';
 
-export interface User {
-  id: string;
-  nombre: string;
-  email: string;
-  rol: 'admin' | 'editor' | 'lector'; // 👈 Cambiado de role?: string a rol explícito
-}
+// export interface User {
+//   id: string;
+//   nombre: string;
+//   email: string;
+//   rol: 'admin' | 'editor' | 'lector'; // 👈 Cambiado de role?: string a rol explícito
+// }
 
 interface AuthContextType {
   user: User | null;

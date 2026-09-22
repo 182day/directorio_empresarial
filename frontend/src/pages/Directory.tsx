@@ -1,6 +1,5 @@
 // src/pages/Directory.tsx
 import { useMemo } from 'react';
-// IMPORTANTE: Ajusta esta ruta a donde tengas definido tu store de Zustand (ejemplo: useCompanyStore o useAppStore)
 import { useCompanyStore } from '../stores/useCompanyStore'; 
 import { Layers, MapPin, Activity, Truck, Globe, Send, Briefcase, Award, Building } from 'lucide-react';
 import CountUpModule from 'react-countup';
@@ -28,7 +27,7 @@ const agruparUnicosEnOtros = (conteo: Record<string, number>): Record<string, nu
 };
 
 export const Directory = () => {
-  // Extraemos las empresas y el estado de carga directamente desde el Store de Zustand
+  // Extraemos las empresas y el estado de carga desde el Store de Zustand
   const { companies, loading } = useCompanyStore() as { companies: Company[]; loading: boolean };
 
   // 0. Filtrado de empresas activas
@@ -169,22 +168,25 @@ export const Directory = () => {
     const entries = Object.entries(data);
     return (
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-app-muted flex items-center gap-2">
           {icon}
           <span>{titulo}</span>
         </h3>
         {entries.length === 0 ? (
-          <p className="text-xs text-slate-500 italic bg-slate-800/30 p-3 rounded-lg border border-slate-800">
+          <p className="text-xs text-app-muted italic bg-app-card p-3 rounded-lg border border-app-border">
             {emptyMessage}
           </p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {entries.map(([label, cantidad]) => (
-              <div key={label} className="bg-slate-800/60 border border-slate-700/80 rounded-xl p-4 text-center shadow-md">
-                <span className="text-xs font-medium text-slate-400 block truncate mb-1" title={label}>
+              <div 
+                key={label} 
+                className="bg-app-card border border-app-border rounded-xl p-4 text-center shadow-sm hover:shadow-md transition-shadow"
+              >
+                <span className="text-xs font-medium text-app-muted block truncate mb-1" title={label}>
                   {label}
                 </span>
-                <div className="text-2xl font-black text-white">
+                <div className="text-2xl font-black text-app-text">
                   <CountUp end={cantidad} duration={1.5} separator="," />
                 </div>
               </div>
@@ -199,16 +201,16 @@ export const Directory = () => {
     <div className="w-full space-y-8">
       {/* Hero */}
       <div className="text-center max-w-2xl mx-auto">
-        <h2 className="text-3xl font-extrabold text-white mb-3">
+        <h2 className="text-3xl font-extrabold text-app-text mb-3">
           Estadísticas del Directorio Empresarial
         </h2>
-        <p className="text-slate-400 text-sm">
+        <p className="text-app-muted text-sm">
           Métricas consolidadas de las empresas registradas en la plataforma.
         </p>
       </div>
 
       {loading ? (
-        <div className="text-center py-16 text-slate-400">
+        <div className="text-center py-16 text-app-muted">
           Cargando estadísticas...
         </div>
       ) : (
@@ -217,7 +219,7 @@ export const Directory = () => {
           {renderMetricGrid(
             "Distribución por Tamaño de Empresa", 
             conteoTamano, 
-            <Layers className="w-4 h-4 text-blue-400" />,
+            <Layers className="w-4 h-4 text-blue-500" />,
             "No hay datos de tamaño registrados."
           )}
 
@@ -225,7 +227,7 @@ export const Directory = () => {
           {renderMetricGrid(
             "Distribución por Estado", 
             conteoEstado, 
-            <MapPin className="w-4 h-4 text-emerald-400" />,
+            <MapPin className="w-4 h-4 text-emerald-500" />,
             "No hay estados registrados."
           )}
 
@@ -233,7 +235,7 @@ export const Directory = () => {
           {renderMetricGrid(
             "Municipios de Querétaro", 
             conteoMunicipioQueretaro, 
-            <Building className="w-4 h-4 text-teal-400" />,
+            <Building className="w-4 h-4 text-teal-500" />,
             "No hay municipios registrados para Querétaro."
           )}
 
@@ -241,7 +243,7 @@ export const Directory = () => {
           {renderMetricGrid(
             "Tipos de Operaciones", 
             conteoOperaciones, 
-            <Activity className="w-4 h-4 text-indigo-400" />,
+            <Activity className="w-4 h-4 text-indigo-500" />,
             "No hay operaciones registradas."
           )}
 
@@ -249,7 +251,7 @@ export const Directory = () => {
           {renderMetricGrid(
             "Tipos de Suministro", 
             conteoSuministro, 
-            <Truck className="w-4 h-4 text-amber-400" />,
+            <Truck className="w-4 h-4 text-amber-500" />,
             "No hay tipos de suministro registrados."
           )}
 
@@ -257,7 +259,7 @@ export const Directory = () => {
           {renderMetricGrid(
             "Sectores a los que Pertenece", 
             conteoSectoresPertenece, 
-            <Briefcase className="w-4 h-4 text-purple-400" />,
+            <Briefcase className="w-4 h-4 text-purple-500" />,
             "No hay sectores registrados."
           )}
 
@@ -265,7 +267,7 @@ export const Directory = () => {
           {renderMetricGrid(
             "Certificaciones", 
             conteoCertificaciones, 
-            <Award className="w-4 h-4 text-yellow-400" />,
+            <Award className="w-4 h-4 text-yellow-500" />,
             "No hay certificaciones registradas."
           )}
 
@@ -273,7 +275,7 @@ export const Directory = () => {
           {renderMetricGrid(
             "País de Origen", 
             conteoPaisOrigen, 
-            <Globe className="w-4 h-4 text-cyan-400" />,
+            <Globe className="w-4 h-4 text-cyan-500" />,
             "No hay países de origen registrados."
           )}
 
@@ -281,7 +283,7 @@ export const Directory = () => {
           {renderMetricGrid(
             "Destinos de Exportación", 
             conteoDestinoExportacion, 
-            <Send className="w-4 h-4 text-rose-400" />,
+            <Send className="w-4 h-4 text-rose-500" />,
             "No hay destinos de exportación registrados."
           )}
         </div>

@@ -49,21 +49,20 @@ export const SectorCheckboxGroup: React.FC<SectorCheckboxGroupProps> = ({
     return (
         <div className={`md:col-span-2 border-l-2 ${theme.border} pl-4 py-1 my-2 ${theme.bg} rounded-r-lg`}>
             <label className={`block text-xs font-medium ${theme.text} mb-2`}>
-                {title}: <span className="text-red-400">*</span>
+                {title}: <span className="text-red-500">*</span>
             </label>
-            <div className={`space-y-2 bg-slate-900/80 p-3 rounded-lg border transition-colors ${
-                hasError ? 'border-red-500 bg-red-500/5' : 'border-slate-800'
-            }`}>
+            <div className={`space-y-2 bg-app-bg/60 p-3 rounded-lg border transition-colors ${hasError ? 'border-red-500 bg-red-500/5' : 'border-app-border'
+                }`}>
                 {options.map((item) => {
                     const isChecked = selectedItems.includes(item);
                     return (
                         <div key={item} className="flex flex-col gap-2">
-                            <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer select-none hover:text-white transition-colors">
+                            <label className="flex items-center gap-3 text-xs text-app-muted cursor-pointer select-none hover:text-app-text transition-colors">
                                 <input
                                     type="checkbox"
                                     checked={isChecked}
                                     onChange={() => onToggle(listPath, item)}
-                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer scheme-dark"
+                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-app-border bg-app-bg accent-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
                                 />
                                 <span>{item}</span>
                             </label>

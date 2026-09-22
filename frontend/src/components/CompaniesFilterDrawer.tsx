@@ -140,7 +140,7 @@ export const CompaniesFilterDrawer = ({
     return (
         <div className="fixed inset-0 z-50 overflow-hidden">
             <div
-                className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity"
+                className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
                 onClick={() => {
                     if (openFilterMenu) {
                         setOpenFilterMenu(null);
@@ -151,17 +151,17 @@ export const CompaniesFilterDrawer = ({
             />
 
             <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-                <div className="w-screen max-w-md bg-slate-800 border-l border-slate-700 text-slate-100 flex flex-col shadow-2xl">
+                <div className="w-screen max-w-md bg-app-card border-l border-app-border text-app-text flex flex-col shadow-2xl">
 
                     {/* ENCABEZADO */}
-                    <div className="p-4 sm:p-5 border-b border-slate-700 flex items-center justify-between">
+                    <div className="p-4 sm:p-5 border-b border-app-border flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <Filter className="w-5 h-5 text-blue-400" />
-                            <h2 className="text-lg font-bold text-white">Filtros de Búsqueda</h2>
+                            <h2 className="text-lg font-bold text-app-text">Filtros de Búsqueda</h2>
                         </div>
                         <button
                             onClick={onClose}
-                            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700 transition-colors"
+                            className="text-app-muted hover:text-app-text p-1 rounded-lg hover:bg-app-border/50 transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -176,11 +176,10 @@ export const CompaniesFilterDrawer = ({
                                 <button
                                     type="button"
                                     onClick={() => setOpenFilterMenu(openFilterMenu === 'estatus' ? null : 'estatus')}
-                                    className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                        selectedEstatus.length > 0
+                                    className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedEstatus.length > 0
                                             ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                    }`}
+                                            : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                        }`}
                                 >
                                     <span>
                                         Estatus
@@ -194,7 +193,7 @@ export const CompaniesFilterDrawer = ({
                                 </button>
 
                                 {openFilterMenu === 'estatus' && (
-                                    <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-1">
+                                    <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-1">
                                         {opcionesEstatus.map((est) => {
                                             const isSelected = selectedEstatus.includes(est);
                                             return (
@@ -202,9 +201,8 @@ export const CompaniesFilterDrawer = ({
                                                     key={est}
                                                     type="button"
                                                     onClick={() => onToggleEstatus && onToggleEstatus(est)}
-                                                    className={`flex items-center justify-between w-full px-2.5 py-2 rounded-md text-xs text-left transition-colors ${
-                                                        isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                    }`}
+                                                    className={`flex items-center justify-between w-full px-2.5 py-2 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                        }`}
                                                 >
                                                     <span className="flex items-center gap-2">
                                                         <span className={`w-2 h-2 rounded-full ${est === 'Activo' ? 'bg-emerald-400' : 'bg-rose-400'}`} />
@@ -224,11 +222,10 @@ export const CompaniesFilterDrawer = ({
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'tamano' ? null : 'tamano')}
-                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                    selectedTamanos.length > 0
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedTamanos.length > 0
                                         ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                }`}
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
                             >
                                 <span>
                                     Tamaño
@@ -242,13 +239,13 @@ export const CompaniesFilterDrawer = ({
                             </button>
 
                             {openFilterMenu === 'tamano' && (
-                                <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
                                     <input
                                         type="text"
                                         placeholder="Buscar tamaño..."
                                         value={searchTamano}
                                         onChange={(e) => setSearchTamano(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                     />
                                     <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                                         {opcionesTamano.filter((t) => t.toLowerCase().includes(searchTamano.toLowerCase())).map((tamano) => {
@@ -258,9 +255,8 @@ export const CompaniesFilterDrawer = ({
                                                     key={tamano}
                                                     type="button"
                                                     onClick={() => onToggleTamano(tamano)}
-                                                    className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${
-                                                        isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                    }`}
+                                                    className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                        }`}
                                                 >
                                                     <span>{tamano}</span>
                                                     {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
@@ -277,11 +273,10 @@ export const CompaniesFilterDrawer = ({
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'sector' ? null : 'sector')}
-                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                    selectedSectores.length > 0
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedSectores.length > 0
                                         ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                }`}
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
                             >
                                 <span>
                                     Sectores
@@ -295,13 +290,13 @@ export const CompaniesFilterDrawer = ({
                             </button>
 
                             {openFilterMenu === 'sector' && (
-                                <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
                                     <input
                                         type="text"
                                         placeholder="Buscar sector..."
                                         value={searchSector}
                                         onChange={(e) => setSearchSector(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                     />
                                     <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                                         {formatAndSortOptions(opcionesSectores)
@@ -313,9 +308,8 @@ export const CompaniesFilterDrawer = ({
                                                         key={item.original}
                                                         type="button"
                                                         onClick={() => onToggleSector(item.original)}
-                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${
-                                                            isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                        }`}
+                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                            }`}
                                                     >
                                                         <span>{item.label}</span>
                                                         {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
@@ -327,16 +321,15 @@ export const CompaniesFilterDrawer = ({
                             )}
                         </div>
 
-                        {/* Filtro: Productos o Servicios (NUEVO BLOQUE) */}
+                        {/* Filtro: Productos o Servicios */}
                         <div className="relative w-full text-left">
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'producto' ? null : 'producto')}
-                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                    selectedProductos.length > 0
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedProductos.length > 0
                                         ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                }`}
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
                             >
                                 <span>
                                     Productos o Servicios
@@ -350,13 +343,13 @@ export const CompaniesFilterDrawer = ({
                             </button>
 
                             {openFilterMenu === 'producto' && (
-                                <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
                                     <input
                                         type="text"
                                         placeholder="Buscar producto o servicio..."
                                         value={searchProducto}
                                         onChange={(e) => setSearchProducto(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                     />
                                     <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                                         {formatAndSortOptions(opcionesProductos)
@@ -368,9 +361,8 @@ export const CompaniesFilterDrawer = ({
                                                         key={item.original}
                                                         type="button"
                                                         onClick={() => onToggleProducto(item.original)}
-                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${
-                                                            isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                        }`}
+                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                            }`}
                                                     >
                                                         <span>{item.label}</span>
                                                         {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
@@ -387,11 +379,10 @@ export const CompaniesFilterDrawer = ({
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'tipoOp' ? null : 'tipoOp')}
-                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                    selectedTipoOperaciones.length > 0
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedTipoOperaciones.length > 0
                                         ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                }`}
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
                             >
                                 <span>
                                     Tipo de Operaciones
@@ -405,13 +396,13 @@ export const CompaniesFilterDrawer = ({
                             </button>
 
                             {openFilterMenu === 'tipoOp' && (
-                                <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
                                     <input
                                         type="text"
                                         placeholder="Buscar tipo de operación..."
                                         value={searchTipoOp}
                                         onChange={(e) => setSearchTipoOp(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                     />
                                     <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                                         {formatAndSortOptions(opcionesTipoOperaciones)
@@ -423,9 +414,8 @@ export const CompaniesFilterDrawer = ({
                                                         key={item.original}
                                                         type="button"
                                                         onClick={() => onToggleTipoOperacion(item.original)}
-                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${
-                                                            isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                        }`}
+                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                            }`}
                                                     >
                                                         <span>{item.label}</span>
                                                         {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
@@ -442,11 +432,10 @@ export const CompaniesFilterDrawer = ({
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'tipoSum' ? null : 'tipoSum')}
-                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                    selectedTipoSuministro.length > 0
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedTipoSuministro.length > 0
                                         ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                }`}
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
                             >
                                 <span>
                                     Tipo de Suministro
@@ -460,13 +449,13 @@ export const CompaniesFilterDrawer = ({
                             </button>
 
                             {openFilterMenu === 'tipoSum' && (
-                                <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
                                     <input
                                         type="text"
                                         placeholder="Buscar tipo de suministro..."
                                         value={searchTipoSum}
                                         onChange={(e) => setSearchTipoSum(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                     />
                                     <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                                         {formatAndSortOptions(opcionesTipoSuministro)
@@ -478,9 +467,8 @@ export const CompaniesFilterDrawer = ({
                                                         key={item.original}
                                                         type="button"
                                                         onClick={() => onToggleTipoSuministro(item.original)}
-                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${
-                                                            isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                        }`}
+                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                            }`}
                                                     >
                                                         <span>{item.label}</span>
                                                         {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
@@ -497,11 +485,10 @@ export const CompaniesFilterDrawer = ({
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'paisOrigen' ? null : 'paisOrigen')}
-                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                    selectedPaisOrigen.length > 0
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedPaisOrigen.length > 0
                                         ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                }`}
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
                             >
                                 <span>
                                     País de Origen
@@ -515,13 +502,13 @@ export const CompaniesFilterDrawer = ({
                             </button>
 
                             {openFilterMenu === 'paisOrigen' && (
-                                <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
                                     <input
                                         type="text"
                                         placeholder="Buscar país de origen..."
                                         value={searchPaisOrigen}
                                         onChange={(e) => setSearchPaisOrigen(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                     />
                                     <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                                         {formatAndSortOptions(opcionesPaisOrigen)
@@ -533,9 +520,8 @@ export const CompaniesFilterDrawer = ({
                                                         key={item.original}
                                                         type="button"
                                                         onClick={() => onTogglePaisOrigen(item.original)}
-                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${
-                                                            isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                        }`}
+                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                            }`}
                                                     >
                                                         <span>{item.label}</span>
                                                         {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
@@ -552,11 +538,10 @@ export const CompaniesFilterDrawer = ({
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'estado' ? null : 'estado')}
-                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                    selectedEstados.length > 0
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedEstados.length > 0
                                         ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                }`}
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
                             >
                                 <span>
                                     Estado
@@ -570,13 +555,13 @@ export const CompaniesFilterDrawer = ({
                             </button>
 
                             {openFilterMenu === 'estado' && (
-                                <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
                                     <input
                                         type="text"
                                         placeholder="Buscar estado..."
                                         value={searchEstado}
                                         onChange={(e) => setSearchEstado(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                     />
                                     <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                                         {opcionesEstados
@@ -588,9 +573,8 @@ export const CompaniesFilterDrawer = ({
                                                         key={estado}
                                                         type="button"
                                                         onClick={() => onToggleEstado(estado)}
-                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${
-                                                            isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                        }`}
+                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                            }`}
                                                     >
                                                         <span>{estado}</span>
                                                         {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
@@ -607,11 +591,10 @@ export const CompaniesFilterDrawer = ({
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'municipio' ? null : 'municipio')}
-                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                    selectedMunicipios.length > 0
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedMunicipios.length > 0
                                         ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                }`}
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
                             >
                                 <span>
                                     Municipio
@@ -625,13 +608,13 @@ export const CompaniesFilterDrawer = ({
                             </button>
 
                             {openFilterMenu === 'municipio' && (
-                                <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
                                     <input
                                         type="text"
                                         placeholder="Buscar municipio..."
                                         value={searchMunicipio}
                                         onChange={(e) => setSearchMunicipio(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                     />
                                     <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                                         {opcionesMunicipios
@@ -643,9 +626,8 @@ export const CompaniesFilterDrawer = ({
                                                         key={muni}
                                                         type="button"
                                                         onClick={() => onToggleMunicipio(muni)}
-                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${
-                                                            isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                        }`}
+                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                            }`}
                                                     >
                                                         <span>{muni}</span>
                                                         {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
@@ -657,16 +639,15 @@ export const CompaniesFilterDrawer = ({
                             )}
                         </div>
 
-                        {/* Filtro: Realiza Exportaciones (Solo Sí / No) */}
+                        {/* Filtro: Realiza Exportaciones */}
                         <div className="relative w-full text-left">
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'exporta' ? null : 'exporta')}
-                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                    selectedExporta !== ''
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedExporta !== ''
                                         ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                }`}
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
                             >
                                 <span>
                                     ¿Realiza Exportaciones?
@@ -680,7 +661,7 @@ export const CompaniesFilterDrawer = ({
                             </button>
 
                             {openFilterMenu === 'exporta' && (
-                                <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-1">
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-1">
                                     {opcionesExportacion.map((opt) => {
                                         const isSelected = selectedExporta === opt.value;
                                         return (
@@ -688,9 +669,8 @@ export const CompaniesFilterDrawer = ({
                                                 key={opt.value}
                                                 type="button"
                                                 onClick={() => onChangeExporta(isSelected ? '' : opt.value)}
-                                                className={`flex items-center justify-between w-full px-2.5 py-2 rounded-md text-xs text-left transition-colors ${
-                                                    isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                }`}
+                                                className={`flex items-center justify-between w-full px-2.5 py-2 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                    }`}
                                             >
                                                 <span>{opt.label}</span>
                                                 {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
@@ -707,11 +687,10 @@ export const CompaniesFilterDrawer = ({
                                 <button
                                     type="button"
                                     onClick={() => setOpenFilterMenu(openFilterMenu === 'pais' ? null : 'pais')}
-                                    className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                        selectedPaisesDestino.length > 0
+                                    className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedPaisesDestino.length > 0
                                             ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                    }`}
+                                            : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                        }`}
                                 >
                                     <span>
                                         País Destino Exportación
@@ -725,13 +704,13 @@ export const CompaniesFilterDrawer = ({
                                 </button>
 
                                 {openFilterMenu === 'pais' && (
-                                    <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                    <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
                                         <input
                                             type="text"
                                             placeholder="Buscar país..."
                                             value={searchPais}
                                             onChange={(e) => setSearchPais(e.target.value)}
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                            className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                         />
                                         <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                                             {formatAndSortOptions(opcionesPaisesDestino)
@@ -743,9 +722,8 @@ export const CompaniesFilterDrawer = ({
                                                             key={item.original}
                                                             type="button"
                                                             onClick={() => onTogglePaisDestino(item.original)}
-                                                            className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${
-                                                                isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                            }`}
+                                                            className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                                }`}
                                                         >
                                                             <span>{item.label}</span>
                                                             {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
@@ -763,11 +741,10 @@ export const CompaniesFilterDrawer = ({
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'certificacion' ? null : 'certificacion')}
-                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                    selectedCertificaciones.length > 0
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedCertificaciones.length > 0
                                         ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                }`}
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
                             >
                                 <span>
                                     Certificaciones
@@ -781,13 +758,13 @@ export const CompaniesFilterDrawer = ({
                             </button>
 
                             {openFilterMenu === 'certificacion' && (
-                                <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
                                     <input
                                         type="text"
                                         placeholder="Buscar certificación..."
                                         value={searchCert}
                                         onChange={(e) => setSearchCert(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                     />
                                     <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                                         {formatAndSortOptions(opcionesCertificaciones)
@@ -799,9 +776,8 @@ export const CompaniesFilterDrawer = ({
                                                         key={item.original}
                                                         type="button"
                                                         onClick={() => onToggleCertificacion(item.original)}
-                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${
-                                                            isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                        }`}
+                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                            }`}
                                                     >
                                                         <span>{item.label}</span>
                                                         {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
@@ -818,11 +794,10 @@ export const CompaniesFilterDrawer = ({
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'apoyo' ? null : 'apoyo')}
-                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                    selectedApoyos.length > 0
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedApoyos.length > 0
                                         ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                }`}
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
                             >
                                 <span>
                                     Apoyos Requeridos
@@ -836,13 +811,13 @@ export const CompaniesFilterDrawer = ({
                             </button>
 
                             {openFilterMenu === 'apoyo' && (
-                                <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
                                     <input
                                         type="text"
                                         placeholder="Buscar tipo de apoyo..."
                                         value={searchApoyo}
                                         onChange={(e) => setSearchApoyo(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                     />
                                     <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                                         {formatAndSortOptions(opcionesApoyos)
@@ -854,9 +829,8 @@ export const CompaniesFilterDrawer = ({
                                                         key={item.original}
                                                         type="button"
                                                         onClick={() => onToggleApoyo(item.original)}
-                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${
-                                                            isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                        }`}
+                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                            }`}
                                                     >
                                                         <span>{item.label}</span>
                                                         {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
@@ -873,11 +847,10 @@ export const CompaniesFilterDrawer = ({
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'etiqueta' ? null : 'etiqueta')}
-                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${
-                                    selectedEtiquetas.length > 0
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedEtiquetas.length > 0
                                         ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
-                                }`}
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
                             >
                                 <span>
                                     Etiquetas
@@ -891,13 +864,13 @@ export const CompaniesFilterDrawer = ({
                             </button>
 
                             {openFilterMenu === 'etiqueta' && (
-                                <div className="mt-2 w-full bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
                                     <input
                                         type="text"
                                         placeholder="Buscar etiqueta..."
                                         value={searchEtiqueta}
                                         onChange={(e) => setSearchEtiqueta(e.target.value)}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                     />
                                     <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                                         {formatAndSortOptions(opcionesEtiquetas)
@@ -909,9 +882,8 @@ export const CompaniesFilterDrawer = ({
                                                         key={item.original}
                                                         type="button"
                                                         onClick={() => onToggleEtiqueta(item.original)}
-                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${
-                                                            isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-700/50'
-                                                        }`}
+                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                            }`}
                                                     >
                                                         <span>{item.label}</span>
                                                         {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
@@ -926,11 +898,11 @@ export const CompaniesFilterDrawer = ({
                     </div>
 
                     {/* PIE Y BOTONES */}
-                    <div className="p-4 sm:p-5 border-t border-slate-700 flex items-center justify-between bg-slate-800/90">
+                    <div className="p-4 sm:p-5 border-t border-app-border flex items-center justify-between bg-app-card/90">
                         <button
                             type="button"
                             onClick={onClearAll}
-                            className="text-xs text-slate-400 hover:text-red-400 underline font-medium transition-colors"
+                            className="text-xs text-app-muted hover:text-red-400 underline font-medium transition-colors"
                         >
                             Limpiar todo
                         </button>

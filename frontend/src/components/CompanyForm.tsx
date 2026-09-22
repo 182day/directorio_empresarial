@@ -852,34 +852,34 @@ export const CompanyForm = ({
     };
 
     const getInputClass = (fieldName: string) => `
-    w-full bg-slate-900 border rounded-lg p-2.5 text-sm text-white focus:outline-none transition-colors
+    w-full bg-app-bg border rounded-lg p-2.5 text-sm text-app-text placeholder:text-app-muted focus:outline-none transition-colors
     ${errors[fieldName]
             ? 'border-red-500 focus:border-red-500 bg-red-500/5'
-            : 'border-slate-700 focus:border-blue-500'
+            : 'border-app-border focus:border-blue-500'
         }
-  `;
+`;
 
     return (
         <form onSubmit={handleSubmit} noValidate className="space-y-3">
             {/* 1. SECCIÓN: DATOS GENERALES */}
-            <div className="border border-slate-700/80 rounded-lg overflow-hidden bg-slate-900/40">
+            <div className="border border-app-border rounded-lg overflow-hidden bg-app-card">
                 <button
                     type="button"
                     onClick={() => toggleSection('general')}
-                    className="w-full flex items-center justify-between p-3.5 bg-slate-800/60 hover:bg-slate-800 transition-colors text-left"
+                    className="w-full flex items-center justify-between p-3.5 bg-app-border/40 hover:bg-app-border/80 transition-colors text-left"
                 >
-                    <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                        <Building2 className="w-4 h-4 text-blue-400" />
+                    <div className="flex items-center gap-2 text-sm font-semibold text-app-text">
+                        <Building2 className="w-4 h-4 text-blue-500" />
                         <span>Datos Generales</span>
                     </div>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openSections.general ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-4 h-4 text-app-muted transition-transform ${openSections.general ? 'rotate-180' : ''}`} />
                 </button>
 
                 {openSections.general && (
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-700/50">
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-app-border">
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Correo Electrónico Institucional <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Correo Electrónico Institucional <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="email"
@@ -890,8 +890,8 @@ export const CompanyForm = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Nombre Comercial <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Nombre Comercial <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
@@ -902,8 +902,8 @@ export const CompanyForm = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Razón Social <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Razón Social <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
@@ -914,8 +914,8 @@ export const CompanyForm = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                RFC <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                RFC <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
@@ -927,21 +927,25 @@ export const CompanyForm = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Tamaño de Empresa <span className="text-red-400">*</span></label>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Tamaño de Empresa <span className="text-red-500">*</span>
+                            </label>
                             <select
                                 value={formData.tamanoEmpresa}
                                 onChange={(e) => handleChange('tamanoEmpresa', e.target.value)}
                                 className={getInputClass('tamanoEmpresa')}
                             >
-                                <option value="Micro">Micro</option>
-                                <option value="Pequeña">Pequeña</option>
-                                <option value="Mediana">Mediana</option>
-                                <option value="Grande">Grande</option>
+                                <option value="Micro" className="bg-app-bg text-app-text">Micro</option>
+                                <option value="Pequeña" className="bg-app-bg text-app-text">Pequeña</option>
+                                <option value="Mediana" className="bg-app-bg text-app-text">Mediana</option>
+                                <option value="Grande" className="bg-app-bg text-app-text">Grande</option>
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Año de Inicio <span className="text-red-400">*</span></label>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Año de Inicio <span className="text-red-500">*</span>
+                            </label>
                             <input
                                 type="number"
                                 value={formData.anioInicio}
@@ -951,7 +955,7 @@ export const CompanyForm = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Sitio Web</label>
+                            <label className="block text-xs font-medium text-app-muted mb-1">Sitio Web</label>
                             <input
                                 type="url"
                                 placeholder="https://ejemplo.com"
@@ -962,7 +966,9 @@ export const CompanyForm = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Presentación Comercial (Link de Google Drive)</label>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Presentación Comercial (Link de Google Drive)
+                            </label>
                             <input
                                 type="url"
                                 placeholder="https://ejemplo.com"
@@ -975,14 +981,14 @@ export const CompanyForm = ({
                         {!isPublicRegistration && (
                             <>
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs font-medium text-slate-400 mb-1">Etiquetas</label>
-                                    <div className="bg-slate-900 border border-slate-700 rounded-lg p-2.5 focus-within:border-blue-500 transition-colors">
+                                    <label className="block text-xs font-medium text-app-muted mb-1">Etiquetas</label>
+                                    <div className="bg-app-bg border border-app-border rounded-lg p-2.5 focus-within:border-blue-500 transition-colors">
                                         {tagList.length > 0 && (
                                             <div className="flex flex-wrap gap-1.5 mb-2">
                                                 {tagList.map((tag, idx) => (
-                                                    <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                                    <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500/20 text-blue-500 border border-blue-500/30">
                                                         {tag}
-                                                        <button type="button" onClick={() => removeTag(idx)} className="text-blue-300 hover:text-white transition-colors">
+                                                        <button type="button" onClick={() => removeTag(idx)} className="text-blue-500 hover:text-blue-700 dark:hover:text-white transition-colors">
                                                             <X className="w-3 h-3" />
                                                         </button>
                                                     </span>
@@ -995,22 +1001,22 @@ export const CompanyForm = ({
                                             value={tagInput}
                                             onChange={handleTagInputChange}
                                             onKeyDown={handleKeyDown}
-                                            className="w-full bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none resize-y"
+                                            className="w-full bg-transparent text-sm text-app-text placeholder:text-app-muted focus:outline-none resize-y"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-300 mb-1">Estado de la Cuenta</label>
+                                    <label className="block text-xs font-medium text-app-muted mb-1">Estado de la Cuenta</label>
                                     <button
                                         type="button"
                                         onClick={() => handleChange('activa', !formData.activa)}
                                         className={`w-full py-2 px-3 rounded-lg text-xs font-medium border flex items-center justify-center gap-2 transition-colors ${formData.activa
-                                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
-                                            : 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
+                                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20'
+                                            : 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20'
                                             }`}
                                     >
-                                        <span className={`w-2 h-2 rounded-full ${formData.activa ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                                        <span className={`w-2 h-2 rounded-full ${formData.activa ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                                         {formData.activa ? 'Cuenta Activa' : 'Cuenta Inactiva'}
                                     </button>
                                 </div>
@@ -1021,29 +1027,29 @@ export const CompanyForm = ({
             </div>
 
             {/* 2. SECCIÓN: UBICACIÓN */}
-            <div className="border border-slate-700/80 rounded-lg overflow-hidden bg-slate-900/40">
+            <div className="border border-app-border rounded-lg overflow-hidden bg-app-card">
                 <button
                     type="button"
                     onClick={() => toggleSection('ubicacion')}
-                    className="w-full flex items-center justify-between p-3.5 bg-slate-800/60 hover:bg-slate-800 transition-colors text-left"
+                    className="w-full flex items-center justify-between p-3.5 bg-app-border/40 hover:bg-app-border/80 transition-colors text-left"
                 >
-                    <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                        <MapPin className="w-4 h-4 text-blue-400" />
+                    <div className="flex items-center gap-2 text-sm font-semibold text-app-text">
+                        <MapPin className="w-4 h-4 text-blue-500" />
                         <span>Ubicación</span>
                     </div>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openSections.ubicacion ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-4 h-4 text-app-muted transition-transform ${openSections.ubicacion ? 'rotate-180' : ''}`} />
                 </button>
 
                 {openSections.ubicacion && (
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-700/50">
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-app-border">
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Estado <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Estado <span className="text-red-500">*</span>
                             </label>
                             <select value={formData.ubicacion.estado} onChange={handleEstadoChange} className={getInputClass('ubicacion.estado')}>
-                                <option value="">-- Selecciona un Estado --</option>
+                                <option value="" className="bg-app-bg text-app-text">-- Selecciona un Estado --</option>
                                 {ESTADOS_MEXICO.map((item) => (
-                                    <option key={item.estado} value={item.estado}>
+                                    <option key={item.estado} value={item.estado} className="bg-app-bg text-app-text">
                                         {item.estado}
                                     </option>
                                 ))}
@@ -1051,8 +1057,8 @@ export const CompanyForm = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Municipio <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Municipio <span className="text-red-500">*</span>
                             </label>
                             <select
                                 disabled={!formData.ubicacion.estado}
@@ -1060,16 +1066,18 @@ export const CompanyForm = ({
                                 onChange={(e) => handleChange('ubicacion.municipio', e.target.value)}
                                 className={`${getInputClass('ubicacion.municipio')} disabled:opacity-40 disabled:cursor-not-allowed`}
                             >
-                                <option value="">{formData.ubicacion.estado ? '-- Selecciona un Municipio --' : '-- Primero elige un Estado --'}</option>
+                                <option value="" className="bg-app-bg text-app-text">
+                                    {formData.ubicacion.estado ? '-- Selecciona un Municipio --' : '-- Primero elige un Estado --'}
+                                </option>
                                 {municipiosDisponibles.map((muni) => (
-                                    <option key={muni} value={muni}>{muni}</option>
+                                    <option key={muni} value={muni} className="bg-app-bg text-app-text">{muni}</option>
                                 ))}
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Dirección (Calle y Número) <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Dirección (Calle y Número) <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
@@ -1080,8 +1088,8 @@ export const CompanyForm = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Colonia <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Colonia <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
@@ -1092,8 +1100,8 @@ export const CompanyForm = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Código Postal <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Código Postal <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
@@ -1104,7 +1112,7 @@ export const CompanyForm = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Parque Industrial (Opcional)</label>
+                            <label className="block text-xs font-medium text-app-muted mb-1">Parque Industrial (Opcional)</label>
                             <input
                                 type="text"
                                 value={formData.ubicacion.parqueIndustrial || ''}
@@ -1113,59 +1121,62 @@ export const CompanyForm = ({
                             />
                         </div>
 
-                        {(isEditing || !isPublicRegistration) && (<>
-                            <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1">
-                                    Latitud
-                                </label>
-                                <input
-                                    type="number"
-                                    step="any"
-                                    placeholder="ej. 20.5888"
-                                    value={formData.ubicacion.latitud ?? ''}
-                                    onChange={(e) => handleChange('ubicacion.latitud', e.target.value === '' ? '' : Number(e.target.value))}
-                                    className={getInputClass('ubicacion.latitud')}
-                                />
-                            </div>
+                        {(isEditing || !isPublicRegistration) && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-medium text-app-muted mb-1">
+                                        Latitud
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        placeholder="ej. 20.5888"
+                                        value={formData.ubicacion.latitud ?? ''}
+                                        onChange={(e) => handleChange('ubicacion.latitud', e.target.value === '' ? '' : Number(e.target.value))}
+                                        className={getInputClass('ubicacion.latitud')}
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1">
-                                    Longitud
-                                </label>
-                                <input
-                                    type="number"
-                                    step="any"
-                                    placeholder="ej. -100.3899"
-                                    value={formData.ubicacion.longitud ?? ''}
-                                    onChange={(e) => handleChange('ubicacion.longitud', e.target.value === '' ? '' : Number(e.target.value))}
-                                    className={getInputClass('ubicacion.longitud')}
-                                />
-                            </div>
-                        </>)
-                        }
+                                <div>
+                                    <label className="block text-xs font-medium text-app-muted mb-1">
+                                        Longitud
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        placeholder="ej. -100.3899"
+                                        value={formData.ubicacion.longitud ?? ''}
+                                        onChange={(e) => handleChange('ubicacion.longitud', e.target.value === '' ? '' : Number(e.target.value))}
+                                        className={getInputClass('ubicacion.longitud')}
+                                    />
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
 
             {/* 3. SECCIÓN: CONTACTOS */}
-            <div className="border border-slate-700/80 rounded-lg overflow-hidden bg-slate-900/40">
+            <div className="border border-app-border rounded-lg overflow-hidden bg-app-card">
                 <button
                     type="button"
                     onClick={() => toggleSection('contactos')}
-                    className="w-full flex items-center justify-between p-3.5 bg-slate-800/60 hover:bg-slate-800 transition-colors text-left"
+                    className="w-full flex items-center justify-between p-3.5 bg-app-border/40 hover:bg-app-border/80 transition-colors text-left"
                 >
-                    <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                        <Users className="w-4 h-4 text-blue-400" />
+                    <div className="flex items-center gap-2 text-sm font-semibold text-app-text">
+                        <Users className="w-4 h-4 text-blue-500" />
                         <span>Contactos</span>
                     </div>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openSections.contactos ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-4 h-4 text-app-muted transition-transform ${openSections.contactos ? 'rotate-180' : ''}`} />
                 </button>
 
                 {openSections.contactos && (
-                    <div className="p-4 space-y-4 border-t border-slate-700/50">
+                    <div className="p-4 space-y-4 border-t border-app-border">
                         {/* Director General */}
-                        <div className="bg-slate-900/60 p-3.5 border border-slate-800 rounded-lg space-y-3">
-                            <h4 className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Director General (Obligatorio)</h4>
+                        <div className="bg-app-bg/60 p-3.5 border border-app-border rounded-lg space-y-3">
+                            <h4 className="text-xs font-semibold text-blue-500 uppercase tracking-wider">
+                                Director General (Obligatorio)
+                            </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <input
                                     type="text"
@@ -1202,15 +1213,15 @@ export const CompanyForm = ({
 
                         {/* Contactos Adicionales */}
                         {(['compras', 'ventas', 'recursosHumanos'] as const).map((area) => (
-                            <div key={area} className="bg-slate-900/60 p-3.5 border border-slate-800 rounded-lg space-y-3">
+                            <div key={area} className="bg-app-bg/60 p-3.5 border border-app-border rounded-lg space-y-3">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                                    <h4 className="text-xs font-semibold text-app-muted uppercase tracking-wider">
                                         Contacto de {area === 'recursosHumanos' ? 'Recursos Humanos' : area}
                                     </h4>
                                     <button
                                         type="button"
                                         onClick={() => copyDirectorData(area)}
-                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-md hover:bg-blue-500/20 hover:text-blue-300 transition-colors w-fit"
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-blue-500 bg-blue-500/10 border border-blue-500/20 rounded-md hover:bg-blue-500/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors w-fit"
                                     >
                                         <Copy className="w-3.5 h-3.5" />
                                         Mismo que Director General
@@ -1263,28 +1274,27 @@ export const CompanyForm = ({
             </div>
 
             {/* 4. SECCIÓN: INFORMACIÓN ACERCA DE LA EMPRESA */}
-            <div className={`border border-slate-700/80 rounded-lg bg-slate-900/40 ${openSections.operacion ? 'overflow-visible' : 'overflow-hidden'}`}>
+            <div className={`border border-app-border rounded-lg overflow-hidden bg-app-card ${openSections.operacion ? 'overflow-visible' : 'overflow-hidden'}`}>
                 <button
                     type="button"
                     onClick={() => toggleSection('operacion')}
-                    className="w-full flex items-center justify-between p-3.5 bg-slate-800/60 hover:bg-slate-800 transition-colors text-left rounded-t-lg"
+                    className="w-full flex items-center justify-between p-3.5 bg-app-border/40 hover:bg-app-border/80 transition-colors text-left"
                 >
-                    <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-app-text">
                         <Briefcase className="w-4 h-4 text-blue-400" />
                         <span>Información acerca de la empresa</span>
                     </div>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openSections.operacion ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-4 h-4 text-app-muted transition-transform ${openSections.operacion ? 'rotate-180' : ''}`} />
                 </button>
 
                 {openSections.operacion && (
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-700/50 overflow-visible">
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-app-border overflow-visible">
                         {/* Tipo de Operaciones */}
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-2">
-                                Tipo de Operaciones <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-2">
+                                Tipo de Operaciones <span className="text-red-500">*</span>
                             </label>
-                            <div className={`flex flex-wrap gap-2 p-2 rounded-lg border transition-colors ${errors.tipoOperaciones ? 'border-red-500 bg-red-500/5' : 'border-transparent'
-                                }`}>
+                            <div className={`flex flex-wrap gap-2 p-2 rounded-lg border transition-colors ${errors.tipoOperaciones ? 'border-red-500 bg-red-500/5' : 'border-transparent'}`}>
                                 {OPCIONES_OPERACIONES.map((op) => (
                                     <button
                                         key={op}
@@ -1293,8 +1303,8 @@ export const CompanyForm = ({
                                         className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${formData.tipoOperaciones.includes(op)
                                             ? 'bg-blue-600 border-blue-500 text-white'
                                             : errors.tipoOperaciones
-                                                ? 'bg-slate-900 border-red-500/50 text-slate-400'
-                                                : 'bg-slate-900 border-slate-700 text-slate-400'
+                                                ? 'bg-app-bg border-red-500/50 text-app-muted'
+                                                : 'bg-app-bg border-app-border text-app-muted hover:border-blue-500/50'
                                             }`}
                                     >
                                         {op}
@@ -1305,11 +1315,10 @@ export const CompanyForm = ({
 
                         {/* Tipo de Suministro */}
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-2">
-                                Tipo de Suministro <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-2">
+                                Tipo de Suministro <span className="text-red-500">*</span>
                             </label>
-                            <div className={`flex flex-wrap gap-2 p-2 rounded-lg border transition-colors ${errors.tipoSuministro ? 'border-red-500 bg-red-500/5' : 'border-transparent'
-                                }`}>
+                            <div className={`flex flex-wrap gap-2 p-2 rounded-lg border transition-colors ${errors.tipoSuministro ? 'border-red-500 bg-red-500/5' : 'border-transparent'}`}>
                                 {OPCIONES_SUMINISTRO.map((op) => (
                                     <button
                                         key={op}
@@ -1318,8 +1327,8 @@ export const CompanyForm = ({
                                         className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${formData.tipoSuministro.includes(op)
                                             ? 'bg-blue-600 border-blue-500 text-white'
                                             : errors.tipoSuministro
-                                                ? 'bg-slate-900 border-red-500/50 text-slate-400'
-                                                : 'bg-slate-900 border-slate-700 text-slate-400'
+                                                ? 'bg-app-bg border-red-500/50 text-app-muted'
+                                                : 'bg-app-bg border-app-border text-app-muted hover:border-blue-500/50'
                                             }`}
                                     >
                                         {op}
@@ -1330,8 +1339,8 @@ export const CompanyForm = ({
 
                         {/* Productos o Servicios */}
                         <div className="md:col-span-2">
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Productos o Servicios que Fabrica / Ofrece <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Productos o Servicios que Fabrica / Ofrece <span className="text-red-500">*</span>
                             </label>
                             <textarea
                                 rows={2}
@@ -1343,7 +1352,7 @@ export const CompanyForm = ({
 
                         {/* Principales Clientes */}
                         <div className="md:col-span-2">
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Principales Clientes</label>
+                            <label className="block text-xs font-medium text-app-muted mb-1">Principales Clientes</label>
                             <textarea
                                 rows={2}
                                 placeholder="Escribe tus principales clientes..."
@@ -1356,28 +1365,27 @@ export const CompanyForm = ({
                         {/* País de Origen */}
                         <div className="md:col-span-2 space-y-3">
                             <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1">
-                                    País de Origen <span className="text-red-400">*</span>
+                                <label className="block text-xs font-medium text-app-muted mb-1">
+                                    País de Origen <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     value={formData.informacionEmpresa.paisOrigen}
                                     onChange={(e) => handleChange('informacionEmpresa.paisOrigen', e.target.value)}
                                     className={getInputClass('informacionEmpresa.paisOrigen')}
                                 >
-                                    <option value="">Selecciona un país</option>
+                                    <option value="" className="bg-app-bg text-app-text">Selecciona un país</option>
                                     {OPCIONES_PAISES.map((pais) => (
-                                        <option key={pais.iso2} value={pais.nombre}>
+                                        <option key={pais.iso2} value={pais.nombre} className="bg-app-bg text-app-text">
                                             {pais.nombre}
                                         </option>
                                     ))}
                                 </select>
                             </div>
 
-                            {/* Campo condicional para especificar el país si eligen "Otro" */}
                             {formData.informacionEmpresa.paisOrigen === 'Otro' && (
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-400 mb-1">
-                                        Especifique el País de Origen <span className="text-red-400">*</span>
+                                    <label className="block text-xs font-medium text-app-muted mb-1">
+                                        Especifique el País de Origen <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -1392,8 +1400,8 @@ export const CompanyForm = ({
 
                         {/* Porcentajes de Inversión */}
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Porcentaje de inversión nacional (%) <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Porcentaje de inversión nacional (%) <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="number"
@@ -1406,8 +1414,8 @@ export const CompanyForm = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Porcentaje de inversión extranjero (%) <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Porcentaje de inversión extranjero (%) <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="number"
@@ -1425,22 +1433,22 @@ export const CompanyForm = ({
                             </div>
                         )}
 
-                        {/* Certificaciones (OPCIONAL) */}
+                        {/* Certificaciones */}
                         <div className="md:col-span-2">
-                            <label className="block text-xs font-medium text-slate-400 mb-2">
+                            <label className="block text-xs font-medium text-app-muted mb-2">
                                 Certificaciones
                             </label>
-                            <div className="space-y-2 bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                            <div className="space-y-2 bg-app-bg/60 p-3 rounded-lg border border-app-border">
                                 {OPCIONES_CERTIFICACIONES.map((cert) => {
                                     const isChecked = formData.informacionEmpresa.certificaciones.lista.includes(cert);
                                     return (
                                         <div key={cert} className="flex flex-col gap-2">
-                                            <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer select-none hover:text-white transition-colors">
+                                            <label className="flex items-center gap-3 text-xs text-app-muted cursor-pointer select-none hover:text-app-text transition-colors">
                                                 <input
                                                     type="checkbox"
                                                     checked={isChecked}
                                                     onChange={() => toggleArrayItem('informacionEmpresa.certificaciones.lista', cert)}
-                                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer scheme-dark"
+                                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-app-border bg-app-bg accent-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
                                                 />
                                                 <span>{cert}</span>
                                             </label>
@@ -1464,23 +1472,21 @@ export const CompanyForm = ({
 
                         {/* Sector(es) al(los) que pertenece(n) */}
                         <div className="md:col-span-2">
-                            <label className="block text-xs font-medium text-slate-400 mb-2">
-                                Sector(es) al(los) que pertenece(n): <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-2">
+                                Sector(es) al(los) que pertenece(n): <span className="text-red-500">*</span>
                             </label>
-                            <div className={`space-y-2 bg-slate-900/60 p-3 rounded-lg border transition-colors ${errors['informacionEmpresa.sectoresPertenece.lista']
-                                ? 'border-red-500 bg-red-500/5'
-                                : 'border-slate-800'
+                            <div className={`space-y-2 bg-app-bg/60 p-3 rounded-lg border transition-colors ${errors['informacionEmpresa.sectoresPertenece.lista'] ? 'border-red-500 bg-red-500/5' : 'border-app-border'
                                 }`}>
                                 {OPCIONES_SECTORES.map((sec) => {
                                     const isChecked = formData.informacionEmpresa.sectoresPertenece.lista.includes(sec);
                                     return (
                                         <div key={sec} className="flex flex-col gap-2">
-                                            <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer select-none hover:text-white transition-colors">
+                                            <label className="flex items-center gap-3 text-xs text-app-muted cursor-pointer select-none hover:text-app-text transition-colors">
                                                 <input
                                                     type="checkbox"
                                                     checked={isChecked}
                                                     onChange={() => toggleArrayItem('informacionEmpresa.sectoresPertenece.lista', sec)}
-                                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer scheme-dark"
+                                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-app-border bg-app-bg accent-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
                                                 />
                                                 <span>{sec}</span>
                                             </label>
@@ -1502,10 +1508,10 @@ export const CompanyForm = ({
                             </div>
                         </div>
 
-                        {/* Principal Sector al que Atiende + Porcentaje de Exportaciones */}
+                        {/* Principal Sector al que Atiende */}
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Principal sector al que atiende <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Principal sector al que atiende <span className="text-red-500">*</span>
                             </label>
                             <select
                                 value={formData.informacionEmpresa.principalSectorAtiende}
@@ -1513,13 +1519,13 @@ export const CompanyForm = ({
                                 disabled={opcionesPrincipalSector.length === 0}
                                 className={`${getInputClass('informacionEmpresa.principalSectorAtiende')} disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
-                                <option value="">
+                                <option value="" className="bg-app-bg text-app-text">
                                     {opcionesPrincipalSector.length > 0
                                         ? '-- Selecciona un sector principal --'
                                         : '-- Selecciona primero al menos un sector arriba --'}
                                 </option>
                                 {opcionesPrincipalSector.map((sec, idx) => (
-                                    <option key={idx} value={sec}>
+                                    <option key={idx} value={sec} className="bg-app-bg text-app-text">
                                         {sec}
                                     </option>
                                 ))}
@@ -1527,8 +1533,8 @@ export const CompanyForm = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Porcentaje de exportaciones (%) <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Porcentaje de exportaciones (%) <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="number"
@@ -1542,18 +1548,18 @@ export const CompanyForm = ({
 
                         {/* Typeahead Multi-select: Destino de Exportaciones */}
                         <div className="md:col-span-2 relative z-30">
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
+                            <label className="block text-xs font-medium text-app-muted mb-1">
                                 Favor de especificar el destino de sus exportaciones:
                             </label>
                             <div className="relative">
                                 <div
-                                    className="w-full min-h-10.5 p-2 bg-slate-900 border border-slate-700 rounded-lg focus-within:border-blue-500 flex flex-wrap items-center gap-1.5 cursor-text transition-colors"
+                                    className="w-full min-h-10.5 p-2 bg-app-bg border border-app-border rounded-lg focus-within:border-blue-500 flex flex-wrap items-center gap-1.5 cursor-text transition-colors"
                                     onClick={() => setIsCountryDropdownOpen(true)}
                                 >
                                     {(formData.informacionEmpresa.destinoExportaciones || []).map((country) => (
                                         <span
                                             key={country}
-                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500/20 text-blue-500 border border-blue-500/30"
                                         >
                                             {country}
                                             <button
@@ -1562,7 +1568,7 @@ export const CompanyForm = ({
                                                     e.stopPropagation();
                                                     toggleExportDestination(country);
                                                 }}
-                                                className="hover:text-white transition-colors focus:outline-none"
+                                                className="hover:text-blue-700 dark:hover:text-white transition-colors focus:outline-none"
                                             >
                                                 <X className="w-3 h-3" />
                                             </button>
@@ -1571,7 +1577,7 @@ export const CompanyForm = ({
 
                                     <input
                                         type="text"
-                                        className="flex-1 bg-transparent border-none p-1 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-0 min-w-37.5"
+                                        className="flex-1 bg-transparent border-none p-1 text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:ring-0 min-w-37.5"
                                         placeholder={
                                             (formData.informacionEmpresa.destinoExportaciones || []).length === 0
                                                 ? 'Buscar y seleccionar países...'
@@ -1585,7 +1591,7 @@ export const CompanyForm = ({
                                         onFocus={() => setIsCountryDropdownOpen(true)}
                                     />
 
-                                    <ChevronDown className="w-4 h-4 text-slate-400 mr-1 pointer-events-none" />
+                                    <ChevronDown className="w-4 h-4 text-app-muted mr-1 pointer-events-none" />
                                 </div>
 
                                 {isCountryDropdownOpen && (
@@ -1595,7 +1601,7 @@ export const CompanyForm = ({
                                             onClick={() => setIsCountryDropdownOpen(false)}
                                         />
 
-                                        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl max-h-48 overflow-y-auto custom-scrollbar">
+                                        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-app-card border border-app-border rounded-lg shadow-2xl max-h-48 overflow-y-auto custom-scrollbar">
                                             {filteredCountries.length > 0 ? (
                                                 filteredCountries.map((pais) => {
                                                     const isSelected = (formData.informacionEmpresa.destinoExportaciones || []).includes(pais.nombre);
@@ -1607,16 +1613,16 @@ export const CompanyForm = ({
                                                                 toggleExportDestination(pais.nombre);
                                                                 setCountrySearch('');
                                                             }}
-                                                            className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-medium' : 'text-slate-300'
+                                                            className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-app-border/50 transition-colors ${isSelected ? 'bg-blue-500/20 text-blue-500 font-medium' : 'text-app-text'
                                                                 }`}
                                                         >
                                                             <span>{pais.nombre}</span>
-                                                            {isSelected && <Check className="w-4 h-4 text-blue-400" />}
+                                                            {isSelected && <Check className="w-4 h-4 text-blue-500" />}
                                                         </button>
                                                     );
                                                 })
                                             ) : (
-                                                <div className="px-3 py-2 text-xs text-slate-500">
+                                                <div className="px-3 py-2 text-xs text-app-muted">
                                                     No se encontraron países
                                                 </div>
                                             )}
@@ -1631,20 +1637,20 @@ export const CompanyForm = ({
 
             {/* 5. Productos o Servicios */}
             {(sectoresSeleccionados.length > 0) && (
-                <div className="border border-slate-700/80 rounded-lg overflow-hidden bg-slate-900/40">
+                <div className="border border-app-border rounded-lg overflow-hidden bg-app-card">
                     <button
                         type="button"
                         onClick={() => toggleSection('productos')}
-                        className="w-full flex items-center justify-between p-3.5 bg-slate-800/60 hover:bg-slate-800 transition-colors text-left"
+                        className="w-full flex items-center justify-between p-3.5 bg-app-border/40 hover:bg-app-border/80 transition-colors text-left"
                     >
-                        <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                            <HelpCircle className="w-4 h-4 text-blue-400" />
+                        <div className="flex items-center gap-2 text-sm font-semibold text-app-text">
+                            <HelpCircle className="w-4 h-4 text-blue-500" />
                             <span>Información de los productos o servicios que ofrecen</span>
                         </div>
-                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openSections.productos ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-4 h-4 text-app-muted transition-transform ${openSections.productos ? 'rotate-180' : ''}`} />
                     </button>
                     {openSections.productos && (
-                        <div className="p-4 space-y-4 border-t border-slate-700/50">
+                        <div className="p-4 space-y-4 border-t border-app-border">
                             {SECTORES_CONFIG.map((sector) => {
                                 const isVisible = sector.matchSectores.some((s) => sectoresSeleccionados.includes(s));
 
@@ -1679,24 +1685,24 @@ export const CompanyForm = ({
             )}
 
             {/* 6. SECCIÓN: RETOS Y APOYOS */}
-            <div className="border border-slate-700/80 rounded-lg overflow-hidden bg-slate-900/40">
+            <div className="border border-app-border rounded-lg overflow-hidden bg-app-card">
                 <button
                     type="button"
                     onClick={() => toggleSection('retos')}
-                    className="w-full flex items-center justify-between p-3.5 bg-slate-800/60 hover:bg-slate-800 transition-colors text-left"
+                    className="w-full flex items-center justify-between p-3.5 bg-app-border/40 hover:bg-app-border/80 transition-colors text-left"
                 >
-                    <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                        <HelpCircle className="w-4 h-4 text-blue-400" />
+                    <div className="flex items-center gap-2 text-sm font-semibold text-app-text">
+                        <HelpCircle className="w-4 h-4 text-blue-500" />
                         <span>Retos y Apoyos</span>
                     </div>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openSections.retos ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-4 h-4 text-app-muted transition-transform ${openSections.retos ? 'rotate-180' : ''}`} />
                 </button>
 
                 {openSections.retos && (
-                    <div className="p-4 space-y-4 border-t border-slate-700/50">
+                    <div className="p-4 space-y-4 border-t border-app-border">
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">
-                                Retos Actuales de la Empresa <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                Retos Actuales de la Empresa <span className="text-red-500">*</span>
                             </label>
                             <textarea
                                 rows={2}
@@ -1708,23 +1714,23 @@ export const CompanyForm = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-2">
-                                Apoyos y Necesidades Requeridos <span className="text-red-400">*</span>
+                            <label className="block text-xs font-medium text-app-muted mb-2">
+                                Apoyos y Necesidades Requeridos <span className="text-red-500">*</span>
                             </label>
-                            <div className={`space-y-2.5 bg-slate-900/60 p-3 rounded-lg border transition-colors ${errors['apoyosYNecesidades.tipos']
+                            <div className={`space-y-2.5 bg-app-bg/60 p-3 rounded-lg border transition-colors ${errors['apoyosYNecesidades.tipos']
                                 ? 'border-red-500 bg-red-500/5'
-                                : 'border-slate-800'
+                                : 'border-app-border'
                                 }`}>
                                 {OPCIONES_APOYOS.map((apoyo) => {
                                     const isChecked = formData.apoyosYNecesidades.tipos.includes(apoyo);
                                     return (
                                         <div key={apoyo} className="flex flex-col gap-2">
-                                            <label className="flex items-start gap-3 text-xs text-slate-300 cursor-pointer select-none hover:text-white transition-colors">
+                                            <label className="flex items-start gap-3 text-xs text-app-muted cursor-pointer select-none hover:text-app-text transition-colors">
                                                 <input
                                                     type="checkbox"
                                                     checked={isChecked}
                                                     onChange={() => toggleArrayItem('apoyosYNecesidades.tipos', apoyo)}
-                                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-700 bg-slate-950 accent-blue-600 focus:ring-1 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer scheme-dark"
+                                                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-app-border bg-app-bg accent-blue-600 focus:ring-1 focus:ring-blue-500 cursor-pointer"
                                                 />
                                                 <span>{apoyo}</span>
                                             </label>
@@ -1750,12 +1756,12 @@ export const CompanyForm = ({
             </div>
 
             {/* BOTONES DE ACCIÓN */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+            <div className="flex justify-end gap-3 pt-4 border-t border-app-border">
                 {onCancel && (
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm transition-colors"
+                        className="px-4 py-2 bg-app-border/40 hover:bg-app-border text-app-muted hover:text-app-text rounded-lg text-sm transition-colors"
                     >
                         Cancelar
                     </button>
@@ -1763,7 +1769,7 @@ export const CompanyForm = ({
                 <button
                     type="submit"
                     disabled={loading}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium px-5 py-2 rounded-lg text-sm transition-colors shadow-lg disabled:opacity-50"
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium px-5 py-2 rounded-lg text-sm transition-colors shadow-lg disabled:opacity-50 cursor-pointer"
                 >
                     <CheckCircle className="w-4 h-4" />
                     <span>

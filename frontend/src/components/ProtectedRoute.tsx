@@ -13,7 +13,7 @@ export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) 
   // 1. Mientras AuthContext comprueba si el token es válido o está cargando
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-400 flex items-center justify-center">
+      <div className="min-h-screen bg-app-bg text-app-muted flex items-center justify-center">
         <p className="animate-pulse text-sm">Verificando sesión...</p>
       </div>
     );

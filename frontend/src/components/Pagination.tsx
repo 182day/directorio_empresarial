@@ -1,3 +1,4 @@
+// src/components/Pagination.tsx
 import React from 'react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
@@ -22,18 +23,17 @@ export const Pagination: React.FC<PaginationProps> = ({
     // Función helper para calcular el rango de páginas con elipsis (...)
     const getPageNumbers = () => {
         if (totalPages <= 7) {
-            // Si son 7 páginas o menos, mostramos todas sin elipsis
             return Array.from({ length: totalPages }, (_, i) => i + 1);
         }
 
-        const delta = 1; // Número de páginas visibles a los lados de la página actual
+        const delta = 1;
         const range: (number | string)[] = [];
 
         for (let i = 1; i <= totalPages; i++) {
             if (
-                i === 1 || // Primera página
-                i === totalPages || // Última página
-                (i >= currentPage - delta && i <= currentPage + delta) // Páginas contiguas a la actual
+                i === 1 ||
+                i === totalPages ||
+                (i >= currentPage - delta && i <= currentPage + delta)
             ) {
                 range.push(i);
             } else if (range[range.length - 1] !== '...') {
@@ -51,19 +51,19 @@ export const Pagination: React.FC<PaginationProps> = ({
     const endItem = pageSize === 'all' ? totalItems : Math.min(currentPage * (pageSize as number), totalItems);
 
     return (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 bg-slate-800 border border-slate-700 p-4 rounded-xl shadow-lg text-sm text-slate-300">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 bg-app-card border border-app-border p-4 rounded-xl shadow-lg text-sm text-app-text transition-colors duration-200">
             {/* IZQUIERDA: Selector de items por página e información */}
             <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-start">
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">Mostrar:</span>
+                    <span className="text-xs text-app-muted">Mostrar:</span>
                     <select
                         value={pageSize}
                         onChange={(e) => {
                             const val = e.target.value === 'all' ? 'all' : Number(e.target.value);
                             onPageSizeChange(val);
-                            onPageChange(1); // Reiniciar a página 1 al cambiar tamaño
+                            onPageChange(1);
                         }}
-                        className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                        className="bg-app-bg border border-app-border rounded-lg px-2.5 py-1 text-xs text-app-text focus:outline-none focus:border-blue-500 cursor-pointer transition-colors"
                     >
                         <option value={10}>10</option>
                         <option value={20}>20</option>
@@ -73,10 +73,10 @@ export const Pagination: React.FC<PaginationProps> = ({
                     </select>
                 </div>
 
-                <span className="text-xs text-slate-400">
-                    Mostrando <strong className="text-white font-medium">{startItem}</strong> -{' '}
-                    <strong className="text-white font-medium">{endItem}</strong> de{' '}
-                    <strong className="text-white font-medium">{totalItems}</strong>
+                <span className="text-xs text-app-muted">
+                    Mostrando <strong className="text-app-text font-medium">{startItem}</strong> -{' '}
+                    <strong className="text-app-text font-medium">{endItem}</strong> de{' '}
+                    <strong className="text-app-text font-medium">{totalItems}</strong>
                 </span>
             </div>
 
@@ -87,7 +87,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                     <button
                         onClick={() => onPageChange(1)}
                         disabled={currentPage === 1}
-                        className="p-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-900 disabled:hover:text-slate-400 transition-colors"
+                        className="p-1.5 rounded-lg bg-app-bg border border-app-border text-app-muted hover:text-app-text hover:bg-app-card disabled:opacity-40 disabled:hover:bg-app-bg disabled:hover:text-app-muted transition-colors"
                         title="Primera página"
                     >
                         <ChevronsLeft className="w-4 h-4" />
@@ -97,7 +97,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                     <button
                         onClick={() => onPageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="p-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-900 disabled:hover:text-slate-400 transition-colors"
+                        className="p-1.5 rounded-lg bg-app-bg border border-app-border text-app-muted hover:text-app-text hover:bg-app-card disabled:opacity-40 disabled:hover:bg-app-bg disabled:hover:text-app-muted transition-colors"
                         title="Página anterior"
                     >
                         <ChevronLeft className="w-4 h-4" />
@@ -110,7 +110,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                                 return (
                                     <span
                                         key={`ellipsis-${idx}`}
-                                        className="px-2 py-1 text-xs text-slate-500 font-medium select-none"
+                                        className="px-2 py-1 text-xs text-app-muted font-medium select-none"
                                     >
                                         ...
                                     </span>
@@ -124,7 +124,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                                     className={`min-w-8 h-8 px-2 text-xs font-semibold rounded-lg transition-colors ${
                                         currentPage === page
                                             ? 'bg-blue-600 text-white shadow-md'
-                                            : 'bg-slate-900 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
+                                            : 'bg-app-bg text-app-muted hover:bg-app-card hover:text-app-text border border-app-border'
                                     }`}
                                 >
                                     {page}
@@ -137,7 +137,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                     <button
                         onClick={() => onPageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className="p-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-900 disabled:hover:text-slate-400 transition-colors"
+                        className="p-1.5 rounded-lg bg-app-bg border border-app-border text-app-muted hover:text-app-text hover:bg-app-card disabled:opacity-40 disabled:hover:bg-app-bg disabled:hover:text-app-muted transition-colors"
                         title="Página siguiente"
                     >
                         <ChevronRight className="w-4 h-4" />
@@ -147,7 +147,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                     <button
                         onClick={() => onPageChange(totalPages)}
                         disabled={currentPage === totalPages}
-                        className="p-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-900 disabled:hover:text-slate-400 transition-colors"
+                        className="p-1.5 rounded-lg bg-app-bg border border-app-border text-app-muted hover:text-app-text hover:bg-app-card disabled:opacity-40 disabled:hover:bg-app-bg disabled:hover:text-app-muted transition-colors"
                         title="Última página"
                     >
                         <ChevronsRight className="w-4 h-4" />

@@ -29,21 +29,21 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
     return (
         <aside
-            className={`fixed lg:relative top-16 lg:top-0 left-0 z-40 lg:z-auto bg-slate-800 border-r border-slate-700 
+            className={`fixed lg:relative top-16 lg:top-0 left-0 z-40 lg:z-auto bg-app-card border-r border-app-border 
                 transition-all duration-300 ease-in-out flex flex-col shrink-0 h-[calc(100vh-4rem)] lg:h-full 
                 ${isOpen
-                    ? 'w-full sm:w-64 translate-x-0' // 👈 100% de ancho en móviles (<640px) y 256px a partir de 'sm'
+                    ? 'w-full sm:w-64 translate-x-0'
                     : '-translate-x-full lg:translate-x-0 lg:w-0 overflow-hidden border-none'
                 }`}
         >
             {/* Cabecera del sidebar */}
-            <div className="p-4 border-b border-slate-700/60 flex items-center justify-between shrink-0">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="p-4 border-b border-app-border flex items-center justify-between shrink-0">
+                <span className="text-xs font-semibold text-app-muted uppercase tracking-wider">
                     Navegación
                 </span>
                 <button
                     onClick={onClose}
-                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors"
+                    className="p-1 rounded-lg text-app-muted hover:text-app-text hover:bg-app-button transition-colors"
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -63,8 +63,8 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                             }}
                             className={({ isActive }) =>
                                 `flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors font-medium ${isActive
-                                    ? 'bg-blue-600/20 text-blue-400'
-                                    : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                                    ? 'bg-blue-600/20 text-blue-500 font-semibold'
+                                    : 'text-app-muted hover:bg-app-button hover:text-app-text'
                                 }`
                             }
                         >
@@ -78,7 +78,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 })}
             </nav>
 
-            <div className="p-4 border-t border-slate-700/60 text-xs text-slate-500 text-center">
+            <div className="p-4 border-t border-app-border text-xs text-app-muted text-center">
                 Catálogo Desarrollo Empresarial v1.0
             </div>
         </aside>

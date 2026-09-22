@@ -1,31 +1,26 @@
 // src/layouts/AdminLayout.tsx
 import { useState, useContext, useEffect } from 'react';
-//import api from '../api/axios';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Sidebar } from '../components/Sidebar';
 import { CompanyForm } from '../components/CompanyForm';
 import { ChartLine, Building2, Users, Menu, X, LogOut, LogIn, LayoutDashboard, History, Settings, ChartGantt } from 'lucide-react';
 import { useCompanyStore } from '../stores/useCompanyStore';
-//import { toast } from 'sonner';
 
 export const AdminLayout = () => {
     const { user, logout } = useContext(AuthContext);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [isPublicRegisterOpen, setIsPublicRegisterOpen] = useState(false); // 👈 Estado para abrir/cerrar el modal
+    const [isPublicRegisterOpen, setIsPublicRegisterOpen] = useState(false);
     const location = useLocation();
 
-    // Extraemos la función de carga del store de Zustand
     const fetchCompanies = useCompanyStore((state: any) => state.fetchCompanies);
 
-    // Carga inicial global de empresas al montar la estructura principal
     useEffect(() => {
         if (fetchCompanies) {
             fetchCompanies();
         }
     }, [fetchCompanies]);
 
-    // Determinar ícono y título dinámico según la ruta
     const getHeaderInfo = () => {
         const path = location.pathname;
 
@@ -79,39 +74,17 @@ export const AdminLayout = () => {
 
     const currentHeader = getHeaderInfo();
 
-    // Handler para registrar la empresa mediante la API/Backend
-    // const handlePublicRegistrationSubmit = async (formData: any) => {
-    //     console.log('hola');
-
-    //     try {
-    //         // Axios usará la URL base del backend y el endpoint /empresas/public
-    //         await api.post('/companies/public', formData);
-    //         //setIsPublicRegisterOpen(false);
-    //     } catch (error: any) {
-    //         // Captura el mensaje de error retornado por Express
-
-    //         //const mensaje = error.response?.data?.message || 'Error al enviar el registro';
-    //         //throw new Error(mensaje);
-
-    //         throw error;
-    //     }
-    // };
-
-    // function closeModal(event: MouseEvent<HTMLButtonElement, MouseEvent>): void {
-    //     throw new Error('Function not implemented.');
-    // }
-
     return (
-        <div className="h-screen bg-slate-900 text-slate-100 flex flex-col overflow-hidden">
+        <div className="h-screen bg-app-bg text-app-text flex flex-col overflow-hidden transition-colors duration-200">
             {/* Topbar Superior */}
-            <header className="bg-slate-800 border-b border-slate-700 z-30 shrink-0">
+            <header className="bg-app-card border-b border-app-border z-30 shrink-0 transition-colors duration-200">
                 <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* Botón Abrir / Cerrar Menú */}
                         {user && (
                             <button
                                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                                className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                                className="p-2 rounded-lg bg-app-button hover:bg-app-button-hover text-app-text transition-colors"
                                 title={isSidebarOpen ? "Cerrar menú" : "Abrir menú"}
                             >
                                 {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -119,12 +92,12 @@ export const AdminLayout = () => {
                         )}
 
                         {/* Ícono de la vista actual */}
-                        <div className="p-2 bg-blue-600/20 text-blue-400 rounded-lg">
+                        <div className="p-2 bg-blue-600/20 text-blue-500 rounded-lg">
                             {currentHeader.icon}
                         </div>
 
-                        {/* Título: Oculto por debajo de 400px, visible a partir de 400px */}
-                        <h1 className="text-xl font-bold text-white hidden min-[400px]:block">
+                        {/* Título */}
+                        <h1 className="text-xl font-bold text-app-text hidden min-[400px]:block">
                             {currentHeader.title}
                         </h1>
                     </div>
@@ -132,12 +105,12 @@ export const AdminLayout = () => {
                     <div className="flex items-center gap-3">
                         {user ? (
                             <>
-                                <span className="text-sm text-slate-400 hidden sm:inline">
-                                    Hola, <strong className="text-white">{user.nombre}</strong>
+                                <span className="text-sm text-app-muted hidden sm:inline">
+                                    Hola, <strong className="text-app-text">{user.nombre}</strong>
                                 </span>
                                 <button
                                     onClick={logout}
-                                    className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                                    className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors"
                                 >
                                     <LogOut className="w-4 h-4" />
                                     <span className="hidden sm:inline">Cerrar Sesión</span>
@@ -145,11 +118,10 @@ export const AdminLayout = () => {
                             </>
                         ) : (
                             <>
-                                {/* Botón "Registrarse como empresa" (solo usuarios no logeados) */}
                                 <button
                                     type="button"
                                     onClick={() => setIsPublicRegisterOpen(true)}
-                                    className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-blue-400 hover:text-blue-300 border border-blue-500/30 px-3.5 py-2 rounded-lg text-sm font-medium transition-all shadow-sm"
+                                    className="flex items-center gap-2 bg-app-button hover:bg-app-button-hover text-blue-500 border border-app-border px-3.5 py-2 rounded-lg text-sm font-medium transition-all shadow-sm"
                                     title="Registrarse como empresa"
                                 >
                                     <Building2 className="w-4 h-4" />
@@ -157,7 +129,6 @@ export const AdminLayout = () => {
                                     <span className="md:hidden hidden sm:inline">Registro Empresa</span>
                                 </button>
 
-                                {/* Botón "Acceso Admin" */}
                                 <Link
                                     to="/login"
                                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-md"
@@ -174,12 +145,11 @@ export const AdminLayout = () => {
 
             {/* Estructura Principal */}
             <div className="flex-1 flex overflow-hidden w-full h-full relative">
-                {/* El menú lateral */}
                 {user && (
                     <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
                 )}
 
-                {/* Backdrop interactivó SOLO en modo responsivo (lg:hidden) */}
+                {/* Backdrop en responsivo */}
                 {user && isSidebarOpen && (
                     <div
                         onClick={() => setIsSidebarOpen(false)}
@@ -187,7 +157,7 @@ export const AdminLayout = () => {
                     />
                 )}
 
-                {/* El área de contenido principal */}
+                {/* Área de contenido */}
                 <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto transition-all h-full">
                     <div className="max-w-7xl mx-auto">
                         <Outlet />
@@ -195,16 +165,16 @@ export const AdminLayout = () => {
                 </main>
             </div>
 
-            {/* Modal de Registro Público para Empresas */}
+            {/* Modal de Registro Público */}
             {isPublicRegisterOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto">
-                    <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-8">
-                        <div className="p-6 border-b border-slate-700 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                <Building2 className="w-5 h-5 text-blue-400" />
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm overflow-y-auto">
+                    <div className="bg-app-card border border-app-border rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-8">
+                        <div className="p-6 border-b border-app-border flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-app-text flex items-center gap-2">
+                                <Building2 className="w-5 h-5 text-blue-500" />
                                 Registrar Nueva Empresa
                             </h2>
-                            <button onClick={() => setIsPublicRegisterOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                            <button onClick={() => setIsPublicRegisterOpen(false)} className="text-app-muted hover:text-app-text transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -212,7 +182,6 @@ export const AdminLayout = () => {
                             <CompanyForm
                                 isPublicRegistration={true}
                                 onCancel={() => setIsPublicRegisterOpen(false)}
-                            //onSubmit={handlePublicRegistrationSubmit}
                             />
                         </div>
                     </div>

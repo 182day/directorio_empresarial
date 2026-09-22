@@ -46,22 +46,23 @@ interface ChartCardProps {
 }
 
 const BarChartCard = ({ title, subtitle, data, colorOffset = 0 }: ChartCardProps) => (
-    <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl p-5 shadow-md">
-        <h3 className="text-sm font-semibold text-slate-200 mb-1 flex items-center gap-2">
+    <div className="bg-app-card border border-app-border rounded-xl p-5 shadow-md transition-colors duration-200">
+        <h3 className="text-sm font-semibold text-app-text mb-1 flex items-center gap-2">
             <span
                 className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: COLORES_GRAFICA[colorOffset % COLORES_GRAFICA.length] }}
             ></span>
             {title}
         </h3>
-        {subtitle && <p className="text-xs text-slate-400 mb-4">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-app-muted mb-4">{subtitle}</p>}
         <div className="h-64 w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 30 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-app-border" vertical={false} />
                     <XAxis
                         dataKey="name"
-                        stroke="#94a3b8"
+                        stroke="currentColor"
+                        className="text-app-muted"
                         fontSize={11}
                         tickLine={false}
                         interval={0}
@@ -69,9 +70,14 @@ const BarChartCard = ({ title, subtitle, data, colorOffset = 0 }: ChartCardProps
                         textAnchor="end"
                         height={60}
                     />
-                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} allowDecimals={false} />
+                    <YAxis stroke="currentColor" className="text-app-muted" fontSize={12} tickLine={false} allowDecimals={false} />
                     <Tooltip
-                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '0.5rem', color: '#fff' }}
+                        contentStyle={{
+                            backgroundColor: 'var(--color-bg-card, #1e293b)',
+                            borderColor: 'var(--color-border, #475569)',
+                            borderRadius: '0.5rem',
+                            color: 'var(--color-text, #fff)'
+                        }}
                     />
                     <Bar dataKey="total" radius={[4, 4, 0, 0]}>
                         {data.map((_, index) => (
@@ -85,15 +91,15 @@ const BarChartCard = ({ title, subtitle, data, colorOffset = 0 }: ChartCardProps
 );
 
 const PieChartCard = ({ title, subtitle, data, colorOffset = 0 }: ChartCardProps) => (
-    <div className="bg-slate-800/40 border border-slate-700/80 rounded-xl p-5 shadow-md">
-        <h3 className="text-sm font-semibold text-slate-200 mb-1 flex items-center gap-2">
+    <div className="bg-app-card border border-app-border rounded-xl p-5 shadow-md transition-colors duration-200">
+        <h3 className="text-sm font-semibold text-app-text mb-1 flex items-center gap-2">
             <span
                 className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: COLORES_GRAFICA[colorOffset % COLORES_GRAFICA.length] }}
             ></span>
             {title}
         </h3>
-        {subtitle && <p className="text-xs text-slate-400 mb-4">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-app-muted mb-4">{subtitle}</p>}
         <div className="h-64 w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -117,12 +123,17 @@ const PieChartCard = ({ title, subtitle, data, colorOffset = 0 }: ChartCardProps
                         ))}
                     </Pie>
                     <Tooltip
-                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '0.5rem', color: '#fff' }}
+                        contentStyle={{
+                            backgroundColor: 'var(--color-bg-card, #1e293b)',
+                            borderColor: 'var(--color-border, #475569)',
+                            borderRadius: '0.5rem',
+                            color: 'var(--color-text, #fff)'
+                        }}
                     />
                     <Legend
                         verticalAlign="bottom"
                         height={36}
-                        formatter={(value) => <span className="text-xs text-slate-300">{value}</span>}
+                        formatter={(value) => <span className="text-xs text-app-text">{value}</span>}
                     />
                 </PieChart>
             </ResponsiveContainer>
@@ -155,26 +166,29 @@ export const CompaniesFollowGraphics = ({ isOpen, onClose, follows }: CompaniesF
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
-            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col my-8">
-                <div className="p-6 border-b border-slate-700 flex items-center justify-between bg-slate-800/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
+            <div className="bg-app-card border border-app-border rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col my-8 transition-colors duration-200">
+                
+                {/* Encabezado */}
+                <div className="p-6 border-b border-app-border flex items-center justify-between bg-app-card sticky top-0 z-10">
                     <div>
-                        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                            <BarChart3 className="w-5 h-5 text-indigo-400" />
+                        <h2 className="text-lg font-bold text-app-text flex items-center gap-2">
+                            <BarChart3 className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
                             <span>Análisis Estadístico de Seguimientos</span>
                         </h2>
-                        <p className="text-xs text-slate-400 mt-0.5">
+                        <p className="text-xs text-app-muted mt-0.5">
                             Visualización basada en los {follows.length} registros filtrados actuales.
                         </p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-1.5 rounded-lg border border-slate-700"
+                        className="text-app-muted hover:text-app-text transition-colors bg-app-bg p-1.5 rounded-lg border border-app-border"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
+                {/* Contenido con gráficas */}
                 <div className="max-h-[80vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none p-6 space-y-6">
 
                     {/* 1. Empresa (Barras) */}
@@ -197,10 +211,11 @@ export const CompaniesFollowGraphics = ({ isOpen, onClose, follows }: CompaniesF
 
                 </div>
 
-                <div className="p-4 border-t border-slate-700 bg-slate-800/60 flex justify-end">
+                {/* Pie del modal */}
+                <div className="p-4 border-t border-app-border bg-app-bg flex justify-end">
                     <button
                         onClick={onClose}
-                        className="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
+                        className="bg-app-card hover:bg-app-bg text-app-text border border-app-border px-5 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                         Cerrar
                     </button>

@@ -161,7 +161,6 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
             const params: Record<string, any> = {};
 
-            // 💡 Si NO es modal (Router), enviamos todos los parámetros al Backend
             if (!company?._id) {
                 if (search.trim()) params.search = search.trim();
                 if (selectedTipo.length > 0) params.tipo = selectedTipo.join(',');
@@ -189,7 +188,6 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                 atencionSeguimiento: item.atencionSeguimiento || '',
                 estatus: item.estatus || 'Pendiente',
                 usuario: item.usuarioId?.nombre || 'Sistema',
-                // 👈 Normalización de empresas vinculadas (soporta objetos o IDs)
                 empresasVinculadas: Array.isArray(item.empresasVinculadas)
                     ? item.empresasVinculadas.map((ev: any) => typeof ev === 'object' ? ev : { _id: ev })
                     : []
@@ -208,18 +206,20 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         if (!id) return;
 
         const targetName = nombre || 'este seguimiento';
+        //const isDarkMode = document.documentElement.classList.contains('dark');
 
         Swal.fire({
             title: '¿Está seguro de eliminar el seguimiento?',
-            html: `Está a punto de eliminar el seguimiento de <strong style="color: #fff;">${targetName}</strong>. Esta acción no se puede deshacer.`,
+            html: `Está a punto de eliminar el seguimiento de <strong className="text-blue-600 dark:text-blue-400">${targetName}</strong>. Esta acción no se puede deshacer.`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#334155',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
             confirmButtonText: 'Sí, eliminar',
             cancelButtonText: 'Cancelar',
-            background: '#1e293b',
-            color: '#f8fafc',
+            customClass: {
+                popup: '!bg-app-card !text-app-text !border !border-app-border'
+            },
             allowOutsideClick: true,
             allowEscapeKey: true,
         }).then(async (result) => {
@@ -236,14 +236,10 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         });
     };
 
-    // 💡 LÓGICA HÍBRIDA DE FILTRADO: FRONTEND vs BACKEND
     const filteredFollows = useMemo(() => {
-        // Si no es un modal de empresa específica, devolvemos los datos directo del servidor
         if (!company?._id) return follows;
 
-        // Si es dentro de un modal (company?._id activo), filtramos localmente en el Frontend
         return follows.filter((item) => {
-            // Filtro Búsqueda Texto
             if (search.trim()) {
                 const searchLower = search.toLowerCase();
                 const matchesText =
@@ -254,14 +250,12 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                 if (!matchesText) return false;
             }
 
-            // Filtros de Selección Múltiple
             if (selectedTipo.length > 0 && !selectedTipo.includes(item.tipoSeguimiento ?? '')) return false;
             if (selectedMedio.length > 0 && !selectedMedio.includes(item.medioAtencion ?? '')) return false;
             if (selectedEstatus.length > 0 && !selectedEstatus.includes(item.estatus ?? '')) return false;
             if (selectedEmpresa.length > 0 && !selectedEmpresa.includes(item.companyName ?? '')) return false;
             if (selectedUsuario.length > 0 && !selectedUsuario.includes(item.usuario ?? '')) return false;
 
-            // Filtros Fechas
             if (fechaDesde || fechaHasta) {
                 const itemDate = new Date(item.fechaSeguimiento).getTime();
                 if (fechaDesde && itemDate < new Date(`${fechaDesde}T00:00:00.000Z`).getTime()) return false;
@@ -279,7 +273,6 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         await exportFollowsToExcel(filteredFollows, company?.nombreComercial);
     }
 
-    // Paginación
     const paginatedFollows = useMemo(() => {
         if (pageSize === 'all') return filteredFollows;
         const startIndex = (currentPage - 1) * pageSize;
@@ -287,21 +280,21 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
     }, [filteredFollows, currentPage, pageSize]);
 
     return (
-        <div className="p-6 text-white max-w-7xl mx-auto space-y-6">
+        <div className="p-6 text-app-text max-w-7xl mx-auto space-y-6 transition-colors duration-200">
             {/* Encabezado Principal */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-800/60 p-6 rounded-2xl border border-slate-700/60 shadow-xl backdrop-blur-md">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-app-card p-6 rounded-2xl border border-app-border shadow-md backdrop-blur-md transition-colors">
                 <div>
                     <div className="flex items-center gap-3 mb-1">
-                        <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">
+                        <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg">
                             <History size={24} />
                         </div>
-                        <h1 className="text-2xl font-bold tracking-tight">
+                        <h1 className="text-2xl font-bold tracking-tight text-app-text">
                             {company ? `Seguimientos: ${company.nombreComercial}` : 'Historial de Seguimientos Global'}
                         </h1>
                     </div>
                     {company && (
-                        <p className="text-sm text-slate-400 ml-11">
-                            RFC: <span className="text-slate-200 font-medium">{company.rfc}</span>
+                        <p className="text-sm text-app-muted ml-11">
+                            RFC: <span className="text-app-text font-medium">{company.rfc}</span>
                         </p>
                     )}
                 </div>
@@ -314,7 +307,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                 setViewMode('create');
                                 setShowModal(true);
                             }}
-                            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-lg shrink-0"
+                            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-md shrink-0"
                         >
                             <Plus className="w-4 h-4" />
                             <span>Nuevo Seguimiento</span>
@@ -324,7 +317,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                     {onClose && (
                         <button
                             onClick={onClose}
-                            className="p-2.5 text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-700 rounded-xl transition-colors border border-slate-600/50"
+                            className="p-2.5 text-app-muted hover:text-app-text bg-app-button hover:bg-app-button-hover rounded-xl transition-colors border border-app-border"
                             title="Cerrar ventana"
                         >
                             <X size={20} />
@@ -335,29 +328,29 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
             {/* Controles: Búsqueda, Filtros y Consulta */}
             <div className="space-y-4" ref={filterContainerRef}>
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
 
                     {/* Grupo Izquierdo: Buscador + Filtros + Buscar */}
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
-                        {/* Campo de Búsqueda General */}
-                        <div className="relative sm:col-span-6 md:col-span-7">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                        {/* Input de Búsqueda (Ocupa todo el espacio dinámico disponible) */}
+                        <div className="relative flex-1 min-w-50">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-app-muted" />
                             <input
                                 type="text"
                                 placeholder="Buscar en el seguimiento o comentarios..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && !company && fetchFollows()}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                                className="w-full bg-app-card border border-app-border rounded-lg py-2 pl-10 pr-4 text-sm text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500 transition-colors"
                             />
                         </div>
 
                         {/* Botón Desplegable de Filtros */}
                         <button
                             onClick={() => setShowFilters(!showFilters)}
-                            className={`sm:col-span-3 md:col-span-3 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${totalFiltrosActivos > 0 || showFilters
-                                ? 'bg-blue-600/20 border-blue-500 text-blue-400 font-semibold'
-                                : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:border-slate-600'
+                            className={`shrink-0 flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium border transition-all ${totalFiltrosActivos > 0 || showFilters
+                                ? 'bg-blue-500/10 border-blue-500/50 text-blue-500 font-semibold'
+                                : 'bg-app-card border-app-border text-app-text hover:bg-app-button transition-colors'
                                 }`}
                         >
                             <SlidersHorizontal className="w-4 h-4 shrink-0" />
@@ -374,10 +367,10 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                             <button
                                 onClick={fetchFollows}
                                 disabled={loading}
-                                className="sm:col-span-3 md:col-span-2 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-md"
+                                className="shrink-0 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-md"
                             >
                                 <Search className="w-4 h-4 shrink-0" />
-                                <span>{loading ? '...' : 'Buscar'}</span>
+                                <span className="whitespace-nowrap">{loading ? '...' : 'Buscar'}</span>
                             </button>
                         )}
                     </div>
@@ -386,7 +379,6 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                     <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
                         {filteredFollows.length > 0 && (
                             <div className="flex items-center gap-2">
-                                {/* Botón de Gráficas */}
                                 <button
                                     type="button"
                                     onClick={() => setIsChartsModalOpen(true)}
@@ -396,7 +388,6 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                     <BarChart3 className="w-4 h-4" />
                                     <span className="hidden sm:inline">Gráficas</span>
                                 </button>
-                                {/* Botón de Excel */}
                                 <button
                                     type="button"
                                     onClick={handleExportExcel}
@@ -406,7 +397,6 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                     <Download className="w-4 h-4" />
                                     <span className="hidden sm:inline">Excel</span>
                                 </button>
-                                {/* Botón de PDF */}
                                 <PDFDownloadLink
                                     document={
                                         <CompaniesFollowSheetPDFDocument
@@ -428,12 +418,12 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                         )}
 
                         {/* Conmutador de Vista (Tabla / Tarjetas) */}
-                        <div className="flex items-center bg-slate-800 p-1 rounded-lg border border-slate-700">
+                        <div className="flex items-center bg-app-card p-1 rounded-lg border border-app-border shadow-sm">
                             <button
                                 onClick={() => setTipoVista('tabla')}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${tipoVista === 'tabla'
                                     ? 'bg-blue-600 text-white shadow-sm'
-                                    : 'text-slate-400 hover:text-white'
+                                    : 'text-app-muted hover:text-app-text'
                                     }`}
                                 title="Vista en Tabla"
                             >
@@ -444,7 +434,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                 onClick={() => setTipoVista('cards')}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${tipoVista === 'cards'
                                     ? 'bg-blue-600 text-white shadow-sm'
-                                    : 'text-slate-400 hover:text-white'
+                                    : 'text-app-muted hover:text-app-text'
                                     }`}
                                 title="Vista en Tarjetas"
                             >
@@ -458,20 +448,20 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
                 {/* PANEL DESPLEGABLE DE FILTROS AVANZADOS (TYPEAHEAD MULTI-SELECT) */}
                 {showFilters && (
-                    <div className="bg-slate-800/90 border border-slate-700 rounded-xl p-4 shadow-lg grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 transition-all">
+                    <div className="bg-app-card border border-app-border rounded-xl p-4 shadow-lg grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 transition-all">
 
                         {/* 1. Tipo (Múltiple) */}
                         <div className="relative">
-                            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-300 mb-1">
-                                <Tag className="w-3.5 h-3.5 text-slate-400" />
+                            <label className="flex items-center gap-1.5 text-xs font-medium text-app-text mb-1">
+                                <Tag className="w-3.5 h-3.5 text-app-muted" />
                                 <span>Filtrar por Tipo</span>
                             </label>
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'tipo' ? null : 'tipo')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedTipo.length > 0
-                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+                                    ? 'bg-blue-500/10 border-blue-500/50 text-blue-500'
+                                    : 'bg-app-button border-app-border text-app-text hover:bg-app-button-hover'
                                     }`}
                             >
                                 <span className="truncate">
@@ -483,25 +473,25 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                             </button>
 
                             {openFilterMenu === 'tipo' && (
-                                <div className="absolute z-50 mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 space-y-2">
+                                <div className="absolute z-50 mt-1 w-full bg-app-card border border-app-border rounded-xl shadow-2xl p-2 space-y-2">
                                     <div className="relative">
-                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-app-muted" />
                                         <input
                                             type="text"
                                             placeholder="Buscar tipo..."
                                             value={searchTipo}
                                             onChange={(e) => setSearchTipo(e.target.value)}
-                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                            className="w-full bg-app-button border border-app-border rounded-lg py-1.5 pl-8 pr-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                         />
                                     </div>
                                     <div className="max-h-48 overflow-y-auto space-y-1 scrollbar-thin">
                                         <button
                                             type="button"
                                             onClick={() => setSelectedTipo([])}
-                                            className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-slate-800 text-slate-400 flex items-center justify-between border-b border-slate-800 mb-1"
+                                            className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-app-button text-app-muted flex items-center justify-between border-b border-app-border mb-1"
                                         >
                                             <span>Limpiar selección</span>
-                                            {selectedTipo.length === 0 && <Check className="w-3.5 h-3.5 text-blue-400" />}
+                                            {selectedTipo.length === 0 && <Check className="w-3.5 h-3.5 text-blue-500" />}
                                         </button>
                                         {OPCIONES_TIPO_SEGUIMIENTO
                                             .filter(item => item.toLowerCase().includes(searchTipo.toLowerCase()))
@@ -512,10 +502,10 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                         key={tipo}
                                                         type="button"
                                                         onClick={() => toggleMultiSelect(tipo, selectedTipo, setSelectedTipo)}
-                                                        className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                                                        className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between ${isSelected ? 'bg-blue-500/10 text-blue-500 font-semibold' : 'text-app-text hover:bg-app-button'}`}
                                                     >
                                                         <span className="truncate">{tipo}</span>
-                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-slate-600'}`}>
+                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-app-border'}`}>
                                                             {isSelected && <Check className="w-3 h-3" />}
                                                         </div>
                                                     </button>
@@ -528,16 +518,16 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
                         {/* 2. Medio de Atención (Múltiple) */}
                         <div className="relative">
-                            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-300 mb-1">
-                                <PhoneCall className="w-3.5 h-3.5 text-slate-400" />
+                            <label className="flex items-center gap-1.5 text-xs font-medium text-app-text mb-1">
+                                <PhoneCall className="w-3.5 h-3.5 text-app-muted" />
                                 <span>Filtrar por Medio de Atención</span>
                             </label>
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'medio' ? null : 'medio')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedMedio.length > 0
-                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+                                    ? 'bg-blue-500/10 border-blue-500/50 text-blue-500'
+                                    : 'bg-app-button border-app-border text-app-text hover:bg-app-button-hover'
                                     }`}
                             >
                                 <span className="truncate">
@@ -549,25 +539,25 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                             </button>
 
                             {openFilterMenu === 'medio' && (
-                                <div className="absolute z-50 mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 space-y-2">
+                                <div className="absolute z-50 mt-1 w-full bg-app-card border border-app-border rounded-xl shadow-2xl p-2 space-y-2">
                                     <div className="relative">
-                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-app-muted" />
                                         <input
                                             type="text"
                                             placeholder="Buscar medio..."
                                             value={searchMedio}
                                             onChange={(e) => setSearchMedio(e.target.value)}
-                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                            className="w-full bg-app-button border border-app-border rounded-lg py-1.5 pl-8 pr-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                         />
                                     </div>
                                     <div className="max-h-48 overflow-y-auto space-y-1 scrollbar-thin">
                                         <button
                                             type="button"
                                             onClick={() => setSelectedMedio([])}
-                                            className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-slate-800 text-slate-400 flex items-center justify-between border-b border-slate-800 mb-1"
+                                            className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-app-button text-app-muted flex items-center justify-between border-b border-app-border mb-1"
                                         >
                                             <span>Limpiar selección</span>
-                                            {selectedMedio.length === 0 && <Check className="w-3.5 h-3.5 text-blue-400" />}
+                                            {selectedMedio.length === 0 && <Check className="w-3.5 h-3.5 text-blue-500" />}
                                         </button>
                                         {OPCIONES_MEDIO_ATENCION
                                             .filter(item => item.toLowerCase().includes(searchMedio.toLowerCase()))
@@ -578,10 +568,10 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                         key={medio}
                                                         type="button"
                                                         onClick={() => toggleMultiSelect(medio, selectedMedio, setSelectedMedio)}
-                                                        className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                                                        className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between ${isSelected ? 'bg-blue-500/10 text-blue-500 font-semibold' : 'text-app-text hover:bg-app-button'}`}
                                                     >
                                                         <span className="truncate">{medio}</span>
-                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-slate-600'}`}>
+                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-app-border'}`}>
                                                             {isSelected && <Check className="w-3 h-3" />}
                                                         </div>
                                                     </button>
@@ -594,16 +584,16 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
                         {/* 3. Estatus (Múltiple) */}
                         <div className="relative">
-                            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-300 mb-1">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />
+                            <label className="flex items-center gap-1.5 text-xs font-medium text-app-text mb-1">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-app-muted" />
                                 <span>Filtrar por Estatus</span>
                             </label>
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'estatus' ? null : 'estatus')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedEstatus.length > 0
-                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+                                    ? 'bg-blue-500/10 border-blue-500/50 text-blue-500'
+                                    : 'bg-app-button border-app-border text-app-text hover:bg-app-button-hover'
                                     }`}
                             >
                                 <span className="truncate">
@@ -615,25 +605,25 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                             </button>
 
                             {openFilterMenu === 'estatus' && (
-                                <div className="absolute z-50 mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 space-y-2">
+                                <div className="absolute z-50 mt-1 w-full bg-app-card border border-app-border rounded-xl shadow-2xl p-2 space-y-2">
                                     <div className="relative">
-                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-app-muted" />
                                         <input
                                             type="text"
                                             placeholder="Buscar estatus..."
                                             value={searchEstatus}
                                             onChange={(e) => setSearchEstatus(e.target.value)}
-                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                            className="w-full bg-app-button border border-app-border rounded-lg py-1.5 pl-8 pr-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                         />
                                     </div>
                                     <div className="max-h-48 overflow-y-auto space-y-1 scrollbar-thin">
                                         <button
                                             type="button"
                                             onClick={() => setSelectedEstatus([])}
-                                            className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-slate-800 text-slate-400 flex items-center justify-between border-b border-slate-800 mb-1"
+                                            className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-app-button text-app-muted flex items-center justify-between border-b border-app-border mb-1"
                                         >
                                             <span>Limpiar selección</span>
-                                            {selectedEstatus.length === 0 && <Check className="w-3.5 h-3.5 text-blue-400" />}
+                                            {selectedEstatus.length === 0 && <Check className="w-3.5 h-3.5 text-blue-500" />}
                                         </button>
                                         {OPCIONES_ESTATUS_SEGUIMIENTO
                                             .filter(item => item.toLowerCase().includes(searchEstatus.toLowerCase()))
@@ -644,10 +634,10 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                         key={estatus}
                                                         type="button"
                                                         onClick={() => toggleMultiSelect(estatus, selectedEstatus, setSelectedEstatus)}
-                                                        className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                                                        className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between ${isSelected ? 'bg-blue-500/10 text-blue-500 font-semibold' : 'text-app-text hover:bg-app-button'}`}
                                                     >
                                                         <span className="truncate">{estatus}</span>
-                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-slate-600'}`}>
+                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-app-border'}`}>
                                                             {isSelected && <Check className="w-3 h-3" />}
                                                         </div>
                                                     </button>
@@ -661,16 +651,16 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                         {/* 4. Empresa (Múltiple) */}
                         {!company && (
                             <div className="relative">
-                                <label className="flex items-center gap-1.5 text-xs font-medium text-slate-300 mb-1">
-                                    <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                                <label className="flex items-center gap-1.5 text-xs font-medium text-app-text mb-1">
+                                    <Building2 className="w-3.5 h-3.5 text-app-muted" />
                                     <span>Filtrar por Empresa</span>
                                 </label>
                                 <button
                                     type="button"
                                     onClick={() => setOpenFilterMenu(openFilterMenu === 'empresa' ? null : 'empresa')}
                                     className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedEmpresa.length > 0
-                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+                                        ? 'bg-blue-500/10 border-blue-500/50 text-blue-500'
+                                        : 'bg-app-button border-app-border text-app-text hover:bg-app-button-hover'
                                         }`}
                                 >
                                     <span className="truncate">
@@ -682,25 +672,25 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                 </button>
 
                                 {openFilterMenu === 'empresa' && (
-                                    <div className="absolute z-50 mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 space-y-2">
+                                    <div className="absolute z-50 mt-1 w-full bg-app-card border border-app-border rounded-xl shadow-2xl p-2 space-y-2">
                                         <div className="relative">
-                                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-app-muted" />
                                             <input
                                                 type="text"
                                                 placeholder="Buscar empresa..."
                                                 value={searchEmpresa}
                                                 onChange={(e) => setSearchEmpresa(e.target.value)}
-                                                className="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                                className="w-full bg-app-button border border-app-border rounded-lg py-1.5 pl-8 pr-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                             />
                                         </div>
                                         <div className="max-h-48 overflow-y-auto space-y-1 scrollbar-thin">
                                             <button
                                                 type="button"
                                                 onClick={() => setSelectedEmpresa([])}
-                                                className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-slate-800 text-slate-400 flex items-center justify-between border-b border-slate-800 mb-1"
+                                                className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-app-button text-app-muted flex items-center justify-between border-b border-app-border mb-1"
                                             >
                                                 <span>Limpiar selección</span>
-                                                {selectedEmpresa.length === 0 && <Check className="w-3.5 h-3.5 text-blue-400" />}
+                                                {selectedEmpresa.length === 0 && <Check className="w-3.5 h-3.5 text-blue-500" />}
                                             </button>
                                             {empresasFiltro
                                                 .filter(emp => emp.toLowerCase().includes(searchEmpresa.toLowerCase()))
@@ -711,10 +701,10 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                             key={emp}
                                                             type="button"
                                                             onClick={() => toggleMultiSelect(emp, selectedEmpresa, setSelectedEmpresa)}
-                                                            className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                                                            className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between ${isSelected ? 'bg-blue-500/10 text-blue-500 font-semibold' : 'text-app-text hover:bg-app-button'}`}
                                                         >
                                                             <span className="truncate">{emp}</span>
-                                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-slate-600'}`}>
+                                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-app-border'}`}>
                                                                 {isSelected && <Check className="w-3 h-3" />}
                                                             </div>
                                                         </button>
@@ -728,16 +718,16 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
                         {/* 5. Usuario (Múltiple) */}
                         <div className="relative">
-                            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-300 mb-1">
-                                <User className="w-3.5 h-3.5 text-slate-400" />
+                            <label className="flex items-center gap-1.5 text-xs font-medium text-app-text mb-1">
+                                <User className="w-3.5 h-3.5 text-app-muted" />
                                 <span>Filtrar por Usuario</span>
                             </label>
                             <button
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'usuario' ? null : 'usuario')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedUsuario.length > 0
-                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+                                    ? 'bg-blue-500/10 border-blue-500/50 text-blue-500'
+                                    : 'bg-app-button border-app-border text-app-text hover:bg-app-button-hover'
                                     }`}
                             >
                                 <span className="truncate">
@@ -749,25 +739,25 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                             </button>
 
                             {openFilterMenu === 'usuario' && (
-                                <div className="absolute z-50 mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 space-y-2">
+                                <div className="absolute z-50 mt-1 w-full bg-app-card border border-app-border rounded-xl shadow-2xl p-2 space-y-2">
                                     <div className="relative">
-                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-app-muted" />
                                         <input
                                             type="text"
                                             placeholder="Buscar usuario..."
                                             value={searchUsuario}
                                             onChange={(e) => setSearchUsuario(e.target.value)}
-                                            className="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                            className="w-full bg-app-button border border-app-border rounded-lg py-1.5 pl-8 pr-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                                         />
                                     </div>
                                     <div className="max-h-48 overflow-y-auto space-y-1 scrollbar-thin">
                                         <button
                                             type="button"
                                             onClick={() => setSelectedUsuario([])}
-                                            className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-slate-800 text-slate-400 flex items-center justify-between border-b border-slate-800 mb-1"
+                                            className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-app-button text-app-muted flex items-center justify-between border-b border-app-border mb-1"
                                         >
                                             <span>Limpiar selección</span>
-                                            {selectedUsuario.length === 0 && <Check className="w-3.5 h-3.5 text-blue-400" />}
+                                            {selectedUsuario.length === 0 && <Check className="w-3.5 h-3.5 text-blue-500" />}
                                         </button>
                                         {usuariosFiltro
                                             .filter(usr => usr.toLowerCase().includes(searchUsuario.toLowerCase()))
@@ -778,10 +768,10 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                         key={usr}
                                                         type="button"
                                                         onClick={() => toggleMultiSelect(usr, selectedUsuario, setSelectedUsuario)}
-                                                        className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                                                        className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between ${isSelected ? 'bg-blue-500/10 text-blue-500 font-semibold' : 'text-app-text hover:bg-app-button'}`}
                                                     >
                                                         <span className="truncate">{usr}</span>
-                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-slate-600'}`}>
+                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-app-border'}`}>
                                                             {isSelected && <Check className="w-3 h-3" />}
                                                         </div>
                                                     </button>
@@ -794,29 +784,29 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
                         {/* 6. Fecha Desde */}
                         <div>
-                            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-300 mb-1">
-                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            <label className="flex items-center gap-1.5 text-xs font-medium text-app-text mb-1">
+                                <Calendar className="w-3.5 h-3.5 text-app-muted" />
                                 <span>Fecha Desde</span>
                             </label>
                             <input
                                 type="date"
                                 value={fechaDesde}
                                 onChange={(e) => setFechaDesde(e.target.value)}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                className="w-full bg-app-button border border-app-border rounded-lg px-3 py-2 text-sm text-app-text focus:outline-none focus:border-blue-500 transition-colors"
                             />
                         </div>
 
                         {/* 7. Fecha Hasta */}
                         <div>
-                            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-300 mb-1">
-                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            <label className="flex items-center gap-1.5 text-xs font-medium text-app-text mb-1">
+                                <Calendar className="w-3.5 h-3.5 text-app-muted" />
                                 <span>Fecha Hasta</span>
                             </label>
                             <input
                                 type="date"
                                 value={fechaHasta}
                                 onChange={(e) => setFechaHasta(e.target.value)}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                className="w-full bg-app-button border border-app-border rounded-lg px-3 py-2 text-sm text-app-text focus:outline-none focus:border-blue-500 transition-colors"
                             />
                         </div>
 
@@ -825,20 +815,19 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
                 {/* CHIPS DE FILTROS APLICADOS */}
                 {totalFiltrosActivos > 0 && (
-                    <div className="flex items-center gap-2 flex-wrap bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
-                        <span className="text-xs text-slate-400 font-medium">Filtros aplicados:</span>
+                    <div className="flex items-center gap-2 flex-wrap bg-app-button/40 p-3 rounded-xl border border-app-border">
+                        <span className="text-xs text-app-muted font-medium">Filtros aplicados:</span>
 
-                        {/* 👈 Chip para el buscador de texto general */}
                         {search.trim() && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-600">
-                                <Search className="w-3 h-3 text-slate-400" />
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-app-card text-app-text text-xs rounded-lg border border-app-border shadow-sm">
+                                <Search className="w-3 h-3 text-app-muted" />
                                 Búsqueda: "{search.trim()}"
                                 <button
                                     onClick={() => {
                                         setSearch('');
-                                        if (!company) fetchFollows(); // Reconsulta si estás en la vista global
+                                        if (!company) fetchFollows();
                                     }}
-                                    className="hover:text-white ml-0.5"
+                                    className="hover:text-red-500 ml-0.5 transition-colors"
                                 >
                                     <X className="w-3.5 h-3.5" />
                                 </button>
@@ -846,67 +835,67 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                         )}
 
                         {selectedTipo.map((tipo) => (
-                            <span key={tipo} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20">
+                            <span key={tipo} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-500 text-xs rounded-lg border border-blue-500/20">
                                 Tipo: {tipo}
-                                <button onClick={() => toggleMultiSelect(tipo, selectedTipo, setSelectedTipo)} className="hover:text-white">
+                                <button onClick={() => toggleMultiSelect(tipo, selectedTipo, setSelectedTipo)} className="hover:text-red-500 transition-colors">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             </span>
                         ))}
 
                         {selectedMedio.map((medio) => (
-                            <span key={medio} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
+                            <span key={medio} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-xs rounded-lg border border-emerald-500/20">
                                 Medio: {medio}
-                                <button onClick={() => toggleMultiSelect(medio, selectedMedio, setSelectedMedio)} className="hover:text-white">
+                                <button onClick={() => toggleMultiSelect(medio, selectedMedio, setSelectedMedio)} className="hover:text-red-500 transition-colors">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             </span>
                         ))}
 
                         {selectedEstatus.map((estatus) => (
-                            <span key={estatus} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-lg border border-purple-500/20">
+                            <span key={estatus} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 text-purple-500 text-xs rounded-lg border border-purple-500/20">
                                 Estatus: {estatus}
-                                <button onClick={() => toggleMultiSelect(estatus, selectedEstatus, setSelectedEstatus)} className="hover:text-white">
+                                <button onClick={() => toggleMultiSelect(estatus, selectedEstatus, setSelectedEstatus)} className="hover:text-red-500 transition-colors">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             </span>
                         ))}
 
                         {selectedEmpresa.map((emp) => (
-                            <span key={emp} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-400 text-xs rounded-lg border border-amber-500/20">
+                            <span key={emp} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-500 text-xs rounded-lg border border-amber-500/20">
                                 <Building2 className="w-3 h-3" />
                                 Empresa: {emp}
-                                <button onClick={() => toggleMultiSelect(emp, selectedEmpresa, setSelectedEmpresa)} className="hover:text-white">
+                                <button onClick={() => toggleMultiSelect(emp, selectedEmpresa, setSelectedEmpresa)} className="hover:text-red-500 transition-colors">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             </span>
                         ))}
 
                         {selectedUsuario.map((usr) => (
-                            <span key={usr} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 text-indigo-400 text-xs rounded-lg border border-indigo-500/20">
+                            <span key={usr} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 text-indigo-500 text-xs rounded-lg border border-indigo-200 dark:border-indigo-500/20">
                                 <User className="w-3 h-3" />
                                 Usuario: {usr}
-                                <button onClick={() => toggleMultiSelect(usr, selectedUsuario, setSelectedUsuario)} className="hover:text-white">
+                                <button onClick={() => toggleMultiSelect(usr, selectedUsuario, setSelectedUsuario)} className="hover:text-red-500 transition-colors">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             </span>
                         ))}
 
                         {fechaDesde && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 text-cyan-400 text-xs rounded-lg border border-cyan-500/20">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 text-cyan-500 text-xs rounded-lg border border-cyan-500/20">
                                 <Calendar className="w-3 h-3" />
                                 Desde: {fechaDesde}
-                                <button onClick={() => setFechaDesde('')} className="hover:text-white">
+                                <button onClick={() => setFechaDesde('')} className="hover:text-red-500 transition-colors">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             </span>
                         )}
 
                         {fechaHasta && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 text-cyan-400 text-xs rounded-lg border border-cyan-500/20">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 text-cyan-500 text-xs rounded-lg border border-cyan-500/20">
                                 <Calendar className="w-3 h-3" />
                                 Hasta: {fechaHasta}
-                                <button onClick={() => setFechaHasta('')} className="hover:text-white">
+                                <button onClick={() => setFechaHasta('')} className="hover:text-red-500 transition-colors">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             </span>
@@ -914,7 +903,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
                         <button
                             onClick={clearAllFilters}
-                            className="text-xs text-slate-400 hover:text-red-400 underline ml-auto font-medium transition-colors"
+                            className="text-xs text-app-muted hover:text-red-500 underline ml-auto font-medium transition-colors"
                         >
                             Limpiar todos
                         </button>
@@ -924,52 +913,52 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
             {/* Renderizado de vistas */}
             {!hasQueried ? (
-                <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-3">
-                    <div className="p-3 bg-blue-600/10 text-blue-400 rounded-full">
+                <div className="bg-app-card border border-app-border rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-3 shadow-md">
+                    <div className="p-3 bg-blue-500/10 text-blue-500 rounded-full">
                         <Search className="w-8 h-8" />
                     </div>
-                    <h3 className="text-lg font-semibold text-white">Consulta de Seguimientos</h3>
-                    <p className="text-sm text-slate-400 max-w-md">
-                        Aplica los filtros requeridos o presiona el botón <strong className="text-blue-400">Buscar</strong> para obtener los seguimientos del sistema.
+                    <h3 className="text-lg font-semibold text-app-text">Consulta de Seguimientos</h3>
+                    <p className="text-sm text-app-muted max-w-md">
+                        Aplica los filtros requeridos o presiona el botón <strong className="text-blue-500 font-semibold">Buscar</strong> para obtener los seguimientos del sistema.
                     </p>
                     <button
                         onClick={fetchFollows}
-                        className="mt-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors shadow-lg"
+                        className="mt-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors shadow-md"
                     >
                         Buscar Todos los Seguimientos
                     </button>
                 </div>
             ) : loading ? (
-                <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-12 text-center text-slate-400">
+                <div className="bg-app-card border border-app-border rounded-2xl p-12 text-center text-app-muted shadow-sm">
                     Cargando seguimientos...
                 </div>
             ) : filteredFollows.length === 0 ? (
-                <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-12 text-center text-slate-400">
+                <div className="bg-app-card border border-app-border rounded-2xl p-12 text-center text-app-muted shadow-sm">
                     <p className="text-base font-medium">No se encontraron seguimientos</p>
                 </div>
             ) : (
                 <>
                     {/* CONTADOR DE RESULTADOS ENCONTRADOS */}
                     {!loading && filteredFollows.length > 0 && (
-                        <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-800/60 border border-slate-700/60 px-4 py-2.5 rounded-lg text-sm text-slate-300 shadow-sm gap-1">
+                        <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-app-card border border-app-border px-4 py-2.5 rounded-lg text-sm text-app-text shadow-sm gap-1">
                             <span className="font-medium">
                                 Se {filteredFollows.length === 1 ? 'encontró' : 'encontraron'}{' '}
-                                <strong className="text-blue-400 font-semibold">{filteredFollows.length}</strong>{' '}
+                                <strong className="text-blue-500 font-semibold">{filteredFollows.length}</strong>{' '}
                                 {filteredFollows.length === 1 ? 'resultado' : 'resultados'}
                             </span>
 
                             {totalFiltrosActivos > 0 && filteredFollows.length !== follows.length && (
-                                <span className="text-xs text-slate-400">
+                                <span className="text-xs text-app-muted">
                                     (filtrados de un total de {follows.length})
                                 </span>
                             )}
                         </div>
                     )}
                     {tipoVista === 'tabla' && (
-                        <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
+                        <div className="bg-app-card border border-app-border rounded-xl overflow-hidden shadow-xl">
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm text-slate-300">
-                                    <thead className="bg-slate-900/60 text-slate-400 text-xs uppercase border-b border-slate-700">
+                                <table className="w-full text-left text-sm text-app-text">
+                                    <thead className="bg-app-bg text-app-muted text-xs uppercase border-b border-app-border">
                                         <tr>
                                             {!company && <th className="px-6 py-4">Empresa</th>}
                                             <th className="px-6 py-4">Fecha</th>
@@ -980,34 +969,34 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                             <th className="px-6 py-4 text-center">Acciones</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-700/60">
+                                    <tbody className="divide-y divide-app-border">
                                         {paginatedFollows.map((item, index) => (
-                                            <tr key={item._id || index} className="hover:bg-slate-700/30 transition-colors">
+                                            <tr key={item._id || index} className="hover:bg-app-button/40 transition-colors">
                                                 {!company && (
-                                                    <td className="px-6 py-4 font-medium text-white">
+                                                    <td className="px-6 py-4 font-medium text-app-text">
                                                         {item.companyName}
                                                     </td>
                                                 )}
-                                                <td className="px-6 py-4 whitespace-nowrap text-slate-300">
+                                                <td className="px-6 py-4 whitespace-nowrap text-app-text">
                                                     {formatFechaLarga(item.fechaSeguimiento)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="px-2.5 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded border border-blue-500/20">
+                                                    <span className="px-2.5 py-0.5 bg-blue-500/10 text-blue-500 text-xs rounded border border-blue-500/20 font-medium">
                                                         {item.tipoSeguimiento}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 max-w-xs truncate text-slate-300">
+                                                <td className="px-6 py-4 max-w-xs truncate text-app-text">
                                                     {item.asunto}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span className={`px-2.5 py-0.5 text-xs rounded border font-medium ${item.estatus === 'Completado'
-                                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                                        ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                                        : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                                                         }`}>
                                                         {item.estatus}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-slate-400">
+                                                <td className="px-6 py-4 whitespace-nowrap text-app-muted">
                                                     {item.usuario}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -1018,7 +1007,8 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                                 setViewMode('details');
                                                                 setShowModal(true);
                                                             }}
-                                                            className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded-lg transition-colors"
+                                                            className="p-1.5 text-app-muted hover:text-blue-500 hover:bg-app-button rounded-lg transition-colors"
+                                                            title="Ver detalles"
                                                         >
                                                             <Eye className="w-4 h-4" />
                                                         </button>
@@ -1030,14 +1020,14 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                                         setViewMode('edit');
                                                                         setShowModal(true);
                                                                     }}
-                                                                    className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors"
+                                                                    className="p-1.5 text-app-muted hover:text-amber-500 hover:bg-app-button rounded-lg transition-colors"
                                                                     title="Editar"
                                                                 >
                                                                     <Pencil className="w-4 h-4" />
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleDelete(item._id)}
-                                                                    className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors"
+                                                                    className="p-1.5 text-app-muted hover:text-red-500 hover:bg-app-button rounded-lg transition-colors"
                                                                     title="Eliminar"
                                                                 >
                                                                     <Trash2 className="w-4 h-4" />
@@ -1059,35 +1049,40 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                             {paginatedFollows.map((item, index) => (
                                 <div
                                     key={item._id || index}
-                                    className="bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-xl p-5 shadow-xl flex flex-col justify-between transition-colors"
+                                    className="bg-app-card border border-app-border rounded-xl p-5 shadow-md flex flex-col justify-between transition-all hover:border-app-muted/50"
                                 >
                                     <div>
                                         <div className="flex items-start justify-between gap-2 mb-3">
-                                            <span className="px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20 font-medium">
+                                            <span className="px-2.5 py-1 bg-blue-500/10 text-blue-500 text-xs rounded-lg border border-blue-500/20 font-medium">
                                                 {item.tipoSeguimiento}
                                             </span>
                                             <span className={`px-2 py-0.5 text-xs rounded border font-medium ${item.estatus === 'Completado'
-                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                                : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                                                 }`}>
                                                 {item.estatus}
                                             </span>
                                         </div>
 
                                         {!company && item.companyName && (
-                                            <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
-                                                <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
+                                            <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-app-text">
+                                                <Building2 className="w-4 h-4 text-app-muted shrink-0" />
                                                 <span className="truncate">{item.companyName}</span>
                                             </div>
                                         )}
 
-                                        {item.asunto && <p className="text-xs font-semibold text-blue-300 mb-1">{item.asunto}</p>}
-                                        <p className="text-sm text-slate-300 my-2 line-clamp-3 bg-slate-900/40 p-3 rounded-lg border border-slate-700/50">
+                                        {item.asunto && (
+                                            <p className="text-xs font-semibold text-blue-500 mb-1">
+                                                {item.asunto}
+                                            </p>
+                                        )}
+
+                                        <p className="text-sm text-app-text my-2 line-clamp-3 bg-app-button/40 p-3 rounded-lg border border-app-border">
                                             {item.descripcion}
                                         </p>
                                     </div>
 
-                                    <div className="pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-400">
+                                    <div className="pt-3 border-t border-app-border flex items-center justify-between text-xs text-app-muted">
                                         <div className="flex items-center gap-1.5">
                                             <Calendar className="w-3.5 h-3.5" />
                                             <span>{formatFechaLarga(item.fechaSeguimiento)}</span>
@@ -1100,7 +1095,8 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                     setViewMode('details');
                                                     setShowModal(true);
                                                 }}
-                                                className="p-1 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors"
+                                                className="p-1 text-app-muted hover:text-blue-500 hover:bg-app-button rounded transition-colors"
+                                                title="Ver detalles"
                                             >
                                                 <Eye className="w-4 h-4" />
                                             </button>
@@ -1112,14 +1108,14 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                             setViewMode('edit');
                                                             setShowModal(true);
                                                         }}
-                                                        className="p-1 text-slate-400 hover:text-amber-400 hover:bg-slate-700 rounded transition-colors"
+                                                        className="p-1 text-app-muted hover:text-amber-500 hover:bg-app-button rounded transition-colors"
                                                         title="Editar"
                                                     >
                                                         <Pencil className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(item._id, item.companyName)}
-                                                        className="p-1 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors"
+                                                        className="p-1 text-app-muted hover:text-red-500 hover:bg-app-button rounded transition-colors"
                                                         title="Eliminar"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
@@ -1145,13 +1141,13 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
             {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
-                    <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col my-8">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
+                    <div className="bg-app-card border border-app-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col my-8 transition-colors">
 
                         {/* Encabezado del Modal */}
-                        <div className="p-6 border-b border-slate-700/80 bg-slate-900/90 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2.5">
-                                <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">
+                        <div className="p-6 border-b border-app-border bg-app-card/80 flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-app-text flex items-center gap-2.5">
+                                <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg">
                                     <ChartGantt size={20} />
                                 </div>
                                 <span>
@@ -1162,7 +1158,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                             </h2>
                             <button
                                 onClick={() => setShowModal(false)}
-                                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                                className="p-1.5 text-app-muted hover:text-app-text bg-app-button hover:bg-app-button-hover rounded-lg transition-colors border border-app-border"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -1171,23 +1167,23 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                         {/* Cuerpo del Modal */}
                         <div className="p-6 max-h-[80vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
                             {viewMode === 'details' && selectedFollow ? (
-                                <div className="space-y-6 text-sm text-slate-300">
+                                <div className="space-y-6 text-sm text-app-text">
 
                                     {/* Bloque Destacado: Empresa */}
-                                    <div className="bg-slate-800/80 border border-slate-700/60 p-4 rounded-xl space-y-3">
+                                    <div className="bg-app-button/40 border border-app-border p-4 rounded-xl space-y-3">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div className={`p-2.5 rounded-xl shrink-0 border ${selectedFollow.otraEmpresa
-                                                    ? 'bg-amber-600/10 border-amber-500/20 text-amber-400'
-                                                    : 'bg-blue-600/10 border-blue-500/20 text-blue-400'
+                                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-500'
+                                                    : 'bg-blue-500/10 border-blue-500/20 text-blue-500'
                                                     }`}>
                                                     <Building2 className="w-6 h-6" />
                                                 </div>
                                                 <div>
-                                                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                                                    <span className="text-[11px] font-semibold text-app-muted uppercase tracking-wider block">
                                                         {selectedFollow.otraEmpresa ? 'Empresa No Registrada (Manual)' : 'Empresa Registrada'}
                                                     </span>
-                                                    <p className="text-base text-white font-bold tracking-wide">
+                                                    <p className="text-base text-app-text font-bold tracking-wide">
                                                         {selectedFollow.companyName}
                                                     </p>
                                                 </div>
@@ -1195,32 +1191,31 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
                                             {/* Estatus Badge */}
                                             <span className={`px-3 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 ${selectedFollow.estatus === 'Completado'
-                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                                                : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                                : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                                                 }`}>
                                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                                 {selectedFollow.estatus}
                                             </span>
                                         </div>
 
-                                        {/* Si fue registrada como OTRA empresa, mostrar sus datos adicionales */}
                                         {selectedFollow.otraEmpresa && (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-700/50 text-xs text-slate-300">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-app-border text-xs text-app-muted">
                                                 {selectedFollow.otraEmpresa.rfc && (
-                                                    <div><span className="text-slate-400">RFC:</span> {selectedFollow.otraEmpresa.rfc}</div>
+                                                    <div><span className="text-app-muted">RFC:</span> <span className="text-app-text">{selectedFollow.otraEmpresa.rfc}</span></div>
                                                 )}
                                                 {selectedFollow.otraEmpresa.nombreContacto && (
-                                                    <div><span className="text-slate-400">Contacto:</span> {selectedFollow.otraEmpresa.nombreContacto}</div>
+                                                    <div><span className="text-app-muted">Contacto:</span> <span className="text-app-text">{selectedFollow.otraEmpresa.nombreContacto}</span></div>
                                                 )}
                                                 {selectedFollow.otraEmpresa.telefonoContacto && (
-                                                    <div><span className="text-slate-400">Teléfono:</span> {selectedFollow.otraEmpresa.telefonoContacto}</div>
+                                                    <div><span className="text-app-muted">Teléfono:</span> <span className="text-app-text">{selectedFollow.otraEmpresa.telefonoContacto}</span></div>
                                                 )}
                                                 {selectedFollow.otraEmpresa.correoElectronico && (
-                                                    <div><span className="text-slate-400">Correo:</span> {selectedFollow.otraEmpresa.correoElectronico}</div>
+                                                    <div><span className="text-app-muted">Correo:</span> <span className="text-app-text">{selectedFollow.otraEmpresa.correoElectronico}</span></div>
                                                 )}
                                                 {(selectedFollow.otraEmpresa.estado || selectedFollow.otraEmpresa.municipio) && (
                                                     <div>
-                                                        <span className="text-slate-400">Ubicación:</span> {[selectedFollow.otraEmpresa.municipio, selectedFollow.otraEmpresa.estado].filter(Boolean).join(', ')}
+                                                        <span className="text-app-muted">Ubicación:</span> <span className="text-app-text">{[selectedFollow.otraEmpresa.municipio, selectedFollow.otraEmpresa.estado].filter(Boolean).join(', ')}</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -1231,35 +1226,35 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                                         {/* Tipo de Seguimiento */}
-                                        <div className="bg-slate-800/40 border border-slate-700/50 p-3.5 rounded-xl flex items-center gap-3">
-                                            <div className="p-2 bg-slate-700/50 text-blue-400 rounded-lg">
+                                        <div className="bg-app-button/30 border border-app-border p-3.5 rounded-xl flex items-center gap-3">
+                                            <div className="p-2 bg-app-button text-blue-500 rounded-lg border border-app-border">
                                                 <Tag className="w-4 h-4" />
                                             </div>
                                             <div>
-                                                <span className="text-[11px] text-slate-400 uppercase font-semibold block">Tipo</span>
-                                                <p className="text-white font-medium">{selectedFollow.tipoSeguimiento}</p>
+                                                <span className="text-[11px] text-app-muted uppercase font-semibold block">Tipo</span>
+                                                <p className="text-app-text font-medium">{selectedFollow.tipoSeguimiento}</p>
                                             </div>
                                         </div>
 
                                         {/* Medio de Atención */}
-                                        <div className="bg-slate-800/40 border border-slate-700/50 p-3.5 rounded-xl flex items-center gap-3">
-                                            <div className="p-2 bg-slate-700/50 text-emerald-400 rounded-lg">
+                                        <div className="bg-app-button/30 border border-app-border p-3.5 rounded-xl flex items-center gap-3">
+                                            <div className="p-2 bg-app-button text-emerald-500 rounded-lg border border-app-border">
                                                 <PhoneCall className="w-4 h-4" />
                                             </div>
                                             <div>
-                                                <span className="text-[11px] text-slate-400 uppercase font-semibold block">Medio de Atención</span>
-                                                <p className="text-white font-medium">{selectedFollow.medioAtencion}</p>
+                                                <span className="text-[11px] text-app-muted uppercase font-semibold block">Medio de Atención</span>
+                                                <p className="text-app-text font-medium">{selectedFollow.medioAtencion}</p>
                                             </div>
                                         </div>
 
                                         {/* Fecha y Hora */}
-                                        <div className="bg-slate-800/40 border border-slate-700/50 p-3.5 rounded-xl flex items-center gap-3">
-                                            <div className="p-2 bg-slate-700/50 text-cyan-400 rounded-lg">
+                                        <div className="bg-app-button/30 border border-app-border p-3.5 rounded-xl flex items-center gap-3">
+                                            <div className="p-2 bg-app-button text-cyan-500 rounded-lg border border-app-border">
                                                 <Calendar className="w-4 h-4" />
                                             </div>
                                             <div>
-                                                <span className="text-[11px] text-slate-400 uppercase font-semibold block">Fecha / Hora</span>
-                                                <p className="text-white font-medium">
+                                                <span className="text-[11px] text-app-muted uppercase font-semibold block">Fecha / Hora</span>
+                                                <p className="text-app-text font-medium">
                                                     {formatFechaLarga(selectedFollow.fechaSeguimiento)}
                                                     {selectedFollow.horaSeguimiento && ` — ${selectedFollow.horaSeguimiento}`}
                                                 </p>
@@ -1267,32 +1262,32 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                         </div>
 
                                         {/* Usuario Registrador */}
-                                        <div className="bg-slate-800/40 border border-slate-700/50 p-3.5 rounded-xl flex items-center gap-3">
-                                            <div className="p-2 bg-slate-700/50 text-indigo-400 rounded-lg">
+                                        <div className="bg-app-button/30 border border-app-border p-3.5 rounded-xl flex items-center gap-3">
+                                            <div className="p-2 bg-app-button text-indigo-500 rounded-lg border border-app-border">
                                                 <User className="w-4 h-4" />
                                             </div>
                                             <div>
-                                                <span className="text-[11px] text-slate-400 uppercase font-semibold block">Atendido Por</span>
-                                                <p className="text-white font-medium">{selectedFollow.usuario}</p>
+                                                <span className="text-[11px] text-app-muted uppercase font-semibold block">Atendido Por</span>
+                                                <p className="text-app-text font-medium">{selectedFollow.usuario}</p>
                                             </div>
                                         </div>
 
                                     </div>
 
-                                    {/* Empresas Vinculadas (solo si el tipo es Vinculación o existen vinculaciones) */}
+                                    {/* Empresas Vinculadas */}
                                     {selectedFollow.empresasVinculadas && selectedFollow.empresasVinculadas.length > 0 && (
-                                        <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-2">
-                                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                                <Building2 className="w-3.5 h-3.5 text-blue-400" />
+                                        <div className="bg-app-button/30 border border-app-border rounded-xl p-4 space-y-2">
+                                            <span className="text-[11px] font-bold text-app-muted uppercase tracking-wider flex items-center gap-1.5">
+                                                <Building2 className="w-3.5 h-3.5 text-blue-500" />
                                                 Empresas Vinculadas ({selectedFollow.empresasVinculadas.length})
                                             </span>
                                             <div className="flex flex-wrap gap-2 pt-1">
                                                 {selectedFollow.empresasVinculadas.map((emp: any, idx: number) => (
                                                     <span
                                                         key={emp._id || idx}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 text-blue-300 text-xs font-medium rounded-lg border border-blue-500/20 shadow-sm"
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 text-blue-500 text-xs font-medium rounded-lg border border-blue-500/20 shadow-sm"
                                                     >
-                                                        <Building2 className="w-3 h-3 text-blue-400" />
+                                                        <Building2 className="w-3 h-3 text-blue-500" />
                                                         {emp.nombreComercial || emp.razonSocial || 'Empresa Vinculada'}
                                                     </span>
                                                 ))}
@@ -1302,32 +1297,32 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
                                     {/* Persona o Atención de Seguimiento */}
                                     {selectedFollow.atencionSeguimiento && (
-                                        <div className="bg-slate-800/40 border border-slate-700/50 p-3.5 rounded-xl flex items-center gap-3">
-                                            <div className="p-2 bg-slate-700/50 text-amber-400 rounded-lg">
+                                        <div className="bg-app-button/30 border border-app-border p-3.5 rounded-xl flex items-center gap-3">
+                                            <div className="p-2 bg-app-button text-amber-500 rounded-lg border border-app-border">
                                                 <User className="w-4 h-4" />
                                             </div>
                                             <div>
-                                                <span className="text-[11px] text-slate-400 uppercase font-semibold block">Atención con Persona / Contacto</span>
-                                                <p className="text-white font-medium">{selectedFollow.atencionSeguimiento}</p>
+                                                <span className="text-[11px] text-app-muted uppercase font-semibold block">Atención con Persona / Contacto</span>
+                                                <p className="text-app-text font-medium">{selectedFollow.atencionSeguimiento}</p>
                                             </div>
                                         </div>
                                     )}
 
                                     {/* Asunto y Descripción */}
-                                    <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-3">
+                                    <div className="bg-app-button/30 border border-app-border rounded-xl p-4 space-y-3">
                                         {selectedFollow.asunto && (
-                                            <div className="border-b border-slate-700/60 pb-3">
-                                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                                            <div className="border-b border-app-border pb-3">
+                                                <span className="text-[11px] font-bold text-app-muted uppercase tracking-wider block mb-0.5">
                                                     Asunto
                                                 </span>
-                                                <p className="text-base text-blue-300 font-semibold">{selectedFollow.asunto}</p>
+                                                <p className="text-base text-blue-500 font-semibold">{selectedFollow.asunto}</p>
                                             </div>
                                         )}
                                         <div>
-                                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                                            <span className="text-[11px] font-bold text-app-muted uppercase tracking-wider block mb-1">
                                                 Descripción / Comentarios
                                             </span>
-                                            <div className="p-3.5 bg-slate-900/60 rounded-lg border border-slate-700/50 text-slate-200 leading-relaxed whitespace-pre-line text-xs sm:text-sm">
+                                            <div className="p-3.5 bg-app-card rounded-lg border border-app-border text-app-text leading-relaxed whitespace-pre-line text-xs sm:text-sm">
                                                 {selectedFollow.descripcion || 'Sin comentarios adicionales.'}
                                             </div>
                                         </div>
@@ -1349,7 +1344,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
                         {/* Pie de modal para cerrar/acciones */}
                         {viewMode === 'details' && selectedFollow && (
-                            <div className="p-4 border-t border-slate-700/80 bg-slate-900/90 flex justify-end">
+                            <div className="p-4 border-t border-app-border bg-app-card/80 flex justify-end">
                                 <div className="flex items-center gap-2">
                                     {canEdit && (
                                         <>
@@ -1358,7 +1353,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                 onClick={() => {
                                                     setViewMode('edit');
                                                 }}
-                                                className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium px-4 py-2 rounded-lg text-sm transition-colors"
+                                                className="flex items-center gap-2 bg-app-button hover:bg-app-button-hover text-app-text font-medium px-4 py-2 rounded-lg text-sm transition-colors border border-app-border"
                                                 title="Editar"
                                             >
                                                 <Pencil className="w-4 h-4" />
@@ -1383,7 +1378,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                     <button
                                         type="button"
                                         onClick={() => setShowModal(false)}
-                                        className="bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
+                                        className="bg-app-button hover:bg-app-button-hover text-app-text text-sm font-medium px-5 py-2 rounded-lg transition-colors border border-app-border"
                                     >
                                         Cerrar
                                     </button>

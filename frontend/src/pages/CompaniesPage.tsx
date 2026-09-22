@@ -429,15 +429,16 @@ export const CompaniesPage = () => {
     const handleDelete = (id: string, nombre: string) => {
         Swal.fire({
             title: '¿Está seguro de eliminar la empresa?',
-            html: `Está a punto de eliminar a <strong style="color: #fff;">${nombre}</strong>. Esta acción no se puede deshacer.`,
+            html: `Está a punto de eliminar a <strong>${nombre}</strong>. Esta acción no se puede deshacer.`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#334155',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
             confirmButtonText: 'Sí, eliminar',
             cancelButtonText: 'Cancelar',
-            background: '#1e293b',
-            color: '#f8fafc',
+            customClass: {
+                popup: '!bg-app-card !text-app-text !border !border-app-border'
+            },
             allowOutsideClick: true,
             allowEscapeKey: true,
         }).then(async (result) => {
@@ -481,22 +482,24 @@ export const CompaniesPage = () => {
             {/* BARRA SUPERIOR DE ACCIONES */}
             <div className="flex flex-col 2xl:flex-row items-stretch 2xl:items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3 w-full 2xl:w-auto flex-wrap">
+                    {/* Input de Búsqueda */}
                     <div className="relative flex-1 sm:w-72 min-w-50">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-app-muted" />
                         <input
                             type="text"
                             placeholder="Buscar por nombre o RFC..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                            className="w-full bg-app-card border border-app-border rounded-lg py-2 pl-10 pr-4 text-sm text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                         />
                     </div>
 
+                    {/* Botón Filtros */}
                     <button
                         onClick={() => setIsFilterDrawerOpen(true)}
                         className={`sm:col-span-3 md:col-span-3 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-all ${totalFiltrosActivos > 0
                             ? 'bg-blue-600/20 border-blue-500 text-blue-400 font-semibold'
-                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:border-slate-600'
+                            : 'bg-app-card border-app-border text-app-text hover:border-blue-500/50'
                             }`}
                     >
                         <SlidersHorizontal className="w-4 h-4" />
@@ -510,13 +513,14 @@ export const CompaniesPage = () => {
 
                     {filteredCompanies.length > 0 && (
                         <div className="flex items-center gap-2 flex-wrap">
+                            {/* Botón Seleccionar Visibles */}
                             <button
                                 type="button"
                                 onClick={toggleSelectAllVisible}
                                 title={allVisibleSelected ? 'Deseleccionar las visibles' : 'Seleccionar las visibles'}
                                 className={`flex items-center gap-2 font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0 border ${allVisibleSelected
                                     ? 'bg-blue-600/20 border-blue-500 text-blue-400'
-                                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:border-slate-600'
+                                    : 'bg-app-card border-app-border text-app-text hover:border-blue-500/50'
                                     }`}
                             >
                                 <ListChecks className="w-4 h-4" />
@@ -525,6 +529,7 @@ export const CompaniesPage = () => {
                                 </span>
                             </button>
 
+                            {/* Botón Mostrar Seleccionadas */}
                             {selectedCompanyIds.size > 1 && (
                                 <button
                                     type="button"
@@ -535,7 +540,7 @@ export const CompaniesPage = () => {
                                     title={showOnlySelected ? 'Mostrar todos los resultados' : 'Mostrar solo las empresas seleccionadas'}
                                     className={`flex items-center gap-2 font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0 ${showOnlySelected
                                         ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                                        : 'bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-600'
+                                        : 'bg-app-card border border-app-border text-app-text hover:border-blue-500/50'
                                         }`}
                                 >
                                     <CheckCheck className="w-4 h-4" />
@@ -545,6 +550,7 @@ export const CompaniesPage = () => {
                                 </button>
                             )}
 
+                            {/* Botones de Acción (Gráficas, Excel, PDF) */}
                             <button
                                 type="button"
                                 onClick={() => setIsChartsModalOpen(true)}
@@ -569,7 +575,6 @@ export const CompaniesPage = () => {
                                 type="button"
                                 onClick={async () => {
                                     const { pdf } = await import('@react-pdf/renderer');
-
                                     const doc = tipoVista === 'tabla'
                                         ? <CompanySheetPDFDocument companies={displayedCompanies} />
                                         : <CompaniesPDFDocument companies={displayedCompanies} />;
@@ -591,14 +596,15 @@ export const CompaniesPage = () => {
                     )}
                 </div>
 
+                {/* Alternador de Vista (Tabla / Tarjetas) y Nueva Empresa */}
                 <div className="flex items-center gap-3 justify-between 2xl:justify-end shrink-0">
                     {companies.length > 0 && (
-                        <div className="flex items-center bg-slate-800 p-1 rounded-lg border border-slate-700">
+                        <div className="flex items-center bg-app-card p-1 rounded-lg border border-app-border">
                             <button
                                 onClick={() => setTipoVista('tabla')}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${tipoVista === 'tabla'
                                     ? 'bg-blue-600 text-white shadow-sm'
-                                    : 'text-slate-400 hover:text-white'
+                                    : 'text-app-muted hover:text-app-text'
                                     }`}
                                 title="Vista en Tabla"
                             >
@@ -610,7 +616,7 @@ export const CompaniesPage = () => {
                                 onClick={() => setTipoVista('cards')}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${tipoVista === 'cards'
                                     ? 'bg-blue-600 text-white shadow-sm'
-                                    : 'text-slate-400 hover:text-white'
+                                    : 'text-app-muted hover:text-app-text'
                                     }`}
                                 title="Vista en Tarjetas"
                             >
@@ -634,32 +640,32 @@ export const CompaniesPage = () => {
 
             {/* CHIPS DE FILTRO */}
             {(totalFiltrosActivos > 0 || selectedCompanyIds.size > 0) && (
-                <div className="flex items-center gap-2 mb-6 flex-wrap bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
-                    <span className="text-xs text-slate-400 font-medium">Filtros aplicados:</span>
+                <div className="flex items-center gap-2 mb-6 flex-wrap bg-app-card/60 p-3 rounded-xl border border-app-border">
+                    <span className="text-xs text-app-muted font-medium">Filtros aplicados:</span>
 
                     {selectedCompanyIds.size > 0 && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-600/10 text-blue-400 text-xs rounded-lg border border-blue-500/30 font-medium">
                             <CheckSquare className="w-3.5 h-3.5" />
                             Empresas seleccionadas: {selectedCompanyIds.size}
-                            <button onClick={clearSelection} className="hover:text-white" title="Quitar selección">
+                            <button onClick={clearSelection} className="hover:text-app-text" title="Quitar selección">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
                     )}
 
                     {search.trim() !== '' && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-400 text-xs rounded-lg border border-amber-500/20">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-500 text-xs rounded-lg border border-amber-500/20">
                             Búsqueda: "{search}"
-                            <button onClick={() => setSearch('')} className="hover:text-white">
+                            <button onClick={() => setSearch('')} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
                     )}
 
                     {canEdit && selectedEstatus.map((est) => (
-                        <span key={est} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
+                        <span key={est} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-xs rounded-lg border border-emerald-500/20">
                             Estatus: {est}
-                            <button onClick={() => toggleFilter(est, selectedEstatus, setSelectedEstatus)} className="hover:text-white">
+                            <button onClick={() => toggleFilter(est, selectedEstatus, setSelectedEstatus)} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
@@ -668,7 +674,7 @@ export const CompaniesPage = () => {
                     {selectedTamanos.map((tamano) => (
                         <span key={tamano} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20">
                             Tamaño: {tamano}
-                            <button onClick={() => toggleFilter(tamano, selectedTamanos, setSelectedTamanos)} className="hover:text-white">
+                            <button onClick={() => toggleFilter(tamano, selectedTamanos, setSelectedTamanos)} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
@@ -677,34 +683,34 @@ export const CompaniesPage = () => {
                     {selectedSectores.map((sec) => (
                         <span key={sec} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 text-indigo-400 text-xs rounded-lg border border-indigo-500/20">
                             Sector: {sec.toLowerCase().includes('otro especif') ? 'Otro' : sec}
-                            <button onClick={() => toggleFilter(sec, selectedSectores, setSelectedSectores)} className="hover:text-white">
+                            <button onClick={() => toggleFilter(sec, selectedSectores, setSelectedSectores)} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
                     ))}
 
                     {selectedProductos.map((prod) => (
-                        <span key={prod} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
+                        <span key={prod} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-xs rounded-lg border border-emerald-500/20">
                             Producto/Servicio: {prod.toLowerCase().includes('otro especif') ? 'Otro' : prod}
-                            <button onClick={() => toggleFilter(prod, selectedProductos, setSelectedProductos)} className="hover:text-white">
+                            <button onClick={() => toggleFilter(prod, selectedProductos, setSelectedProductos)} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
                     ))}
 
                     {selectedTipoOperaciones.map((op) => (
-                        <span key={op} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 text-cyan-400 text-xs rounded-lg border border-cyan-500/20">
+                        <span key={op} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 text-cyan-500 text-xs rounded-lg border border-cyan-500/20">
                             Operación: {op.toLowerCase().includes('otro especifique') ? 'Otro' : op}
-                            <button onClick={() => toggleFilter(op, selectedTipoOperaciones, setSelectedTipoOperaciones)} className="hover:text-white">
+                            <button onClick={() => toggleFilter(op, selectedTipoOperaciones, setSelectedTipoOperaciones)} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
                     ))}
 
                     {selectedTipoSuministro.map((sum) => (
-                        <span key={sum} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-500/10 text-teal-400 text-xs rounded-lg border border-teal-500/20">
+                        <span key={sum} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-500/10 text-teal-500 text-xs rounded-lg border border-teal-500/20">
                             Suministro: {sum.toLowerCase().includes('otro especifique') ? 'Otro' : sum}
-                            <button onClick={() => toggleFilter(sum, selectedTipoSuministro, setSelectedTipoSuministro)} className="hover:text-white">
+                            <button onClick={() => toggleFilter(sum, selectedTipoSuministro, setSelectedTipoSuministro)} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
@@ -713,16 +719,16 @@ export const CompaniesPage = () => {
                     {selectedPaisOrigen.map((pais) => (
                         <span key={pais} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-violet-500/10 text-violet-400 text-xs rounded-lg border border-violet-500/20">
                             Origen: {pais.toLowerCase().includes('otro especifique') ? 'Otro' : pais}
-                            <button onClick={() => toggleFilter(pais, selectedPaisOrigen, setSelectedPaisOrigen)} className="hover:text-white">
+                            <button onClick={() => toggleFilter(pais, selectedPaisOrigen, setSelectedPaisOrigen)} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
                     ))}
 
                     {selectedEstados.map((estado) => (
-                        <span key={estado} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
+                        <span key={estado} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-xs rounded-lg border border-emerald-500/20">
                             Estado: {estado}
-                            <button onClick={() => toggleFilter(estado, selectedEstados, setSelectedEstados)} className="hover:text-white">
+                            <button onClick={() => toggleFilter(estado, selectedEstados, setSelectedEstados)} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
@@ -731,7 +737,7 @@ export const CompaniesPage = () => {
                     {selectedMunicipios.map((muni) => (
                         <span key={muni} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-lg border border-purple-500/20">
                             Municipio: {muni}
-                            <button onClick={() => toggleFilter(muni, selectedMunicipios, setSelectedMunicipios)} className="hover:text-white">
+                            <button onClick={() => toggleFilter(muni, selectedMunicipios, setSelectedMunicipios)} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
@@ -740,7 +746,7 @@ export const CompaniesPage = () => {
                     {selectedExporta !== '' && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-500/10 text-sky-400 text-xs rounded-lg border border-sky-500/20">
                             Exporta: {selectedExporta === 'si' ? 'Sí' : 'No'}
-                            <button onClick={() => { setCurrentPage(1); setSelectedExporta(''); }} className="hover:text-white">
+                            <button onClick={() => { setCurrentPage(1); setSelectedExporta(''); }} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
@@ -749,7 +755,7 @@ export const CompaniesPage = () => {
                     {selectedPaisesDestino.map((pais) => (
                         <span key={pais} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-fuchsia-500/10 text-fuchsia-400 text-xs rounded-lg border border-fuchsia-500/20">
                             Destino: {pais.toLowerCase().includes('otro especifique') ? 'Otro' : pais}
-                            <button onClick={() => toggleFilter(pais, selectedPaisesDestino, setSelectedPaisesDestino)} className="hover:text-white">
+                            <button onClick={() => toggleFilter(pais, selectedPaisesDestino, setSelectedPaisesDestino)} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
@@ -758,7 +764,7 @@ export const CompaniesPage = () => {
                     {selectedCertificaciones.map((cert) => (
                         <span key={cert} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-500/10 text-rose-400 text-xs rounded-lg border border-rose-500/20">
                             Certificación: {cert.toLowerCase().includes('otro especifique') ? 'Otro' : cert}
-                            <button onClick={() => toggleFilter(cert, selectedCertificaciones, setSelectedCertificaciones)} className="hover:text-white">
+                            <button onClick={() => toggleFilter(cert, selectedCertificaciones, setSelectedCertificaciones)} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
@@ -767,7 +773,7 @@ export const CompaniesPage = () => {
                     {selectedApoyos.map((apoyo) => (
                         <span key={apoyo} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-500/10 text-orange-400 text-xs rounded-lg border border-orange-500/20">
                             Apoyo: {apoyo.toLowerCase().includes('otro especifique') ? 'Otro' : apoyo}
-                            <button onClick={() => toggleFilter(apoyo, selectedApoyos, setSelectedApoyos)} className="hover:text-white">
+                            <button onClick={() => toggleFilter(apoyo, selectedApoyos, setSelectedApoyos)} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
@@ -776,7 +782,7 @@ export const CompaniesPage = () => {
                     {selectedEtiquetas.map((etq) => (
                         <span key={etq} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 text-indigo-400 text-xs rounded-lg border border-indigo-500/20">
                             Etiqueta: {etq.toLowerCase().includes('otro especifique') ? 'Otro' : etq}
-                            <button onClick={() => toggleFilter(etq, selectedEtiquetas, setSelectedEtiquetas)} className="hover:text-white">
+                            <button onClick={() => toggleFilter(etq, selectedEtiquetas, setSelectedEtiquetas)} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
@@ -784,7 +790,7 @@ export const CompaniesPage = () => {
 
                     <button
                         onClick={clearAllFilters}
-                        className="text-xs text-slate-400 hover:text-red-400 underline ml-auto font-medium transition-colors"
+                        className="text-xs text-app-muted hover:text-red-500 underline ml-auto font-medium transition-colors"
                     >
                         Limpiar todos
                     </button>
@@ -793,23 +799,23 @@ export const CompaniesPage = () => {
 
             {/* CONTADOR DE RESULTADOS ENCONTRADOS */}
             {!loading && displayedCompanies.length > 0 && (
-                <div className="mb-4 flex items-center justify-between bg-slate-800/60 border border-slate-700/60 px-4 py-2.5 rounded-lg text-sm text-slate-300 shadow-sm">
+                <div className="mb-4 flex items-center justify-between bg-app-card border border-app-border px-4 py-2.5 rounded-lg text-sm text-app-text shadow-sm">
                     <span className="font-medium">
                         {showOnlySelected ? (
                             <>
-                                Mostrando <strong className="text-blue-400 font-semibold">{displayedCompanies.length}</strong>{' '}
+                                Mostrando <strong className="text-blue-500 font-semibold">{displayedCompanies.length}</strong>{' '}
                                 {displayedCompanies.length === 1 ? 'empresa seleccionada' : 'empresas seleccionadas'}
                             </>
                         ) : (
                             <>
                                 Se {displayedCompanies.length === 1 ? 'encontró' : 'encontraron'}{' '}
-                                <strong className="text-blue-400 font-semibold">{displayedCompanies.length}</strong>{' '}
+                                <strong className="text-blue-500 font-semibold">{displayedCompanies.length}</strong>{' '}
                                 {displayedCompanies.length === 1 ? 'resultado' : 'resultados'}
                             </>
                         )}
                     </span>
                     {!showOnlySelected && displayedCompanies.length !== companies.length && (
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-app-muted">
                             (filtrados de un total de {companies.length})
                         </span>
                     )}
@@ -818,11 +824,11 @@ export const CompaniesPage = () => {
 
             {/* TABLA O TARJETAS */}
             {loading ? (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
+                <div className="bg-app-card border border-app-border rounded-xl p-8 text-center text-app-muted">
                     Cargando datos...
                 </div>
             ) : displayedCompanies.length === 0 ? (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
+                <div className="bg-app-card border border-app-border rounded-xl p-8 text-center text-app-muted">
                     {showOnlySelected
                         ? 'No hay empresas seleccionadas.'
                         : 'No se encontraron empresas con los criterios seleccionados.'}
@@ -830,10 +836,10 @@ export const CompaniesPage = () => {
             ) : (
                 <>
                     {tipoVista === 'tabla' && (
-                        <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
+                        <div className="bg-app-card border border-app-border rounded-xl overflow-hidden shadow-xl">
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm text-slate-300">
-                                    <thead className="bg-slate-900/60 text-slate-400 text-xs uppercase border-b border-slate-700">
+                                <table className="w-full text-left text-sm text-app-text">
+                                    <thead className="bg-app-bg text-app-muted text-xs uppercase border-b border-app-border">
                                         <tr>
                                             <th className="px-4 py-4 w-10"></th>
                                             <th className="px-6 py-4">Empresa</th>
@@ -844,27 +850,36 @@ export const CompaniesPage = () => {
                                             <th className="px-6 py-4 text-right">Acciones</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-700/60">
+                                    <tbody className="divide-y divide-app-border">
                                         {paginatedCompanies.map((comp) => {
                                             const isSelected = Boolean(comp._id && selectedCompanyIds.has(comp._id));
                                             return (
-                                                <tr key={comp._id} className={`transition-colors ${isSelected ? 'bg-blue-500/5 hover:bg-blue-500/10' : 'hover:bg-slate-700/30'}`}>
+                                                <tr
+                                                    key={comp._id}
+                                                    className={`transition-colors ${isSelected
+                                                        ? 'bg-blue-500/10 hover:bg-blue-500/15'
+                                                        : 'hover:bg-app-border/40'
+                                                        }`}
+                                                >
                                                     <td className="px-4 py-4">
                                                         <button
                                                             type="button"
                                                             onClick={() => toggleCompanySelection(comp._id)}
                                                             title={isSelected ? 'Quitar selección' : 'Seleccionar empresa'}
-                                                            className={`p-1 rounded-md transition-colors ${isSelected ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
+                                                            className={`p-1 rounded-md transition-colors ${isSelected
+                                                                ? 'text-blue-400'
+                                                                : 'text-app-muted hover:text-app-text'
+                                                                }`}
                                                         >
                                                             {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                                                         </button>
                                                     </td>
-                                                    <td className="px-6 py-4 font-medium text-white">
+                                                    <td className="px-6 py-4 font-medium text-app-text">
                                                         <div>{comp.nombreComercial}</div>
-                                                        <div className="text-xs text-slate-500">{comp.razonSocial}</div>
+                                                        <div className="text-xs text-app-muted">{comp.razonSocial}</div>
                                                     </td>
-                                                    <td className="px-6 py-4 text-slate-400">{comp.rfc}</td>
-                                                    <td className="px-6 py-4 text-slate-400">
+                                                    <td className="px-6 py-4 text-app-muted">{comp.rfc}</td>
+                                                    <td className="px-6 py-4 text-app-muted">
                                                         {comp.ubicacion?.municipio}, {comp.ubicacion?.estado}
                                                     </td>
                                                     <td className="px-6 py-4">
@@ -891,7 +906,7 @@ export const CompaniesPage = () => {
                                                         <div className="flex items-center justify-end gap-1.5">
                                                             <button
                                                                 onClick={() => handleOpenDetails(comp)}
-                                                                className="p-1.5 bg-slate-700 hover:bg-slate-600 text-blue-400 rounded-md transition-colors"
+                                                                className="p-1.5 bg-app-border/50 hover:bg-app-border text-blue-400 rounded-md transition-colors"
                                                                 title="Ver detalles"
                                                             >
                                                                 <Eye className="w-4 h-4" />
@@ -899,7 +914,7 @@ export const CompaniesPage = () => {
 
                                                             <button
                                                                 onClick={() => handleOpenFollow(comp)}
-                                                                className="p-1.5 bg-slate-700 hover:bg-slate-600 text-amber-400 rounded-md transition-colors"
+                                                                className="p-1.5 bg-app-border/50 hover:bg-app-border text-amber-400 rounded-md transition-colors"
                                                                 title="Ver seguimientos"
                                                             >
                                                                 <ChartGantt className="w-4 h-4" />
@@ -909,7 +924,7 @@ export const CompaniesPage = () => {
                                                                 <>
                                                                     <button
                                                                         onClick={() => openModal(comp)}
-                                                                        className="p-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md transition-colors"
+                                                                        className="p-1.5 bg-app-border/50 hover:bg-app-border text-app-text rounded-md transition-colors"
                                                                         title="Editar"
                                                                     >
                                                                         <Pencil className="w-4 h-4" />
@@ -941,13 +956,16 @@ export const CompaniesPage = () => {
                                 return (
                                     <div
                                         key={comp._id}
-                                        className={`bg-slate-800 border rounded-xl p-5 shadow-xl flex flex-col justify-between transition-colors ${isSelected ? 'border-blue-500 ring-1 ring-blue-500/40' : 'border-slate-700 hover:border-slate-600'}`}
+                                        className={`bg-app-card border rounded-xl p-5 shadow-md flex flex-col justify-between transition-colors ${isSelected
+                                            ? 'border-blue-500 ring-1 ring-blue-500/40'
+                                            : 'border-app-border hover:border-app-muted/50'
+                                            }`}
                                     >
                                         <div>
                                             <div className="flex items-start justify-between gap-3 mb-3">
                                                 <div>
-                                                    <h3 className="font-bold text-white text-base leading-snug">{comp.nombreComercial}</h3>
-                                                    <p className="text-xs text-slate-400 line-clamp-1">{comp.razonSocial}</p>
+                                                    <h3 className="font-bold text-app-text text-base leading-snug">{comp.nombreComercial}</h3>
+                                                    <p className="text-xs text-app-muted line-clamp-1">{comp.razonSocial}</p>
                                                 </div>
                                                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                                                     <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded border border-blue-500/20 whitespace-nowrap">
@@ -968,22 +986,22 @@ export const CompaniesPage = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-2 text-xs text-slate-300 my-4">
+                                            <div className="space-y-2 text-xs text-app-text my-4">
                                                 <div className="flex items-center gap-2">
-                                                    <Hash className="w-4 h-4 text-slate-400 shrink-0" />
+                                                    <Hash className="w-4 h-4 text-app-muted shrink-0" />
                                                     <span>RFC: {comp.rfc || 'N/A'}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                                                    <Calendar className="w-4 h-4 text-app-muted shrink-0" />
                                                     <span>Inicio de operaciones: {comp.anioInicio || 'N/A'}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+                                                    <MapPin className="w-4 h-4 text-app-muted shrink-0" />
                                                     <span>{comp.ubicacion?.municipio}, {comp.ubicacion?.estado}</span>
                                                 </div>
                                                 {comp.informacionEmpresa?.paisOrigen && (
                                                     <div className="flex items-center gap-2">
-                                                        <Flag className="w-4 h-4 text-slate-400 shrink-0" />
+                                                        <Flag className="w-4 h-4 text-app-muted shrink-0" />
                                                         <span>
                                                             País de Origen:{' '}
                                                             {comp.informacionEmpresa.paisOrigen === 'Otro' && comp.informacionEmpresa.paisOrigenOtro
@@ -994,7 +1012,7 @@ export const CompaniesPage = () => {
                                                 )}
                                                 {comp.sitioWeb && (
                                                     <div className="flex items-center gap-2">
-                                                        <Globe className="w-4 h-4 text-slate-400 shrink-0" />
+                                                        <Globe className="w-4 h-4 text-app-muted shrink-0" />
                                                         <a href={comp.sitioWeb} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline truncate">
                                                             {comp.sitioWeb}
                                                         </a>
@@ -1026,50 +1044,50 @@ export const CompaniesPage = () => {
                                             )}
                                         </div>
 
-                                        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-700/60 mt-2">
+                                        <div className="flex flex-wrap items-center justify-end gap-1.5 pt-3 border-t border-app-border mt-2">
                                             <button
                                                 onClick={() => toggleCompanySelection(comp._id)}
                                                 title={isSelected ? 'Quitar selección' : 'Seleccionar empresa'}
-                                                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors text-xs font-medium mr-auto ${isSelected
+                                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors text-xs font-medium mr-auto sm:mr-auto ${isSelected
                                                     ? 'bg-blue-600/20 border border-blue-500/50 text-blue-400'
-                                                    : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                                                    : 'bg-app-border/50 hover:bg-app-border text-app-text'
                                                     }`}
                                             >
-                                                {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                                                <span className="hidden sm:inline">{isSelected ? 'Seleccionada' : 'Seleccionar'}</span>
+                                                {isSelected ? <CheckSquare className="w-4 h-4 shrink-0" /> : <Square className="w-4 h-4 shrink-0" />}
+                                                <span className="hidden xl:inline">{isSelected ? 'Seleccionada' : 'Seleccionar'}</span>
                                             </button>
 
                                             <button
                                                 onClick={() => handleOpenDetails(comp)}
-                                                className="p-2 bg-slate-700 hover:bg-slate-600 text-blue-400 rounded-lg transition-colors text-xs flex items-center gap-1"
+                                                className="p-1.5 bg-app-border/50 hover:bg-app-border text-blue-400 rounded-lg transition-colors text-xs flex items-center gap-1"
                                                 title="Ver detalles"
                                             >
-                                                <Eye className="w-4 h-4" />
+                                                <Eye className="w-4 h-4 shrink-0" />
                                             </button>
 
                                             <button
                                                 onClick={() => handleOpenFollow(comp)}
-                                                className="p-2 bg-slate-700 hover:bg-slate-600 text-amber-400 rounded-lg transition-colors text-xs flex items-center gap-1"
+                                                className="p-1.5 bg-app-border/50 hover:bg-app-border text-amber-400 rounded-lg transition-colors text-xs flex items-center gap-1"
                                                 title="Ver seguimientos"
                                             >
-                                                <ChartGantt className="w-4 h-4" />
+                                                <ChartGantt className="w-4 h-4 shrink-0" />
                                             </button>
 
                                             {canEdit && (
                                                 <>
                                                     <button
                                                         onClick={() => openModal(comp)}
-                                                        className="p-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg transition-colors"
+                                                        className="p-1.5 bg-app-border/50 hover:bg-app-border text-app-text rounded-lg transition-colors"
                                                         title="Editar"
                                                     >
-                                                        <Pencil className="w-4 h-4" />
+                                                        <Pencil className="w-4 h-4 shrink-0" />
                                                     </button>
                                                     <button
                                                         onClick={() => comp._id && handleDelete(comp._id, comp.nombreComercial)}
-                                                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/20 transition-colors"
+                                                        className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/20 transition-colors"
                                                         title="Eliminar"
                                                     >
-                                                        <Trash2 className="w-4 h-4" />
+                                                        <Trash2 className="w-4 h-4 shrink-0" />
                                                     </button>
                                                 </>
                                             )}
@@ -1156,13 +1174,13 @@ export const CompaniesPage = () => {
 
             {/* MODAL CREAR / EDITAR */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
-                    <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-8">
-                        <div className="p-6 border-b border-slate-700 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-white">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
+                    <div className="bg-app-card border border-app-border rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-8">
+                        <div className="p-6 border-b border-app-border flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-app-text">
                                 {editingCompany ? 'Editar Empresa' : 'Registrar Nueva Empresa'}
                             </h2>
-                            <button onClick={closeModal} className="text-slate-400 hover:text-white transition-colors">
+                            <button onClick={closeModal} className="text-app-muted hover:text-app-text transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -1205,12 +1223,14 @@ export const CompaniesPage = () => {
 
             {/* MODAL CON COMPANIESFOLLOWPAGE */}
             {isFollowModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col my-8 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden [ms-overflow-style:none]">
-                        <CompaniesFollowPage
-                            company={followCompany}
-                            onClose={handleCloseFollow}
-                        />
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm">
+                    <div className="bg-app-card border border-app-border rounded-2xl w-full max-w-6xl max-h-[92vh] shadow-2xl flex flex-col my-auto overflow-hidden">
+                        <div className="flex-1 overflow-y-auto overflow-x-auto p-2 sm:p-4 [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
+                            <CompaniesFollowPage
+                                company={followCompany}
+                                onClose={handleCloseFollow}
+                            />
+                        </div>
                     </div>
                 </div>
             )}

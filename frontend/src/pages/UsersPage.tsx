@@ -57,15 +57,16 @@ export const UsersPage = () => {
     const handleDelete = (id: string, nombre: string) => {
         Swal.fire({
             title: '¿Eliminar usuario?',
-            html: `Está a punto de eliminar al usuario <strong style="color: #fff;">${nombre}</strong>. Esta acción no se puede deshacer.`,
+            html: `Está a punto de eliminar al usuario <strong style="color: inherit;">${nombre}</strong>. Esta acción no se puede deshacer.`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#334155',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
             confirmButtonText: 'Sí, eliminar',
             cancelButtonText: 'Cancelar',
-            background: '#1e293b',
-            color: '#f8fafc',
+            customClass: {
+                popup: '!bg-app-card !text-app-text !border !border-app-border'
+            },
             allowOutsideClick: true,
             allowEscapeKey: true,
         }).then(async (result) => {
@@ -96,13 +97,13 @@ export const UsersPage = () => {
         <>
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
                 <div className="relative w-full sm:w-96">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-app-muted" />
                     <input
                         type="text"
                         placeholder="Buscar por nombre o correo..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-app-card border border-app-border rounded-lg py-2 pl-10 pr-4 text-sm text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                     />
                 </div>
 
@@ -117,15 +118,15 @@ export const UsersPage = () => {
 
             {/* CONTADOR DE RESULTADOS ENCONTRADOS */}
             {!loading && filteredUsers.length > 0 && (
-                <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-800/60 border border-slate-700/60 px-4 py-2.5 rounded-lg text-sm text-slate-300 shadow-sm gap-1">
+                <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-app-card/60 border border-app-border/60 px-4 py-2.5 rounded-lg text-sm text-app-text shadow-sm gap-1">
                     <span className="font-medium">
                         Se {filteredUsers.length === 1 ? 'encontró' : 'encontraron'}{' '}
-                        <strong className="text-blue-400 font-semibold">{filteredUsers.length}</strong>{' '}
+                        <strong className="text-blue-500 font-semibold">{filteredUsers.length}</strong>{' '}
                         {filteredUsers.length === 1 ? 'resultado' : 'resultados'}
                     </span>
 
                     {search.trim() !== '' && filteredUsers.length !== users.length && (
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-app-muted">
                             (filtrados de un total de {users.length})
                         </span>
                     )}
@@ -133,33 +134,33 @@ export const UsersPage = () => {
             )}
 
             {loading ? (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
+                <div className="bg-app-card border border-app-border rounded-xl p-8 text-center text-app-muted">
                     Cargando usuarios...
                 </div>
             ) : filteredUsers.length === 0 ? (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
+                <div className="bg-app-card border border-app-border rounded-xl p-8 text-center text-app-muted">
                     No se encontraron usuarios registrados.
                 </div>
             ) : (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
+                <div className="bg-app-card border border-app-border rounded-xl overflow-hidden shadow-xl">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-slate-300">
-                            <thead className="bg-slate-900/60 text-slate-400 text-xs uppercase border-b border-slate-700">
+                        <table className="w-full text-left text-sm text-app-text">
+                            <thead className="bg-app-bg text-app-muted text-xs uppercase border-b border-app-border">
                                 <tr>
                                     <th className="px-6 py-4">Usuario</th>
                                     <th className="px-6 py-4">Correo Electrónico</th>
                                     <th className="px-6 py-4">Rol</th>
                                     <th className="px-6 py-4">Estado</th>
-                                    <th className="px-6 py-4 text-right">Acciones</th>
+                                    <th className="px-6 py-4 text-center">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-700/60">
+                            <tbody className="divide-y divide-app-border/60">
                                 {filteredUsers.map((u) => (
-                                    <tr key={u._id} className="hover:bg-slate-700/30 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-white">
+                                    <tr key={u._id} className="hover:bg-app-button/50 transition-colors">
+                                        <td className="px-6 py-4 font-medium text-app-text">
                                             {u.nombre}
                                         </td>
-                                        <td className="px-6 py-4 text-slate-400">
+                                        <td className="px-6 py-4 text-app-muted">
                                             {u.email}
                                         </td>
                                         <td className="px-6 py-4">
@@ -188,7 +189,7 @@ export const UsersPage = () => {
                                         <td className="px-6 py-4 text-right space-x-2">
                                             <button
                                                 onClick={() => openModal(u)}
-                                                className="p-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md transition-colors"
+                                                className="p-1.5 bg-app-button hover:bg-app-button-hover text-app-text rounded-md transition-colors"
                                                 title="Editar Usuario"
                                             >
                                                 <Edit2 className="w-4 h-4" />
@@ -212,15 +213,15 @@ export const UsersPage = () => {
             {/* Modal de Usuario */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative my-8">
+                    <div className="bg-app-card border border-app-border rounded-2xl w-full max-w-lg p-6 shadow-2xl relative my-8">
                         <button
                             onClick={closeModal}
-                            className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700/50 transition-colors"
+                            className="absolute top-4 right-4 text-app-muted hover:text-app-text p-1 rounded-lg hover:bg-app-button transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
 
-                        <h3 className="text-xl font-bold text-white mb-6">
+                        <h3 className="text-xl font-bold text-app-text mb-6">
                             {editingUser ? 'Editar Usuario' : 'Registrar Nuevo Usuario'}
                         </h3>
 

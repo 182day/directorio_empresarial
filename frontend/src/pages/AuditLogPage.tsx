@@ -66,7 +66,6 @@ export const AuditLogPage = () => {
     // Cargar Usuarios desde el Store de Zustand al montar
     useEffect(() => {
         fetchUsers();
-        //fetchCompanies();
     }, [fetchUsers]);
 
     // Petición al backend con Filtros y Paginación
@@ -210,22 +209,22 @@ export const AuditLogPage = () => {
             <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3 w-full xl:w-auto flex-wrap">
                     <div className="relative flex-1 sm:w-80 min-w-55">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-app-muted" />
                         <input
                             type="text"
                             placeholder="Buscar por acción, módulo o detalle..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearchClick()}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                            className="w-full bg-app-card border border-app-border rounded-lg py-2 pl-10 pr-4 text-sm text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
                         />
                     </div>
 
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${totalFiltrosActivos > 0 || showFilters
-                            ? 'bg-blue-600/20 border-blue-500 text-blue-400 font-semibold'
-                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:border-slate-600'
+                            ? 'bg-blue-600/20 border-blue-500 text-blue-500 font-semibold'
+                            : 'bg-app-card border-app-border text-app-muted hover:text-app-text'
                             }`}
                     >
                         <SlidersHorizontal className="w-4 h-4" />
@@ -248,7 +247,7 @@ export const AuditLogPage = () => {
                     {hasSearched && (
                         <button
                             onClick={() => fetchLogs(currentPage, pageSize)}
-                            className="p-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors"
+                            className="p-2 bg-app-card border border-app-border hover:bg-app-button-hover text-app-muted hover:text-app-text rounded-lg transition-colors"
                             title="Recargar consulta actual"
                         >
                             <RefreshCw className="w-4 h-4" />
@@ -270,19 +269,19 @@ export const AuditLogPage = () => {
 
             {/* PANEL DESPLEGABLE DE FILTROS AVANZADOS */}
             {showFilters && (
-                <div className="bg-slate-800/90 border border-slate-700 rounded-xl p-4 shadow-lg grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-app-card border border-app-border rounded-xl p-4 shadow-lg grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                        <label className="text-xs font-medium text-slate-400 mb-1 flex items-center gap-1.5">
+                        <label className="text-xs font-medium text-app-muted mb-1 flex items-center gap-1.5">
                             <User className="w-3.5 h-3.5" /> Filtrar por Usuario
                         </label>
                         <select
                             value={selectedUser}
                             onChange={(e) => setSelectedUser(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                            className="w-full bg-app-bg border border-app-border rounded-lg p-2 text-xs text-app-text focus:outline-none focus:border-blue-500"
                         >
-                            <option value="">Todos los usuarios</option>
+                            <option value="" className="bg-app-card text-app-text">Todos los usuarios</option>
                             {users.map((u) => (
-                                <option key={u._id} value={u._id}>
+                                <option key={u._id} value={u._id} className="bg-app-card text-app-text">
                                     {u.nombre} ({u.email})
                                 </option>
                             ))}
@@ -290,45 +289,45 @@ export const AuditLogPage = () => {
                     </div>
 
                     <div>
-                        <label className="text-xs font-medium text-slate-400 mb-1 flex items-center gap-1.5">
+                        <label className="text-xs font-medium text-app-muted mb-1 flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5" /> Fecha Desde
                         </label>
                         <input
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                            className="w-full bg-app-bg border border-app-border rounded-lg p-2 text-xs text-app-text focus:outline-none focus:border-blue-500"
                         />
                     </div>
 
                     <div>
-                        <label className="text-xs font-medium text-slate-400 mb-1 flex items-center gap-1.5">
+                        <label className="text-xs font-medium text-app-muted mb-1 flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5" /> Fecha Hasta
                         </label>
                         <input
                             type="date"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                            className="w-full bg-app-bg border border-app-border rounded-lg p-2 text-xs text-app-text focus:outline-none focus:border-blue-500"
                         />
                     </div>
 
                     {/* Selector de Módulo */}
                     <div>
-                        <label className="text-xs font-medium text-slate-400 mb-1 flex items-center gap-1.5">
+                        <label className="text-xs font-medium text-app-muted mb-1 flex items-center gap-1.5">
                             <SlidersHorizontal className="w-3.5 h-3.5" /> Filtrar por Módulo
                         </label>
                         <select
                             value={selectedModulo}
                             onChange={(e) => setSelectedModulo(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                            className="w-full bg-app-bg border border-app-border rounded-lg p-2 text-xs text-app-text focus:outline-none focus:border-blue-500"
                         >
-                            <option value="">Todos los módulos</option>
-                            <option value="Empresas">Empresas</option>
-                            <option value="Usuarios">Usuarios</option>
-                            <option value="SeguimientoEmpresas">Seguimientos</option>
-                            <option value="Auth">Auth</option>
-                            <option value="General">General</option>
+                            <option value="" className="bg-app-card text-app-text">Todos los módulos</option>
+                            <option value="Empresas" className="bg-app-card text-app-text">Empresas</option>
+                            <option value="Usuarios" className="bg-app-card text-app-text">Usuarios</option>
+                            <option value="SeguimientoEmpresas" className="bg-app-card text-app-text">Seguimientos</option>
+                            <option value="Auth" className="bg-app-card text-app-text">Auth</option>
+                            <option value="General" className="bg-app-card text-app-text">General</option>
                         </select>
                     </div>
                 </div>
@@ -336,49 +335,49 @@ export const AuditLogPage = () => {
 
             {/* CHIPS DE FILTROS APLICADOS */}
             {totalFiltrosActivos > 0 && (
-                <div className="flex items-center gap-2 flex-wrap bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
-                    <span className="text-xs text-slate-400 font-medium">Filtros aplicados:</span>
+                <div className="flex items-center gap-2 flex-wrap bg-app-card/40 p-3 rounded-xl border border-app-border">
+                    <span className="text-xs text-app-muted font-medium">Filtros aplicados:</span>
 
                     {search.trim() !== '' && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-400 text-xs rounded-lg border border-amber-500/20">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 text-amber-500 dark:text-amber-400 text-xs rounded-lg border border-amber-500/20">
                             Búsqueda: "{search}"
-                            <button onClick={() => setSearch('')} className="hover:text-white">
+                            <button onClick={() => setSearch('')} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
                     )}
 
                     {selectedUser && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-500 dark:text-blue-400 text-xs rounded-lg border border-blue-500/20">
                             Usuario: {users.find(u => u._id === selectedUser)?.nombre || selectedUser}
-                            <button onClick={() => setSelectedUser('')} className="hover:text-white">
+                            <button onClick={() => setSelectedUser('')} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
                     )}
 
                     {startDate && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 text-xs rounded-lg border border-emerald-500/20">
                             Desde: {startDate}
-                            <button onClick={() => setStartDate('')} className="hover:text-white">
+                            <button onClick={() => setStartDate('')} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
                     )}
 
                     {endDate && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-lg border border-purple-500/20">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 text-purple-500 dark:text-purple-400 text-xs rounded-lg border border-purple-500/20">
                             Hasta: {endDate}
-                            <button onClick={() => setEndDate('')} className="hover:text-white">
+                            <button onClick={() => setEndDate('')} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
                     )}
 
                     {selectedModulo && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 text-purple-400 text-xs rounded-lg border border-purple-500/20">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 text-purple-500 dark:text-purple-400 text-xs rounded-lg border border-purple-500/20">
                             Módulo: {selectedModulo}
-                            <button onClick={() => setSelectedModulo('')} className="hover:text-white">
+                            <button onClick={() => setSelectedModulo('')} className="hover:text-app-text">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </span>
@@ -386,7 +385,7 @@ export const AuditLogPage = () => {
 
                     <button
                         onClick={clearAllFilters}
-                        className="text-xs text-slate-400 hover:text-red-400 underline ml-auto font-medium transition-colors"
+                        className="text-xs text-app-muted hover:text-red-500 underline ml-auto font-medium transition-colors"
                     >
                         Limpiar todos
                     </button>
@@ -395,15 +394,15 @@ export const AuditLogPage = () => {
 
             {/* CONTADOR DE RESULTADOS ENCONTRADOS */}
             {hasSearched && !loading && logs.length > 0 && (
-                <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-800/60 border border-slate-700/60 px-4 py-2.5 rounded-lg text-sm text-slate-300 shadow-sm gap-1">
+                <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-app-card border border-app-border px-4 py-2.5 rounded-lg text-sm text-app-text shadow-sm gap-1">
                     <span className="font-medium">
                         Se {logs.length === 1 ? 'encontró' : 'encontraron'}{' '}
-                        <strong className="text-blue-400 font-semibold">{totalItems}</strong>{' '}
+                        <strong className="text-blue-500 font-semibold">{totalItems}</strong>{' '}
                         {totalItems === 1 ? 'resultado' : 'resultados'}
                     </span>
 
                     {totalFiltrosActivos > 0 && (
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-app-muted">
                             (con filtros aplicados)
                         </span>
                     )}
@@ -412,13 +411,13 @@ export const AuditLogPage = () => {
 
             {/* CONTENIDO PRINCIPAL / TABLA */}
             {!hasSearched ? (
-                <div className="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-3">
-                    <div className="p-3 bg-blue-600/10 text-blue-400 rounded-full">
+                <div className="bg-app-card border border-app-border rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-3">
+                    <div className="p-3 bg-blue-600/10 text-blue-500 rounded-full">
                         <Search className="w-8 h-8" />
                     </div>
-                    <h3 className="text-lg font-semibold text-white">Consulta de Bitácora</h3>
-                    <p className="text-sm text-slate-400 max-w-md">
-                        Aplica los filtros requeridos o presiona el botón <strong className="text-blue-400">Buscar</strong> para obtener los registros del sistema.
+                    <h3 className="text-lg font-semibold text-app-text">Consulta de Bitácora</h3>
+                    <p className="text-sm text-app-muted max-w-md">
+                        Aplica los filtros requeridos o presiona el botón <strong className="text-blue-500">Buscar</strong> para obtener los registros del sistema.
                     </p>
                     <button
                         onClick={handleSearchClick}
@@ -428,19 +427,19 @@ export const AuditLogPage = () => {
                     </button>
                 </div>
             ) : loading ? (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
+                <div className="bg-app-card border border-app-border rounded-xl p-8 text-center text-app-muted">
                     Cargando registros de bitácora desde el servidor...
                 </div>
             ) : logs.length === 0 ? (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
+                <div className="bg-app-card border border-app-border rounded-xl p-8 text-center text-app-muted">
                     No se encontraron eventos en la bitácora con los criterios seleccionados.
                 </div>
             ) : (
                 <>
-                    <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
+                    <div className="bg-app-card border border-app-border rounded-xl overflow-hidden shadow-xl">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm text-slate-300">
-                                <thead className="bg-slate-900/60 text-slate-400 text-xs uppercase border-b border-slate-700">
+                            <table className="w-full text-left text-sm text-app-text">
+                                <thead className="bg-app-bg text-app-muted text-xs uppercase border-b border-app-border">
                                     <tr>
                                         <th className="px-6 py-4">Fecha / Hora</th>
                                         <th className="px-6 py-4">Usuario</th>
@@ -449,10 +448,10 @@ export const AuditLogPage = () => {
                                         <th className="px-6 py-4">Detalles</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-700/60">
+                                <tbody className="divide-y divide-app-border">
                                     {logs.map((log) => (
-                                        <tr key={log._id} className="hover:bg-slate-700/30 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-400">
+                                        <tr key={log._id} className="hover:bg-app-button-hover/50 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap text-xs text-app-muted">
                                                 {new Date(log.createdAt).toLocaleString('es-MX', {
                                                     day: '2-digit',
                                                     month: '2-digit',
@@ -465,37 +464,37 @@ export const AuditLogPage = () => {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {log.usuario ? (
                                                     <div>
-                                                        <div className="font-medium text-white">{log.usuario.nombre}</div>
-                                                        <div className="text-xs text-slate-500">{log.usuario.email}</div>
+                                                        <div className="font-medium text-app-text">{log.usuario.nombre}</div>
+                                                        <div className="text-xs text-app-muted">{log.usuario.email}</div>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-xs text-slate-500 italic">
+                                                    <span className="text-xs text-app-muted italic">
                                                         Sistema / Desconocido
                                                     </span>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2.5 py-1 text-xs rounded-md border font-semibold inline-block ${log.modulo === 'Empresas'
-                                                    ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                                    ? 'bg-purple-500/10 text-purple-500 dark:text-purple-400 border-purple-500/20'
                                                     : log.modulo === 'Usuarios'
-                                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                        ? 'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border-emerald-500/20'
                                                         : log.modulo === 'SeguimientoEmpresas'
-                                                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                                                            ? 'bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border-indigo-500/20'
                                                             : log.modulo === 'Auth'
-                                                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                                                : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                                ? 'bg-amber-500/10 text-amber-500 dark:text-amber-400 border-amber-500/20'
+                                                                : 'bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/20'
                                                     }`}>
                                                     {log.modulo === 'SeguimientoEmpresas' ? 'Seguimiento' : log.modulo || 'General'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 font-medium text-white whitespace-nowrap">
+                                            <td className="px-6 py-4 font-medium text-app-text whitespace-nowrap">
                                                 {log.accion}
                                             </td>
-                                            <td className="px-6 py-4 text-xs text-slate-400 max-w-xs xl:max-w-md">
+                                            <td className="px-6 py-4 text-xs text-app-muted max-w-xs xl:max-w-md">
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={() => setSelectedLogDetails(log)}
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-700 hover:bg-blue-600 hover:text-white text-slate-300 text-xs font-medium rounded-lg transition-colors border border-slate-600 shrink-0"
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-app-button hover:bg-app-button-hover text-app-text text-xs font-medium rounded-lg transition-colors border border-app-border shrink-0"
                                                     >
                                                         <Eye className="w-3.5 h-3.5" />
                                                         Ver detalles
@@ -521,61 +520,60 @@ export const AuditLogPage = () => {
 
             {/* MODAL DE DETALLES COMPLETOS DE LA BITÁCORA */}
             {selectedLogDetails && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-                        <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-800/50">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+                    <div className="bg-app-card border border-app-border rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+                        <div className="flex items-center justify-between p-5 border-b border-app-border bg-app-bg/50">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">
+                                <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg">
                                     <FileText className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="text-base font-semibold text-white">Detalles del Evento</h3>
-                                    <p className="text-xs text-slate-400">
+                                    <h3 className="text-base font-semibold text-app-text">Detalles del Evento</h3>
+                                    <p className="text-xs text-app-muted">
                                         ID: {selectedLogDetails._id}
                                     </p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => setSelectedLogDetails(null)}
-                                className="p-1.5 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                                className="p-1.5 text-app-muted hover:text-app-text bg-app-button hover:bg-app-button-hover rounded-lg transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
 
                         <div className="p-6 overflow-y-auto space-y-4">
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-800/40 p-3 rounded-xl border border-slate-800 text-xs">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-app-bg/40 p-3 rounded-xl border border-app-border text-xs">
                                 <div>
-                                    <span className="text-slate-500 block">Acción</span>
-                                    <span className="font-semibold text-white">{selectedLogDetails.accion}</span>
+                                    <span className="text-app-muted block">Acción</span>
+                                    <span className="font-semibold text-app-text">{selectedLogDetails.accion}</span>
                                 </div>
                                 <div>
-                                    <span className="text-slate-500 block">Módulo</span>
-                                    <span className="text-blue-400 font-medium">{selectedLogDetails.modulo === 'SeguimientoEmpresas' ? 'Seguimiento' : selectedLogDetails.modulo || 'General'}</span>
+                                    <span className="text-app-muted block">Módulo</span>
+                                    <span className="text-blue-500 font-medium">{selectedLogDetails.modulo === 'SeguimientoEmpresas' ? 'Seguimiento' : selectedLogDetails.modulo || 'General'}</span>
                                 </div>
                                 <div>
-                                    <span className="text-slate-500 block">Usuario</span>
-                                    <span className="text-white font-medium">{selectedLogDetails.usuario?.nombre || 'Sistema'}</span>
+                                    <span className="text-app-muted block">Usuario</span>
+                                    <span className="text-app-text font-medium">{selectedLogDetails.usuario?.nombre || 'Sistema'}</span>
                                 </div>
                                 {selectedLogDetails.modulo === 'SeguimientoEmpresas' && (
                                     <div>
-                                        <span className="text-slate-500 block">Empresa</span>
-                                        <span className="text-white font-medium">
+                                        <span className="text-app-muted block">Empresa</span>
+                                        <span className="text-app-text font-medium">
                                             {companies.find((c) => c._id === selectedLogDetails.empresaId)?.nombreComercial ||
                                                 companies.find((c) => c._id === selectedLogDetails.empresaId)?.razonSocial ||
                                                 'Empresa no registrada'}
                                         </span>
                                     </div>
                                 )}
-
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-slate-400 mb-2">
+                                <label className="block text-xs font-semibold text-app-muted mb-2">
                                     Objeto / Información de Cambios:
                                 </label>
-                                <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 overflow-x-auto">
-                                    <pre className="text-xs text-emerald-400 font-mono leading-relaxed whitespace-pre-wrap break-all">
+                                <div className="bg-app-bg border border-app-border rounded-xl p-4 overflow-x-auto">
+                                    <pre className="text-xs text-emerald-600 dark:text-emerald-400 font-mono leading-relaxed whitespace-pre-wrap break-all">
                                         {typeof selectedLogDetails.detalles === 'object'
                                             ? JSON.stringify(selectedLogDetails.detalles, null, 2)
                                             : selectedLogDetails.detalles || 'Sin detalles registrados'}
@@ -584,10 +582,10 @@ export const AuditLogPage = () => {
                             </div>
                         </div>
 
-                        <div className="p-4 border-t border-slate-800 bg-slate-800/30 flex justify-end">
+                        <div className="p-4 border-t border-app-border bg-app-bg/30 flex justify-end">
                             <button
                                 onClick={() => setSelectedLogDetails(null)}
-                                className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs rounded-lg transition-colors border border-slate-700"
+                                className="px-5 py-2 bg-app-button hover:bg-app-button-hover text-app-text font-medium text-xs rounded-lg transition-colors border border-app-border"
                             >
                                 Cerrar
                             </button>

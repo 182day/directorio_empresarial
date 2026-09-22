@@ -1,24 +1,25 @@
 // src/pages/MyAccountPage.tsx
 import { useContext, useState, useEffect } from 'react';
-import { AuthContext, type User } from '../context/AuthContext';
-import { UserForm, type UserFormData } from '../components/UserForm';
+import { AuthContext } from '../context/AuthContext';
+import { UserForm } from '../components/UserForm';
+import { type User, type UserFormData } from '../interfaces/user.interface';
 import { User as UserIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../api/axios';
 
 export const MyAccountPage = () => {
     const { user: authUser } = useContext(AuthContext);
-    const [currentUser, setCurrentUser] = useState<User | null>(authUser);
+    const [currentUser, setCurrentUser] = useState<User | null>(authUser as unknown as User);
 
     useEffect(() => {
         if (authUser) {
-            setCurrentUser(authUser);
+            setCurrentUser(authUser as unknown as User);
         }
     }, [authUser]);
 
     if (!currentUser) {
         return (
-            <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
+            <div className="bg-app-card border border-app-border rounded-xl p-8 text-center text-app-muted">
                 Cargando información del usuario...
             </div>
         );
@@ -28,12 +29,13 @@ export const MyAccountPage = () => {
         nombre: currentUser.nombre,
         email: currentUser.email,
         rol: currentUser.rol,
-        activo: true,
+        activo: currentUser.activo ?? true,
     };
 
     const handleSubmit = async (formData: UserFormData) => {
         try {
-            const res = await api.put(`/users/${currentUser.id}`, formData);
+            // Usamos currentUser._id definido en user.interface.ts
+            const res = await api.put(`/users/${currentUser._id}`, formData);
             
             const updatedUser = res.data.user || res.data;
             setCurrentUser(updatedUser);
@@ -47,21 +49,21 @@ export const MyAccountPage = () => {
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
-            <div className="flex items-center gap-3 pb-4 border-b border-slate-700/60">
-                <div className="p-3 bg-blue-600/10 text-blue-400 rounded-xl border border-blue-500/20">
+            <div className="flex items-center gap-3 pb-4 border-b border-app-border">
+                <div className="p-3 bg-blue-600/10 text-blue-500 rounded-xl border border-blue-500/20">
                     <UserIcon className="w-6 h-6" />
                 </div>
                 <div>
-                    <h1 className="text-xl font-bold text-white">Mi Cuenta</h1>
-                    <p className="text-xs text-slate-400">Gestiona tu información personal y credenciales de acceso</p>
+                    <h1 className="text-xl font-bold text-app-text">Mi Cuenta</h1>
+                    <p className="text-xs text-app-muted">Gestiona tu información personal y credenciales de acceso</p>
                 </div>
             </div>
 
-            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+            <div className="bg-app-card border border-app-border rounded-2xl p-6 shadow-xl">
                 <UserForm
                     initialData={initialFormData}
                     isEditing={true}
-                    isMyAccount={true} // 👈 Deshabilita Rol, Estatus y requiere Confirmar Contraseña
+                    isMyAccount={true}
                     onSubmit={handleSubmit}
                 />
             </div>
