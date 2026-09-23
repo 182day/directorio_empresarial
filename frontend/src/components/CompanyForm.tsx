@@ -4,6 +4,7 @@ import api from '../api/axios';
 import { CheckCircle, X, ChevronDown, Building2, MapPin, Users, Briefcase, HelpCircle, Copy, Check } from 'lucide-react';
 import { SectorCheckboxGroup } from './SectorCheckboxGroup';
 import {
+    OPCIONES_TAMANO,
     OPCIONES_OPERACIONES,
     OPCIONES_SUMINISTRO,
     OPCIONES_CERTIFICACIONES,
@@ -17,7 +18,7 @@ import {
     OPCIONES_SECTOR_SERVICIOS_ESPECIALIZADOS,
     OPCIONES_SECTOR_MROS,
     OPCIONES_SECTOR_MINERO,
-    OPCIONES_APOYOS
+    OPCIONES_APOYOS,
 } from '../data/companyCatalog';
 import { toast } from 'sonner';
 import { OPCIONES_PAISES } from '../data/countryCatalog';
@@ -935,10 +936,11 @@ export const CompanyForm = ({
                                 onChange={(e) => handleChange('tamanoEmpresa', e.target.value)}
                                 className={getInputClass('tamanoEmpresa')}
                             >
-                                <option value="Micro" className="bg-app-bg text-app-text">Micro</option>
-                                <option value="Pequeña" className="bg-app-bg text-app-text">Pequeña</option>
-                                <option value="Mediana" className="bg-app-bg text-app-text">Mediana</option>
-                                <option value="Grande" className="bg-app-bg text-app-text">Grande</option>
+                                {OPCIONES_TAMANO.map((tamano) => (
+                                    <option key={tamano} value={tamano} className="bg-app-bg text-app-text">
+                                        {tamano}
+                                    </option>
+                                ))}
                             </select>
                         </div>
 

@@ -17,7 +17,7 @@ const SUGERENCIAS = [
 
 const MENSAJE_INICIAL: ChatMessage = {
     role: 'assistant',
-    texto: 'Hola 👋 Puedo responder preguntas sobre las empresas y seguimientos registrados en el sistema. ¿Qué quieres saber?'
+    texto: 'Hola 👋 Puedo responder preguntas sobre las empresas y seguimientos registrados en el sistema, además de la bitácora y los usuarios. ¿Qué quieres saber?'
 };
 
 // ---------------------------------------------------------------------------

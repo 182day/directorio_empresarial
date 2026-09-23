@@ -1,4 +1,21 @@
 // src/data/companyCatalog.ts
+import { type CompanySortField } from '../interfaces/company.interface';
+
+export const OPCIONES_TAMANO = ['Micro', 'Pequeña', 'Mediana', 'Grande'];
+
+// Opciones de ordenamiento centralizadas
+export const SORT_OPTIONS: { label: string; value: CompanySortField }[] = [
+  { label: 'Fecha de Registro', value: 'createdAt' },
+  { label: 'Nombre Comercial', value: 'nombreComercial' },
+  { label: 'Razón Social', value: 'razonSocial' },
+  { label: 'RFC', value: 'rfc' },
+  { label: 'Tamaño de Empresa', value: 'tamanoEmpresa' },
+  { label: 'Año de Inicio', value: 'anioInicio' },
+  { label: 'Estado', value: 'estado' },
+  { label: 'Municipio', value: 'municipio' },
+  { label: 'País de Origen', value: 'paisOrigen' },
+  { label: 'Estatus (Activa)', value: 'activa' },
+];
 
 export const OPCIONES_OPERACIONES = ['Fabricante', 'Distribuidor', 'Servicios'];
 export const OPCIONES_SUMINISTRO = ['Directo', 'Indirecto'];

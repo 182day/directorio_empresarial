@@ -1,13 +1,15 @@
 // src/interfaces/company.interface.ts
+export type TamanoEmpresa = 'Micro' | 'Pequeña' | 'Mediana' | 'Grande';
 
 // 1. Interfaz Completa (Usada principalmente en CompanyForm)
 export interface CompanyFormData {
   _id?: string;
+  createdAt?: string | Date;
   correoElectronico: string;
   nombreComercial: string;
   razonSocial: string;
   rfc: string;
-  tamanoEmpresa: string;
+  tamanoEmpresa: TamanoEmpresa;
   anioInicio: number;
   sitioWeb: string;
   etiquetas: string[];
@@ -141,3 +143,18 @@ export interface DirectoryCompany {
     };
   };
 }
+
+// Tipo estricto para los campos de ordenamiento válidos
+export type CompanySortField = 
+  | 'createdAt'
+  | 'nombreComercial'
+  | 'razonSocial'
+  | 'rfc'
+  | 'tamanoEmpresa'
+  | 'anioInicio'
+  | 'estado'
+  | 'municipio'
+  | 'paisOrigen'
+  | 'activa';
+
+export type SortOrder = 'asc' | 'desc';

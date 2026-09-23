@@ -5,14 +5,14 @@ import Swal from 'sweetalert2';
 import { toast } from 'sonner';
 import api from '../api/axios';
 import { CompanyForm } from '../components/CompanyForm';
-import { type CompanyFormData } from '../interfaces/company.interface';
+import { type CompanyFormData, type CompanySortField, type SortOrder } from '../interfaces/company.interface';
 import { CompaniesFilterDrawer } from '../components/CompaniesFilterDrawer';
 import { Pagination } from '../components/Pagination';
 import { CompanyDetailsModal } from '../components/CompanyDetailsModal';
 import { CompaniesFollowPage } from './CompaniesFollowPage';
 import {
     Plus, Pencil, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download, FileText, BarChart3,
-    Hash, Calendar, Layers, Truck, Flag, CheckSquare, Square, ListChecks, CheckCheck, ChartGantt
+    Hash, Calendar, Layers, Truck, Flag, CheckSquare, Square, ListChecks, CheckCheck, ChartGantt, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { exportCompaniesToExcel } from '../components/CompaniesSheetExcel';
@@ -22,8 +22,10 @@ import { CompaniesGraphics } from '../components/CompaniesGraphics';
 import { CompaniesPDFDocument } from '../components/CompaniesPDFDocument';
 import { CompanySheetPDFDocument } from '../components/CompanySheetPDFDocument';
 import { useCompanyStore } from '../stores/useCompanyStore';
-
-const OPCIONES_TAMANO = ['Micro', 'Pequeña', 'Mediana', 'Grande'];
+import {
+    SORT_OPTIONS,
+    OPCIONES_TAMANO
+} from '../data/companyCatalog';
 
 const SECTOR_PRODUCT_KEYS = [
     'sectorPlasticos',
@@ -88,6 +90,142 @@ export const CompaniesPage = () => {
     // Estados para Modal de Seguimiento (CompaniesFollowPage)
     const [followCompany, setFollowCompany] = useState<CompanyFormData | null>(null);
     const [isFollowModalOpen, setIsFollowModalOpen] = useState(false);
+
+    // Dentro del componente CompaniesPage:
+    const [sortField, setSortField] = useState<CompanySortField>('nombreComercial');
+    const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+    // ORDENAMIENTO DE EMPRESAS
+    // 1. PRIMERO: FILTRADO DE EMPRESAS EN EL CLIENTE
+    const filteredCompanies = useMemo(() => {
+        return companies.filter((comp: any) => {
+            const query = search.toLowerCase().trim();
+            const matchSearch = !query ||
+                comp.nombreComercial?.toLowerCase().includes(query) ||
+                comp.razonSocial?.toLowerCase().includes(query) ||
+                comp.rfc?.toLowerCase().includes(query);
+
+            const matchTamano = selectedTamanos.length === 0 || selectedTamanos.includes(comp.tamanoEmpresa);
+            const matchEstado = selectedEstados.length === 0 || selectedEstados.includes(comp.ubicacion?.estado);
+            const matchMunicipio = selectedMunicipios.length === 0 || selectedMunicipios.includes(comp.ubicacion?.municipio);
+
+            const matchEstatus = selectedEstatus.length === 0 || (
+                (selectedEstatus.includes('Activo') && comp.activa) ||
+                (selectedEstatus.includes('Inactivo') && !comp.activa)
+            );
+
+            const matchEtiquetas = selectedEtiquetas.length === 0 || (
+                comp.etiquetas && selectedEtiquetas.some((etq) => comp.etiquetas.includes(etq))
+            );
+
+            const pctExp = Number(comp.informacionEmpresa?.porcentajeExportaciones) || 0;
+            const matchExporta =
+                selectedExporta === '' ||
+                (selectedExporta === 'si' && pctExp > 0) ||
+                (selectedExporta === 'no' && pctExp === 0);
+
+            const matchPaises = selectedPaisesDestino.length === 0 || selectedExporta === 'no' || (
+                comp.informacionEmpresa?.destinoExportaciones &&
+                selectedPaisesDestino.some((p) => comp.informacionEmpresa.destinoExportaciones.includes(p))
+            );
+
+            const matchCert = selectedCertificaciones.length === 0 || (
+                comp.informacionEmpresa?.certificaciones?.lista &&
+                selectedCertificaciones.some((c) => comp.informacionEmpresa.certificaciones.lista.includes(c))
+            );
+
+            const matchApoyos = selectedApoyos.length === 0 || (
+                comp.apoyosYNecesidades?.tipos &&
+                selectedApoyos.some((a) => comp.apoyosYNecesidades.tipos.includes(a))
+            );
+
+            const matchTipoOp = selectedTipoOperaciones.length === 0 || (
+                comp.tipoOperaciones &&
+                selectedTipoOperaciones.some((op) => comp.tipoOperaciones.includes(op))
+            );
+
+            const matchTipoSum = selectedTipoSuministro.length === 0 || (
+                comp.tipoSuministro &&
+                selectedTipoSuministro.some((sum) => comp.tipoSuministro.includes(sum))
+            );
+
+            const matchPaisOrigen = selectedPaisOrigen.length === 0 || (
+                comp.informacionEmpresa?.paisOrigen &&
+                selectedPaisOrigen.includes(comp.informacionEmpresa.paisOrigen)
+            );
+
+            const matchSectores = selectedSectores.length === 0 || (
+                comp.informacionEmpresa?.sectoresPertenece?.lista &&
+                selectedSectores.some((s) => comp.informacionEmpresa.sectoresPertenece.lista.includes(s))
+            );
+
+            const productosEmpresa = SECTOR_PRODUCT_KEYS.flatMap(
+                (key) => comp.informacionEmpresa?.[key]?.lista || []
+            );
+            const matchProductos = selectedProductos.length === 0 ||
+                selectedProductos.some((p) => productosEmpresa.includes(p));
+
+            return matchSearch && matchTamano && matchEstado && matchMunicipio && matchEstatus &&
+                matchEtiquetas && matchExporta && matchPaises && matchCert &&
+                matchApoyos && matchTipoOp && matchTipoSum && matchPaisOrigen &&
+                matchSectores && matchProductos;
+        });
+    }, [
+        companies, search, selectedTamanos, selectedEstados, selectedMunicipios,
+        selectedEstatus, selectedEtiquetas, selectedExporta,
+        selectedPaisesDestino, selectedCertificaciones, selectedApoyos,
+        selectedTipoOperaciones, selectedTipoSuministro, selectedPaisOrigen,
+        selectedSectores, selectedProductos
+    ]);
+
+    // 2. DESPUÉS: ORDENAMIENTO DE EMPRESAS
+    const sortedCompanies = useMemo(() => {
+        return [...filteredCompanies].sort((a: any, b: any) => {
+            let aValue: any;
+            let bValue: any;
+
+            switch (sortField) {
+                case 'createdAt':
+                    aValue = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                    bValue = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                    break;
+                case 'estado':
+                    aValue = a.ubicacion?.estado || '';
+                    bValue = b.ubicacion?.estado || '';
+                    break;
+                case 'municipio':
+                    aValue = a.ubicacion?.municipio || '';
+                    bValue = b.ubicacion?.municipio || '';
+                    break;
+                case 'paisOrigen':
+                    aValue = a.informacionEmpresa?.paisOrigen || '';
+                    bValue = b.informacionEmpresa?.paisOrigen || '';
+                    break;
+                case 'tamanoEmpresa':
+                    const pesoTamano: Record<string, number> = { 'Micro': 1, 'Pequeña': 2, 'Mediana': 3, 'Grande': 4 };
+                    aValue = pesoTamano[a.tamanoEmpresa] || 0;
+                    bValue = pesoTamano[b.tamanoEmpresa] || 0;
+                    break;
+                case 'activa':
+                    aValue = a.activa ? 1 : 0;
+                    bValue = b.activa ? 1 : 0;
+                    break;
+                default:
+                    aValue = a[sortField] || '';
+                    bValue = b[sortField] || '';
+                    break;
+            }
+
+            let comparison = 0;
+            if (typeof aValue === 'number' && typeof bValue === 'number') {
+                comparison = aValue - bValue;
+            } else {
+                comparison = String(aValue).localeCompare(String(bValue), 'es', { sensitivity: 'base' });
+            }
+
+            return sortOrder === 'asc' ? comparison : -comparison;
+        });
+    }, [filteredCompanies, sortField, sortOrder]);
 
     const handleOpenDetails = (company: CompanyFormData) => {
         setViewingCompany(company);
@@ -298,95 +436,19 @@ export const CompaniesPage = () => {
         setCurrentPage(1);
     };
 
-    // FILTRADO DE EMPRESAS EN EL CLIENTE
-    const filteredCompanies = useMemo(() => {
-        return companies.filter((comp: any) => {
-            // Filtro por término de búsqueda en Frontend (Nombre Comercial, Razón Social o RFC)
-            const query = search.toLowerCase().trim();
-            const matchSearch = !query ||
-                comp.nombreComercial?.toLowerCase().includes(query) ||
-                comp.razonSocial?.toLowerCase().includes(query) ||
-                comp.rfc?.toLowerCase().includes(query);
-
-            const matchTamano = selectedTamanos.length === 0 || selectedTamanos.includes(comp.tamanoEmpresa);
-            const matchEstado = selectedEstados.length === 0 || selectedEstados.includes(comp.ubicacion?.estado);
-            const matchMunicipio = selectedMunicipios.length === 0 || selectedMunicipios.includes(comp.ubicacion?.municipio);
-
-            const matchEstatus = selectedEstatus.length === 0 || (
-                (selectedEstatus.includes('Activo') && comp.activa) ||
-                (selectedEstatus.includes('Inactivo') && !comp.activa)
-            );
-
-            const matchEtiquetas = selectedEtiquetas.length === 0 || (
-                comp.etiquetas && selectedEtiquetas.some((etq) => comp.etiquetas.includes(etq))
-            );
-
-            const pctExp = Number(comp.informacionEmpresa?.porcentajeExportaciones) || 0;
-            const matchExporta =
-                selectedExporta === '' ||
-                (selectedExporta === 'si' && pctExp > 0) ||
-                (selectedExporta === 'no' && pctExp === 0);
-
-            const matchPaises = selectedPaisesDestino.length === 0 || selectedExporta === 'no' || (
-                comp.informacionEmpresa?.destinoExportaciones &&
-                selectedPaisesDestino.some((p) => comp.informacionEmpresa.destinoExportaciones.includes(p))
-            );
-
-            const matchCert = selectedCertificaciones.length === 0 || (
-                comp.informacionEmpresa?.certificaciones?.lista &&
-                selectedCertificaciones.some((c) => comp.informacionEmpresa.certificaciones.lista.includes(c))
-            );
-
-            const matchApoyos = selectedApoyos.length === 0 || (
-                comp.apoyosYNecesidades?.tipos &&
-                selectedApoyos.some((a) => comp.apoyosYNecesidades.tipos.includes(a))
-            );
-
-            const matchTipoOp = selectedTipoOperaciones.length === 0 || (
-                comp.tipoOperaciones &&
-                selectedTipoOperaciones.some((op) => comp.tipoOperaciones.includes(op))
-            );
-
-            const matchTipoSum = selectedTipoSuministro.length === 0 || (
-                comp.tipoSuministro &&
-                selectedTipoSuministro.some((sum) => comp.tipoSuministro.includes(sum))
-            );
-
-            const matchPaisOrigen = selectedPaisOrigen.length === 0 || (
-                comp.informacionEmpresa?.paisOrigen &&
-                selectedPaisOrigen.includes(comp.informacionEmpresa.paisOrigen)
-            );
-
-            const matchSectores = selectedSectores.length === 0 || (
-                comp.informacionEmpresa?.sectoresPertenece?.lista &&
-                selectedSectores.some((s) => comp.informacionEmpresa.sectoresPertenece.lista.includes(s))
-            );
-
-            const productosEmpresa = SECTOR_PRODUCT_KEYS.flatMap(
-                (key) => comp.informacionEmpresa?.[key]?.lista || []
-            );
-            const matchProductos = selectedProductos.length === 0 ||
-                selectedProductos.some((p) => productosEmpresa.includes(p));
-
-            return matchSearch && matchTamano && matchEstado && matchMunicipio && matchEstatus &&
-                matchEtiquetas && matchExporta && matchPaises && matchCert &&
-                matchApoyos && matchTipoOp && matchTipoSum && matchPaisOrigen &&
-                matchSectores && matchProductos;
-        });
-    }, [
-        companies, search, selectedTamanos, selectedEstados, selectedMunicipios,
-        selectedEstatus, selectedEtiquetas, selectedExporta,
-        selectedPaisesDestino, selectedCertificaciones, selectedApoyos,
-        selectedTipoOperaciones, selectedTipoSuministro, selectedPaisOrigen,
-        selectedSectores, selectedProductos
-    ]);
+    // const displayedCompanies = useMemo(() => {
+    //     if (showOnlySelected) {
+    //         return companies.filter((c) => c._id && selectedCompanyIds.has(c._id));
+    //     }
+    //     return filteredCompanies;
+    // }, [showOnlySelected, companies, selectedCompanyIds, filteredCompanies]);
 
     const displayedCompanies = useMemo(() => {
         if (showOnlySelected) {
-            return companies.filter((c) => c._id && selectedCompanyIds.has(c._id));
+            return sortedCompanies.filter((c) => c._id && selectedCompanyIds.has(c._id));
         }
-        return filteredCompanies;
-    }, [showOnlySelected, companies, selectedCompanyIds, filteredCompanies]);
+        return sortedCompanies;
+    }, [showOnlySelected, sortedCompanies, selectedCompanyIds]);
 
     useEffect(() => {
         if (showOnlySelected && selectedCompanyIds.size <= 1) {
@@ -797,28 +859,55 @@ export const CompaniesPage = () => {
                 </div>
             )}
 
-            {/* CONTADOR DE RESULTADOS ENCONTRADOS */}
+            {/* CONTADOR DE RESULTADOS Y CONTROL DE ORDENAMIENTO */}
             {!loading && displayedCompanies.length > 0 && (
-                <div className="mb-4 flex items-center justify-between bg-app-card border border-app-border px-4 py-2.5 rounded-lg text-sm text-app-text shadow-sm">
-                    <span className="font-medium">
-                        {showOnlySelected ? (
-                            <>
-                                Mostrando <strong className="text-blue-500 font-semibold">{displayedCompanies.length}</strong>{' '}
-                                {displayedCompanies.length === 1 ? 'empresa seleccionada' : 'empresas seleccionadas'}
-                            </>
-                        ) : (
-                            <>
-                                Se {displayedCompanies.length === 1 ? 'encontró' : 'encontraron'}{' '}
-                                <strong className="text-blue-500 font-semibold">{displayedCompanies.length}</strong>{' '}
-                                {displayedCompanies.length === 1 ? 'resultado' : 'resultados'}
-                            </>
-                        )}
-                    </span>
-                    {!showOnlySelected && displayedCompanies.length !== companies.length && (
-                        <span className="text-xs text-app-muted">
-                            (filtrados de un total de {companies.length})
+                <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-app-card border border-app-border px-4 py-2.5 rounded-lg text-sm text-app-text shadow-sm">
+
+                    {/* Texto de Resultados Encontrados */}
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                            Se {displayedCompanies.length === 1 ? 'encontró' : 'encontraron'}{' '}
+                            <strong className="text-blue-500 font-semibold">{displayedCompanies.length}</strong>{' '}
+                            {displayedCompanies.length === 1 ? 'resultado' : 'resultados'}
                         </span>
-                    )}
+
+                        {displayedCompanies.length !== companies.length && (
+                            <span className="text-xs text-app-muted hidden md:inline">
+                                (filtrados de un total de {companies.length})
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Control Unificado de Ordenamiento */}
+                    <div className="flex items-center gap-1.5 bg-app-bg border border-app-border rounded-lg p-1 text-sm self-end sm:self-auto">
+                        <span className="text-xs text-app-muted pl-2 font-medium hidden sm:inline">Ordenar:</span>
+                        <select
+                            value={sortField}
+                            onChange={(e) => setSortField(e.target.value as CompanySortField)}
+                            className="bg-transparent text-xs sm:text-sm text-app-text font-medium focus:outline-none cursor-pointer py-1 px-1"
+                        >
+                            {SORT_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value} className="bg-app-card text-app-text">
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </select>
+
+                        <button
+                            type="button"
+                            onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                            className="p-1.5 hover:bg-app-border/60 text-blue-400 rounded-md transition-colors flex items-center gap-1"
+                            title={`Orden ${sortOrder === 'asc' ? 'Ascendente' : 'Descendente'}`}
+                        >
+                            {sortOrder === 'asc' ? (
+                                <ArrowUp className="w-4 h-4" />
+                            ) : (
+                                <ArrowDown className="w-4 h-4" />
+                            )}
+                            <span className="text-xs uppercase font-bold text-app-muted">{sortOrder}</span>
+                        </button>
+                    </div>
+
                 </div>
             )}
 

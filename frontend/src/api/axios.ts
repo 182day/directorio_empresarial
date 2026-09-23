@@ -14,16 +14,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// 2. Interceptar respuestas con error de autenticación (401)
+// 2. Interceptor de respuestas con manejo de errores
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Token inválido o expirado -> Limpiar sesión y redirigir
+    // Si la respuesta es 401 pero NO proviene del intento de login
+    const isLoginRoute = error.config?.url?.includes('/auth/login');
+
+    if (error.response && error.response.status === 401 && !isLoginRoute) {
+      // Solo limpiar y redirigir si el token expiró/falló en peticiones protegidas
       localStorage.removeItem('user');
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
+
     return Promise.reject(error);
   }
 );
