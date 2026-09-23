@@ -6,20 +6,25 @@ import { type FollowRecord } from '../interfaces/follow.interface';
 import { CompanyFollowForm } from '../components/CompanyFollowForm';
 import { exportFollowsToExcel } from '../components/CompaniesFollowSheetExcel';
 import { CompaniesFollowSheetPDFDocument } from '../components/CompaniesFollowSheetPDFDocument';
+import { CompaniesPDFDocument } from '../components/CompaniesPDFDocument';
 import { CompaniesFollowGraphics } from '../components/CompaniesFollowGraphics';
+import { CompanyDetailsModal } from '../components/CompanyDetailsModal';
 import { formatFechaLarga } from '../utils/formUtils';
 import { Pagination } from '../components/Pagination';
 import { PDFDownloadLink } from '@react-pdf/renderer';
+import { useCompanyStore } from '../stores/useCompanyStore';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
 import api from '../api/axios';
 import {
-    BarChart3, Download, Plus, X, History, Search, Table, LayoutGrid, Calendar, Building2, Eye, Pencil, Trash2, SlidersHorizontal, ChevronDown, Check, User, Tag, CheckCircle2, PhoneCall, ChartGantt, FileText
+    ArrowUp, ArrowDown, BarChart3, Download, Plus, X, History, Search, Table, LayoutGrid, Calendar, Building2, Eye, Pencil, Trash2, SlidersHorizontal, ChevronDown, Check, User, Tag, CheckCircle2, PhoneCall, ChartGantt, FileText
 } from 'lucide-react';
 import {
     OPCIONES_TIPO_SEGUIMIENTO,
     OPCIONES_MEDIO_ATENCION,
-    OPCIONES_ESTATUS_SEGUIMIENTO
+    OPCIONES_ESTATUS_SEGUIMIENTO,
+    FOLLOW_SORT_OPTIONS,
+    type FollowSortField
 } from '../data/followCatalog';
 
 interface Props {
@@ -30,6 +35,7 @@ interface Props {
 export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
     const { user } = useContext(AuthContext);
     const canEdit = user?.rol === 'admin' || user?.rol === 'editor';
+    const { companies } = useCompanyStore();
     const [follows, setFollows] = useState<FollowRecord[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [hasQueried, setHasQueried] = useState<boolean>(!!company?._id);
@@ -71,9 +77,95 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
     const [showFilters, setShowFilters] = useState<boolean>(false);
 
+    // Estado para visualizar detalles de la empresa
+    const [viewingCompany, setViewingCompany] = useState<CompanyFormData | null>(null);
+    const [isDetailsOpen, setIsDetailsOpen] = useState<boolean>(false);
+
+    // Funciones handler para abrir/cerrar detalles
+    const handleOpenDetails = (companyData: CompanyFormData) => {
+        setViewingCompany(companyData);
+        setIsDetailsOpen(true);
+    };
+
+    const handleCloseDetails = () => {
+        setIsDetailsOpen(false);
+        setViewingCompany(null);
+    };
+
     // Paginación
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [pageSize, setPageSize] = useState<number | 'all'>(10);
+
+    // Estados para Ordenamiento
+    const [sortBy, setSortBy] = useState<FollowSortField | ''>('fechaSeguimiento');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+    // 1. PRIMERO: Declaras filteredFollows
+    const filteredFollows = useMemo(() => {
+        if (!company?._id) return follows;
+
+        return follows.filter((item) => {
+            if (search.trim()) {
+                const searchLower = search.toLowerCase();
+                const matchesText =
+                    item.descripcion?.toLowerCase().includes(searchLower) ||
+                    item.asunto?.toLowerCase().includes(searchLower) ||
+                    item.companyName?.toLowerCase().includes(searchLower) ||
+                    item.usuario?.toLowerCase().includes(searchLower);
+                if (!matchesText) return false;
+            }
+
+            if (selectedTipo.length > 0 && !selectedTipo.includes(item.tipoSeguimiento ?? '')) return false;
+            if (selectedMedio.length > 0 && !selectedMedio.includes(item.medioAtencion ?? '')) return false;
+            if (selectedEstatus.length > 0 && !selectedEstatus.includes(item.estatus ?? '')) return false;
+            if (selectedEmpresa.length > 0 && !selectedEmpresa.includes(item.companyName ?? '')) return false;
+            if (selectedUsuario.length > 0 && !selectedUsuario.includes(item.usuario ?? '')) return false;
+
+            if (fechaDesde || fechaHasta) {
+                const itemDate = new Date(item.fechaSeguimiento).getTime();
+                if (fechaDesde && itemDate < new Date(`${fechaDesde}T00:00:00.000Z`).getTime()) return false;
+                if (fechaHasta && itemDate > new Date(`${fechaHasta}T23:59:59.999Z`).getTime()) return false;
+            }
+
+            return true;
+        });
+    }, [
+        follows, company, search, selectedTipo, selectedMedio,
+        selectedEstatus, selectedEmpresa, selectedUsuario, fechaDesde, fechaHasta
+    ]);
+
+    // 2. DESPUÉS: Declaras sortedFollows (ya puede consumir filteredFollows sin error)
+    const sortedFollows = useMemo(() => {
+        if (!sortBy) return filteredFollows;
+
+        return [...filteredFollows].sort((a, b) => {
+            let aValue = a[sortBy];
+            let bValue = b[sortBy];
+
+            // Manejo de nulos o indefinidos
+            if (aValue == null) aValue = '';
+            if (bValue == null) bValue = '';
+
+            // Lógica específica para fechas
+            if (sortBy === 'fechaSeguimiento') {
+                const dateA = new Date(aValue as string).getTime();
+                const dateB = new Date(bValue as string).getTime();
+                return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+            }
+
+            // Comparación de cadenas de texto
+            if (typeof aValue === 'string' && typeof bValue === 'string') {
+                return sortOrder === 'asc'
+                    ? aValue.localeCompare(bValue)
+                    : bValue.localeCompare(aValue);
+            }
+
+            // Fallback genérico
+            if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [filteredFollows, sortBy, sortOrder]);
 
     const filterContainerRef = useRef<HTMLDivElement>(null);
 
@@ -236,48 +328,15 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         });
     };
 
-    const filteredFollows = useMemo(() => {
-        if (!company?._id) return follows;
-
-        return follows.filter((item) => {
-            if (search.trim()) {
-                const searchLower = search.toLowerCase();
-                const matchesText =
-                    item.descripcion?.toLowerCase().includes(searchLower) ||
-                    item.asunto?.toLowerCase().includes(searchLower) ||
-                    item.companyName?.toLowerCase().includes(searchLower) ||
-                    item.usuario?.toLowerCase().includes(searchLower);
-                if (!matchesText) return false;
-            }
-
-            if (selectedTipo.length > 0 && !selectedTipo.includes(item.tipoSeguimiento ?? '')) return false;
-            if (selectedMedio.length > 0 && !selectedMedio.includes(item.medioAtencion ?? '')) return false;
-            if (selectedEstatus.length > 0 && !selectedEstatus.includes(item.estatus ?? '')) return false;
-            if (selectedEmpresa.length > 0 && !selectedEmpresa.includes(item.companyName ?? '')) return false;
-            if (selectedUsuario.length > 0 && !selectedUsuario.includes(item.usuario ?? '')) return false;
-
-            if (fechaDesde || fechaHasta) {
-                const itemDate = new Date(item.fechaSeguimiento).getTime();
-                if (fechaDesde && itemDate < new Date(`${fechaDesde}T00:00:00.000Z`).getTime()) return false;
-                if (fechaHasta && itemDate > new Date(`${fechaHasta}T23:59:59.999Z`).getTime()) return false;
-            }
-
-            return true;
-        });
-    }, [
-        follows, company, search, selectedTipo, selectedMedio,
-        selectedEstatus, selectedEmpresa, selectedUsuario, fechaDesde, fechaHasta
-    ]);
-
     const handleExportExcel = async () => {
-        await exportFollowsToExcel(filteredFollows, company?.nombreComercial);
+        await exportFollowsToExcel(sortedFollows, company?.nombreComercial);
     }
 
     const paginatedFollows = useMemo(() => {
-        if (pageSize === 'all') return filteredFollows;
+        if (pageSize === 'all') return sortedFollows;
         const startIndex = (currentPage - 1) * pageSize;
-        return filteredFollows.slice(startIndex, startIndex + pageSize);
-    }, [filteredFollows, currentPage, pageSize]);
+        return sortedFollows.slice(startIndex, startIndex + pageSize);
+    }, [sortedFollows, currentPage, pageSize]);
 
     return (
         <div className="p-6 text-app-text max-w-7xl mx-auto space-y-6 transition-colors duration-200">
@@ -379,6 +438,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                     <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
                         {filteredFollows.length > 0 && (
                             <div className="flex items-center gap-2">
+                                {/* Botón de Gráficas */}
                                 <button
                                     type="button"
                                     onClick={() => setIsChartsModalOpen(true)}
@@ -388,6 +448,8 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                     <BarChart3 className="w-4 h-4" />
                                     <span className="hidden sm:inline">Gráficas</span>
                                 </button>
+
+                                {/* Botón de Excel */}
                                 <button
                                     type="button"
                                     onClick={handleExportExcel}
@@ -397,6 +459,8 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                     <Download className="w-4 h-4" />
                                     <span className="hidden sm:inline">Excel</span>
                                 </button>
+
+                                {/* 1. Botón PDF de Seguimientos (SIEMPRE PRESENTE) */}
                                 <PDFDownloadLink
                                     document={
                                         <CompaniesFollowSheetPDFDocument
@@ -410,10 +474,32 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                     {({ loading }) => (
                                         <>
                                             <FileText className="w-4 h-4" />
-                                            <span className="hidden sm:inline">{loading ? '...' : 'PDF'}</span>
+                                            <span className="hidden sm:inline">{loading ? '...' : company?._id ? 'Seguimientos' : 'PDF'}</span>
                                         </>
                                     )}
                                 </PDFDownloadLink>
+
+                                {/* 2. Botón PDF de Ficha Técnica (SOLO SI EXISTE UNA EMPRESA SELECCIONADA) */}
+                                {company?._id && (
+                                    <PDFDownloadLink
+                                        document={
+                                            <CompaniesPDFDocument
+                                                company={company}
+                                                follows={filteredFollows}
+                                                isFromFollows={true}
+                                            />
+                                        }
+                                        fileName={`Ficha_Empresa_${company.nombreComercial ? company.nombreComercial.replace(/\s+/g, '_') : 'Detalle'}_${new Date().toISOString().split('T')[0]}.pdf`}
+                                        className="flex items-center gap-2 bg-rose-700 hover:bg-rose-600 text-white font-medium px-3.5 py-2 rounded-lg text-sm transition-colors shadow-sm"
+                                    >
+                                        {({ loading }) => (
+                                            <>
+                                                <FileText className="w-4 h-4" />
+                                                <span className="hidden sm:inline">{loading ? '...' : 'Ficha Técnica'}</span>
+                                            </>
+                                        )}
+                                    </PDFDownloadLink>
+                                )}
                             </div>
                         )}
 
@@ -938,20 +1024,58 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                 </div>
             ) : (
                 <>
-                    {/* CONTADOR DE RESULTADOS ENCONTRADOS */}
+                    {/* CONTADOR DE RESULTADOS Y CONTROL DE ORDENAMIENTO */}
                     {!loading && filteredFollows.length > 0 && (
-                        <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-app-card border border-app-border px-4 py-2.5 rounded-lg text-sm text-app-text shadow-sm gap-1">
-                            <span className="font-medium">
-                                Se {filteredFollows.length === 1 ? 'encontró' : 'encontraron'}{' '}
-                                <strong className="text-blue-500 font-semibold">{filteredFollows.length}</strong>{' '}
-                                {filteredFollows.length === 1 ? 'resultado' : 'resultados'}
-                            </span>
+                        <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-app-card border border-app-border px-4 py-2.5 rounded-lg text-sm text-app-text shadow-sm">
 
-                            {totalFiltrosActivos > 0 && filteredFollows.length !== follows.length && (
-                                <span className="text-xs text-app-muted">
-                                    (filtrados de un total de {follows.length})
+                            {/* Texto de Resultados Encontrados */}
+                            <div className="flex items-center gap-2">
+                                <span className="font-medium">
+                                    Se {filteredFollows.length === 1 ? 'encontró' : 'encontraron'}{' '}
+                                    <strong className="text-blue-500 font-semibold">{filteredFollows.length}</strong>{' '}
+                                    {filteredFollows.length === 1 ? 'resultado' : 'resultados'}
                                 </span>
-                            )}
+
+                                {totalFiltrosActivos > 0 && filteredFollows.length !== follows.length && (
+                                    <span className="text-xs text-app-muted hidden md:inline">
+                                        (filtrados de un total de {follows.length})
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Control Unificado de Ordenamiento */}
+                            <div className="flex items-center gap-1.5 bg-app-bg border border-app-border rounded-lg p-1 text-sm self-end sm:self-auto">
+                                <span className="text-xs text-app-muted pl-2 font-medium hidden sm:inline">Ordenar:</span>
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value as FollowSortField | '')}
+                                    className="bg-transparent text-xs sm:text-sm text-app-text font-medium focus:outline-none cursor-pointer py-1 px-1"
+                                >
+                                    <option value="" className="bg-app-card text-app-text">Sin ordenar</option>
+                                    {FOLLOW_SORT_OPTIONS
+                                        .filter((opt) => !(company && opt.value === 'companyName')) // Si estamos dentro del detalle de una empresa, ocultamos la opción 'Empresa'
+                                        .map((opt) => (
+                                            <option key={opt.value} value={opt.value} className="bg-app-card text-app-text">
+                                                {opt.label}
+                                            </option>
+                                        ))}
+                                </select>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                                    className="p-1.5 hover:bg-app-border/60 text-blue-400 rounded-md transition-colors flex items-center gap-1"
+                                    title={`Orden ${sortOrder === 'asc' ? 'Ascendente' : 'Descendente'}`}
+                                >
+                                    {sortOrder === 'asc' ? (
+                                        <ArrowUp className="w-4 h-4" />
+                                    ) : (
+                                        <ArrowDown className="w-4 h-4" />
+                                    )}
+                                    <span className="text-xs uppercase font-bold text-app-muted">{sortOrder}</span>
+                                </button>
+                            </div>
+
                         </div>
                     )}
                     {tipoVista === 'tabla' && (
@@ -1001,6 +1125,21 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center">
                                                     <div className="flex items-center justify-center gap-1.5">
+                                                        {item.empresaId && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const companyData = companies.find((c) => c._id === item.empresaId);
+                                                                    if (companyData) {
+                                                                        handleOpenDetails(companyData);
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 text-app-muted hover:text-blue-500 hover:bg-app-button rounded-lg transition-colors"
+                                                                title="Ver detalles de la empresa"
+                                                            >
+                                                                <Building2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
                                                         <button
                                                             onClick={() => {
                                                                 setSelectedFollow(item);
@@ -1089,6 +1228,21 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                         </div>
 
                                         <div className="flex items-center gap-1">
+                                            {item.empresaId && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const companyData = companies.find((c) => c._id === item.empresaId);
+                                                        if (companyData) {
+                                                            handleOpenDetails(companyData);
+                                                        }
+                                                    }}
+                                                    className="p-1 text-app-muted hover:text-blue-500 hover:bg-app-button rounded transition-colors"
+                                                    title="Ver detalles de la empresa"
+                                                >
+                                                    <Building2 className="w-4 h-4" />
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => {
                                                     setSelectedFollow(item);
@@ -1393,6 +1547,13 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                 isOpen={isChartsModalOpen}
                 onClose={() => setIsChartsModalOpen(false)}
                 follows={filteredFollows}
+            />
+
+            {/* MODAL VER DETALLES DE LA EMPRESA */}
+            <CompanyDetailsModal
+                isOpen={isDetailsOpen}
+                company={viewingCompany}
+                onClose={handleCloseDetails}
             />
         </div>
     );

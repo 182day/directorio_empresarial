@@ -6,6 +6,7 @@ import { Sidebar } from '../components/Sidebar';
 import { CompanyForm } from '../components/CompanyForm';
 import { ChartLine, Building2, Users, Menu, X, LogOut, LogIn, LayoutDashboard, History, Settings, ChartGantt } from 'lucide-react';
 import { useCompanyStore } from '../stores/useCompanyStore';
+import { AIChatWidget } from '../components/AIChatWidget';
 
 export const AdminLayout = () => {
     const { user, logout } = useContext(AuthContext);
@@ -105,6 +106,7 @@ export const AdminLayout = () => {
                     <div className="flex items-center gap-3">
                         {user ? (
                             <>
+                                <AIChatWidget />
                                 <span className="text-sm text-app-muted hidden sm:inline">
                                     Hola, <strong className="text-app-text">{user.nombre}</strong>
                                 </span>

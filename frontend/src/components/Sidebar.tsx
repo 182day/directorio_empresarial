@@ -79,7 +79,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             </nav>
 
             <div className="p-4 border-t border-app-border text-xs text-app-muted text-center">
-                Catálogo Desarrollo Empresarial v1.0
+                Catálogo Desarrollo Empresarial v1.1.0
             </div>
         </aside>
     );
