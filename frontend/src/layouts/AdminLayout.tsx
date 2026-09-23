@@ -82,6 +82,8 @@ export const AdminLayout = () => {
 
     const currentHeader = getHeaderInfo();
 
+    const isMapRoute = location.pathname.startsWith('/mapa');
+
     return (
         <div className="h-screen bg-app-bg text-app-text flex flex-col overflow-hidden transition-colors duration-200">
             {/* Topbar Superior */}
@@ -167,10 +169,15 @@ export const AdminLayout = () => {
                 )}
 
                 {/* Área de contenido */}
-                <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto transition-all h-full">
-                    <div className="max-w-7xl mx-auto">
+                <main className={`flex-1 min-w-0 transition-all h-full ${isMapRoute ? 'overflow-hidden p-0' : 'px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto'
+                    }`}>
+                    {isMapRoute ? (
                         <Outlet />
-                    </div>
+                    ) : (
+                        <div className="max-w-7xl mx-auto">
+                            <Outlet />
+                        </div>
+                    )}
                 </main>
             </div>
 

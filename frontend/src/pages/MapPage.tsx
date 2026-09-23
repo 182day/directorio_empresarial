@@ -1,10 +1,12 @@
 // src/pages/MapPage.tsx
-import React, { useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from 'react-leaflet';
+import React, { useState, useRef, useEffect } from 'react';
+import { useTheme } from '../context/ThemeContext';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
 import type { LatLngExpression } from 'leaflet';
 import { Layers, X, FolderUp } from 'lucide-react';
 import L from 'leaflet';
 import datosGeoJson from '../data/qro_mun.json';
+import 'leaflet/dist/leaflet.css';
 
 // --- Fix de Iconos para Leaflet en Vite/TypeScript ---
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -18,10 +20,12 @@ L.Icon.Default.mergeOptions({
     shadowUrl: markerShadow,
 });
 
+const BASE_URL_DARK = 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png';
+const BASE_URL_LIGHT = 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png';
+
 const posicionInicial: LatLngExpression = [20.8563, -99.8302];
 const BASE_URL = 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png';
 const API_KEY = import.meta.env.VITE_API_KEY;
-const urlMapa = API_KEY ? `${BASE_URL}?api_key=${API_KEY}` : BASE_URL;
 
 // Catálogo estático de capas del dashboard económico
 const catalogos = [
@@ -32,11 +36,45 @@ const catalogos = [
     { id: 'nodos', label: 'Nodos Logísticos', color: 'bg-amber-500' },
 ];
 
+// Componente auxiliar para corregir el cálculo de dimensiones en Leaflet
+const ResizeMap = () => {
+    const map = useMap();
+
+    useEffect(() => {
+        // Redimensionar cuando el componente carga
+        const timer = setTimeout(() => {
+            map.invalidateSize();
+        }, 300); // 300ms le da tiempo suficiente al layout flex de establecerse
+
+        // Redimensionar automáticamente si la ventana cambia de tamaño
+        const handleResize = () => {
+            map.invalidateSize();
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', handleResize);
+        };
+    }, [map]);
+
+    return null;
+};
+
 export const MapPage = () => {
-    // Estados locales en lugar de Zustand
+    const { theme } = useTheme();
+
+    // URL base según el tema activo
+    // Estilo claro
+
+    const BASE_URL = theme === 'dark' ? BASE_URL_DARK : BASE_URL_LIGHT;
+    const urlMapa = API_KEY ? `${BASE_URL}?api_key=${API_KEY}` : BASE_URL;
+
+    // Estados
     const [capasActivas, setCapasActivas] = useState<string[]>(['municipios']);
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
-    
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Función para alternar capas
@@ -54,11 +92,11 @@ export const MapPage = () => {
 
     // Estilo base elegante para los municipios
     const estiloMunicipios = {
-        color: '#00f2fe',
+        color: theme === 'dark' ? '#00f2fe' : '#2563eb',       // Azul cian en oscuro, azul rey en claro
         weight: 1.5,
         opacity: 0.7,
-        fillColor: '#00f2fe',
-        fillOpacity: 0.1
+        fillColor: theme === 'dark' ? '#00f2fe' : '#3b82f6',
+        fillOpacity: theme === 'dark' ? 0.1 : 0.15
     };
 
     const alCargarCadaMunicipio = (feature: any, layer: any) => {
@@ -85,7 +123,7 @@ export const MapPage = () => {
 
     return (
         <div className="relative w-full h-[calc(100vh-4rem)] bg-[#070a10] overflow-hidden">
-            
+
             {/* Botón flotante para abrir el menú de capas */}
             <button
                 onClick={() => setIsMenuOpen(true)}
@@ -97,16 +135,15 @@ export const MapPage = () => {
 
             {/* Menú Lateral de Capas (Overlay + Drawer) */}
             {isMenuOpen && (
-                <div 
+                <div
                     className="absolute inset-0 z-[2000] bg-black/40 backdrop-blur-sm transition-opacity"
                     onClick={() => setIsMenuOpen(false)} // Cierra al presionar fuera
                 />
             )}
 
-            <aside 
-                className={`absolute top-0 right-0 h-full w-80 bg-[#0d131f] border-l border-gray-800 p-6 flex flex-col gap-6 z-[2001] shadow-2xl transition-transform duration-300 ease-in-out ${
-                    isMenuOpen ? 'translate-x-0' : 'translate-x-full'
-                }`}
+            <aside
+                className={`absolute top-0 right-0 h-full w-80 bg-[#0d131f] border-l border-gray-800 p-6 flex flex-col gap-6 z-[2001] shadow-2xl transition-transform duration-300 ease-in-out ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'
+                    }`}
             >
                 {/* Cabecera del Panel */}
                 <div className="flex items-start justify-between">
@@ -116,7 +153,7 @@ export const MapPage = () => {
                         </h2>
                         <h3 className="text-lg font-bold text-white">Catálogo de Capas</h3>
                     </div>
-                    <button 
+                    <button
                         onClick={() => setIsMenuOpen(false)}
                         className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
                     >
@@ -132,19 +169,17 @@ export const MapPage = () => {
                             <button
                                 key={capa.id}
                                 onClick={() => toggleCapa(capa.id)}
-                                className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all duration-200 outline-none group ${
-                                    activa
-                                        ? 'bg-[#161f30] border-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.12)]'
-                                        : 'bg-[#090d16] border-gray-800/80 text-gray-400 hover:border-gray-700 hover:text-gray-200'
-                                }`}
+                                className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all duration-200 outline-none group ${activa
+                                    ? 'bg-[#161f30] border-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.12)]'
+                                    : 'bg-[#090d16] border-gray-800/80 text-gray-400 hover:border-gray-700 hover:text-gray-200'
+                                    }`}
                             >
                                 <div className="flex items-center gap-3">
                                     <span className={`w-2.5 h-2.5 rounded-full transition-transform group-hover:scale-110 ${capa.color}`}></span>
                                     <span className="text-sm font-medium tracking-wide">{capa.label}</span>
                                 </div>
-                                <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
-                                    activa ? 'bg-cyan-500 border-cyan-500 text-[#0d131f]' : 'border-gray-600 group-hover:border-gray-400'
-                                }`}>
+                                <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${activa ? 'bg-cyan-500 border-cyan-500 text-[#0d131f]' : 'border-gray-600 group-hover:border-gray-400'
+                                    }`}>
                                     {activa && <span className="text-[10px] font-black">✓</span>}
                                 </div>
                             </button>
@@ -196,21 +231,23 @@ export const MapPage = () => {
             <MapContainer
                 center={posicionInicial}
                 zoom={8.5}
+                maxZoom={22} // 👈 1. Permite ampliar la vista hasta el nivel 22
                 scrollWheelZoom={true}
                 style={{ height: '100%', width: '100%', zIndex: 1 }}
             >
+                <ResizeMap />
+
                 <TileLayer
                     attribution='&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
                     url={urlMapa}
-                    maxZoom={20}
+                    maxNativeZoom={18} // 👈 2. Indica que el servidor solo entrega imágenes hasta nivel 18
+                    maxZoom={22}       // 👈 3. Le permite a Leaflet escalar digitalmente la imagen para zoom tipo "calle"
                 />
 
                 <Marker position={posicionInicial}>
                     <Popup>Mapa base oscuro en <strong>Querétaro</strong>.</Popup>
                 </Marker>
 
-                {/* Renderizado condicional usando el estado local */}
-                {/* Descomentar cuando tengas el archivo qro_mun.json disponible */}
                 {capasActivas.includes('municipios') && (
                     <GeoJSON
                         data={datosGeoJson as any}
