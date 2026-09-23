@@ -1,5 +1,5 @@
 // src/pages/AuditLogPage.tsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../api/axios';
 import { useCompanyStore } from '../stores/useCompanyStore';
 import { useUserStore } from '../stores/useUserStore';
@@ -13,7 +13,9 @@ import {
     User,
     RefreshCw,
     Eye,
-    FileText
+    FileText,
+    ArrowUp,
+    ArrowDown
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -34,6 +36,16 @@ interface AuditLogItem {
     ip?: string;
     createdAt: string;
 }
+
+type AuditSortField = 'usuario.nombre' | 'accion' | 'modulo' | 'ip' | 'createdAt';
+
+const AUDIT_SORT_OPTIONS: { value: AuditSortField; label: string }[] = [
+    { value: 'usuario.nombre', label: 'Usuario' },
+    { value: 'accion', label: 'Acción' },
+    { value: 'modulo', label: 'Módulo' },
+    { value: 'ip', label: 'IP' },
+    { value: 'createdAt', label: 'Fecha / Hora' }
+];
 
 export const AuditLogPage = () => {
     // Reutilizar Store
@@ -57,6 +69,10 @@ export const AuditLogPage = () => {
     const [endDate, setEndDate] = useState<string>('');
     const [showFilters, setShowFilters] = useState<boolean>(false);
     const [selectedModulo, setSelectedModulo] = useState<string>('');
+
+    // Estados de Ordenamiento
+    const [sortBy, setSortBy] = useState<AuditSortField | ''>('createdAt');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
     // Paginación (Servidor)
     const [currentPage, setCurrentPage] = useState<number>(1);
@@ -98,6 +114,38 @@ export const AuditLogPage = () => {
         }
     }, [search, selectedUser, selectedModulo, startDate, endDate, currentPage, pageSize]);
 
+    // Ordenamiento de los registros
+    const sortedLogs = useMemo(() => {
+        if (!sortBy) return logs;
+
+        return [...logs].sort((a, b) => {
+            let aValue: any = '';
+            let bValue: any = '';
+
+            if (sortBy === 'usuario.nombre') {
+                aValue = a.usuario?.nombre || '';
+                bValue = b.usuario?.nombre || '';
+            } else if (sortBy === 'createdAt') {
+                const dateA = new Date(a.createdAt).getTime();
+                const dateB = new Date(b.createdAt).getTime();
+                return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+            } else {
+                aValue = a[sortBy] || '';
+                bValue = b[sortBy] || '';
+            }
+
+            if (typeof aValue === 'string' && typeof bValue === 'string') {
+                return sortOrder === 'asc'
+                    ? aValue.localeCompare(bValue)
+                    : bValue.localeCompare(aValue);
+            }
+
+            if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [logs, sortBy, sortOrder]);
+
     const handlePageChange = (newPage: number) => {
         setCurrentPage(newPage);
         if (hasSearched) fetchLogs(newPage, pageSize);
@@ -120,6 +168,7 @@ export const AuditLogPage = () => {
         setSelectedModulo('');
         setStartDate('');
         setEndDate('');
+        setSortBy('');
         setCurrentPage(1);
     };
 
@@ -131,7 +180,7 @@ export const AuditLogPage = () => {
         (endDate ? 1 : 0);
 
     const handleExportExcel = async () => {
-        if (logs.length === 0) {
+        if (sortedLogs.length === 0) {
             toast.error('No hay datos en pantalla para exportar');
             return;
         }
@@ -159,7 +208,7 @@ export const AuditLogPage = () => {
         headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
         headerRow.height = 25;
 
-        logs.forEach((log) => {
+        sortedLogs.forEach((log) => {
             const fechaFormatted = new Date(log.createdAt).toLocaleString('es-MX', {
                 day: '2-digit',
                 month: '2-digit',
@@ -254,7 +303,7 @@ export const AuditLogPage = () => {
                         </button>
                     )}
 
-                    {logs.length > 0 && (
+                    {sortedLogs.length > 0 && (
                         <button
                             type="button"
                             onClick={handleExportExcel}
@@ -392,20 +441,55 @@ export const AuditLogPage = () => {
                 </div>
             )}
 
-            {/* CONTADOR DE RESULTADOS ENCONTRADOS */}
-            {hasSearched && !loading && logs.length > 0 && (
-                <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-app-card border border-app-border px-4 py-2.5 rounded-lg text-sm text-app-text shadow-sm gap-1">
-                    <span className="font-medium">
-                        Se {logs.length === 1 ? 'encontró' : 'encontraron'}{' '}
-                        <strong className="text-blue-500 font-semibold">{totalItems}</strong>{' '}
-                        {totalItems === 1 ? 'resultado' : 'resultados'}
-                    </span>
+            {/* CONTADOR DE RESULTADOS Y CONTROL UNIFICADO DE ORDENAMIENTO */}
+            {hasSearched && !loading && sortedLogs.length > 0 && (
+                <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-app-card border border-app-border px-4 py-2.5 rounded-lg text-sm text-app-text shadow-sm">
 
-                    {totalFiltrosActivos > 0 && (
-                        <span className="text-xs text-app-muted">
-                            (con filtros aplicados)
+                    {/* Texto de Resultados Encontrados */}
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                            Se {sortedLogs.length === 1 ? 'encontró' : 'encontraron'}{' '}
+                            <strong className="text-blue-500 font-semibold">{totalItems}</strong>{' '}
+                            {totalItems === 1 ? 'resultado' : 'resultados'}
                         </span>
-                    )}
+
+                        {totalFiltrosActivos > 0 && (
+                            <span className="text-xs text-app-muted hidden md:inline">
+                                (con filtros aplicados)
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Control Unificado de Ordenamiento */}
+                    <div className="flex items-center gap-1.5 bg-app-bg border border-app-border rounded-lg p-1 text-sm self-end sm:self-auto">
+                        <span className="text-xs text-app-muted pl-2 font-medium hidden sm:inline">Ordenar:</span>
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value as AuditSortField | '')}
+                            className="bg-transparent text-xs sm:text-sm text-app-text font-medium focus:outline-none cursor-pointer py-1 px-1"
+                        >
+                            {AUDIT_SORT_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value} className="bg-app-card text-app-text">
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </select>
+
+                        <button
+                            type="button"
+                            onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                            className="p-1.5 hover:bg-app-border/60 text-blue-400 rounded-md transition-colors flex items-center gap-1"
+                            title={`Orden ${sortOrder === 'asc' ? 'Ascendente' : 'Descendente'}`}
+                        >
+                            {sortOrder === 'asc' ? (
+                                <ArrowUp className="w-4 h-4" />
+                            ) : (
+                                <ArrowDown className="w-4 h-4" />
+                            )}
+                            <span className="text-xs uppercase font-bold text-app-muted">{sortOrder}</span>
+                        </button>
+                    </div>
+
                 </div>
             )}
 
@@ -430,7 +514,7 @@ export const AuditLogPage = () => {
                 <div className="bg-app-card border border-app-border rounded-xl p-8 text-center text-app-muted">
                     Cargando registros de bitácora desde el servidor...
                 </div>
-            ) : logs.length === 0 ? (
+            ) : sortedLogs.length === 0 ? (
                 <div className="bg-app-card border border-app-border rounded-xl p-8 text-center text-app-muted">
                     No se encontraron eventos en la bitácora con los criterios seleccionados.
                 </div>
@@ -445,11 +529,12 @@ export const AuditLogPage = () => {
                                         <th className="px-6 py-4">Usuario</th>
                                         <th className="px-6 py-4">Módulo</th>
                                         <th className="px-6 py-4">Acción</th>
+                                        <th className="px-6 py-4">IP</th>
                                         <th className="px-6 py-4">Detalles</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-app-border">
-                                    {logs.map((log) => (
+                                    {sortedLogs.map((log) => (
                                         <tr key={log._id} className="hover:bg-app-button-hover/50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap text-xs text-app-muted">
                                                 {new Date(log.createdAt).toLocaleString('es-MX', {
@@ -489,6 +574,9 @@ export const AuditLogPage = () => {
                                             </td>
                                             <td className="px-6 py-4 font-medium text-app-text whitespace-nowrap">
                                                 {log.accion}
+                                            </td>
+                                            <td className="px-6 py-4 text-xs text-app-muted whitespace-nowrap">
+                                                {log.ip || 'N/A'}
                                             </td>
                                             <td className="px-6 py-4 text-xs text-app-muted max-w-xs xl:max-w-md">
                                                 <div className="flex items-center gap-2">

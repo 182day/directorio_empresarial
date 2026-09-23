@@ -34,8 +34,8 @@ export const MyAccountPage = () => {
 
     const handleSubmit = async (formData: UserFormData) => {
         try {
-            // Usamos currentUser._id definido en user.interface.ts
-            const res = await api.put(`/users/${currentUser._id}`, formData);
+            const userId = currentUser._id || (currentUser as any).id;
+            const res = await api.put(`/users/${userId}`, formData);
             
             const updatedUser = res.data.user || res.data;
             setCurrentUser(updatedUser);
