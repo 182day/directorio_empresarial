@@ -3,9 +3,22 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { type CompanyFormData } from '../interfaces/company.interface';
 
+// Interfaz para el registro de seguimientos
+export interface FollowRecord {
+  _id?: string;
+  fechaSeguimiento?: string;
+  tipoSeguimiento?: string;
+  medioAtencion?: string;
+  asunto?: string;
+  estatus?: string;
+  observaciones?: string;
+}
+
 interface CompaniesPDFProps {
   company?: CompanyFormData;
   companies?: CompanyFormData[]; // Compatible para imprimir 1 o varias empresas
+  follows?: FollowRecord[];
+  isFromFollows?: boolean;
 }
 
 const styles = StyleSheet.create({
@@ -120,6 +133,37 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     fontSize: 7,
   },
+  // Estilos para la tabla de seguimientos
+  table: {
+    width: '100%',
+    marginTop: 4,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#cbd5e1',
+    padding: 4,
+    borderRadius: 2,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    padding: 4,
+  },
+  th: {
+    fontSize: 7,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+  },
+  td: {
+    fontSize: 7,
+    color: '#334155',
+  },
+  colFecha: { width: '15%' },
+  colTipo: { width: '15%' },
+  colMedio: { width: '15%' },
+  colAsunto: { width: '40%' },
+  colEstatus: { width: '15%' },
   footer: {
     position: 'absolute',
     bottom: 20,
@@ -135,7 +179,12 @@ const styles = StyleSheet.create({
   },
 });
 
-export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({ company, companies }) => {
+export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({ 
+  company, 
+  companies, 
+  follows = [], 
+  isFromFollows = false 
+}) => {
   // Manejo de compatibilidad para recibir una lista o una sola empresa
   const listToRender = companies && companies.length > 0 ? companies : company ? [company] : [];
 
@@ -371,6 +420,43 @@ export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({ company, com
                 </View>
               )}
             </View>
+
+            {/* SECCIÓN 5: HISTORIAL DE SEGUIMIENTOS (SOLO SI VIENE DESDE SEGUIMIENTOS) */}
+            {isFromFollows && (
+              <View style={styles.section} wrap={false}>
+                <Text style={styles.sectionTitle}>
+                  5. Historial de Seguimientos ({follows.length})
+                </Text>
+
+                {follows.length > 0 ? (
+                  <View style={styles.table}>
+                    <View style={styles.tableHeader}>
+                      <Text style={[styles.th, styles.colFecha]}>Fecha</Text>
+                      <Text style={[styles.th, styles.colTipo]}>Tipo</Text>
+                      <Text style={[styles.th, styles.colMedio]}>Medio</Text>
+                      <Text style={[styles.th, styles.colAsunto]}>Asunto</Text>
+                      <Text style={[styles.th, styles.colEstatus]}>Estatus</Text>
+                    </View>
+
+                    {follows.map((item, fIdx) => (
+                      <View key={item._id || fIdx} style={styles.tableRow} wrap={false}>
+                        <Text style={[styles.td, styles.colFecha]}>
+                          {item.fechaSeguimiento ? new Date(item.fechaSeguimiento).toLocaleDateString('es-MX') : 'N/A'}
+                        </Text>
+                        <Text style={[styles.td, styles.colTipo]}>{item.tipoSeguimiento || 'N/A'}</Text>
+                        <Text style={[styles.td, styles.colMedio]}>{item.medioAtencion || 'N/A'}</Text>
+                        <Text style={[styles.td, styles.colAsunto]}>{item.asunto || 'N/A'}</Text>
+                        <Text style={[styles.td, styles.colEstatus]}>{item.estatus || 'N/A'}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={{ fontSize: 7, color: '#64748b', marginTop: 2 }}>
+                    No hay registros de seguimiento para esta empresa.
+                  </Text>
+                )}
+              </View>
+            )}
 
             {/* PIE DE PÁGINA */}
             <View style={styles.footer} fixed>

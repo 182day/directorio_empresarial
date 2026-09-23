@@ -6,10 +6,13 @@ import { type FollowRecord } from '../interfaces/follow.interface';
 import { CompanyFollowForm } from '../components/CompanyFollowForm';
 import { exportFollowsToExcel } from '../components/CompaniesFollowSheetExcel';
 import { CompaniesFollowSheetPDFDocument } from '../components/CompaniesFollowSheetPDFDocument';
+import { CompaniesPDFDocument } from '../components/CompaniesPDFDocument';
 import { CompaniesFollowGraphics } from '../components/CompaniesFollowGraphics';
+import { CompanyDetailsModal } from '../components/CompanyDetailsModal';
 import { formatFechaLarga } from '../utils/formUtils';
 import { Pagination } from '../components/Pagination';
 import { PDFDownloadLink } from '@react-pdf/renderer';
+import { useCompanyStore } from '../stores/useCompanyStore';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
 import api from '../api/axios';
@@ -32,6 +35,7 @@ interface Props {
 export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
     const { user } = useContext(AuthContext);
     const canEdit = user?.rol === 'admin' || user?.rol === 'editor';
+    const { companies } = useCompanyStore();
     const [follows, setFollows] = useState<FollowRecord[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [hasQueried, setHasQueried] = useState<boolean>(!!company?._id);
@@ -72,6 +76,21 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
     const [fechaHasta, setFechaHasta] = useState<string>('');
 
     const [showFilters, setShowFilters] = useState<boolean>(false);
+
+    // Estado para visualizar detalles de la empresa
+    const [viewingCompany, setViewingCompany] = useState<CompanyFormData | null>(null);
+    const [isDetailsOpen, setIsDetailsOpen] = useState<boolean>(false);
+
+    // Funciones handler para abrir/cerrar detalles
+    const handleOpenDetails = (companyData: CompanyFormData) => {
+        setViewingCompany(companyData);
+        setIsDetailsOpen(true);
+    };
+
+    const handleCloseDetails = () => {
+        setIsDetailsOpen(false);
+        setViewingCompany(null);
+    };
 
     // Paginación
     const [currentPage, setCurrentPage] = useState<number>(1);
@@ -419,6 +438,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                     <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
                         {filteredFollows.length > 0 && (
                             <div className="flex items-center gap-2">
+                                {/* Botón de Gráficas */}
                                 <button
                                     type="button"
                                     onClick={() => setIsChartsModalOpen(true)}
@@ -428,6 +448,8 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                     <BarChart3 className="w-4 h-4" />
                                     <span className="hidden sm:inline">Gráficas</span>
                                 </button>
+
+                                {/* Botón de Excel */}
                                 <button
                                     type="button"
                                     onClick={handleExportExcel}
@@ -437,6 +459,8 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                     <Download className="w-4 h-4" />
                                     <span className="hidden sm:inline">Excel</span>
                                 </button>
+
+                                {/* 1. Botón PDF de Seguimientos (SIEMPRE PRESENTE) */}
                                 <PDFDownloadLink
                                     document={
                                         <CompaniesFollowSheetPDFDocument
@@ -450,10 +474,32 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                     {({ loading }) => (
                                         <>
                                             <FileText className="w-4 h-4" />
-                                            <span className="hidden sm:inline">{loading ? '...' : 'PDF'}</span>
+                                            <span className="hidden sm:inline">{loading ? '...' : company?._id ? 'Seguimientos' : 'PDF'}</span>
                                         </>
                                     )}
                                 </PDFDownloadLink>
+
+                                {/* 2. Botón PDF de Ficha Técnica (SOLO SI EXISTE UNA EMPRESA SELECCIONADA) */}
+                                {company?._id && (
+                                    <PDFDownloadLink
+                                        document={
+                                            <CompaniesPDFDocument
+                                                company={company}
+                                                follows={filteredFollows}
+                                                isFromFollows={true}
+                                            />
+                                        }
+                                        fileName={`Ficha_Empresa_${company.nombreComercial ? company.nombreComercial.replace(/\s+/g, '_') : 'Detalle'}_${new Date().toISOString().split('T')[0]}.pdf`}
+                                        className="flex items-center gap-2 bg-rose-700 hover:bg-rose-600 text-white font-medium px-3.5 py-2 rounded-lg text-sm transition-colors shadow-sm"
+                                    >
+                                        {({ loading }) => (
+                                            <>
+                                                <FileText className="w-4 h-4" />
+                                                <span className="hidden sm:inline">{loading ? '...' : 'Ficha Técnica'}</span>
+                                            </>
+                                        )}
+                                    </PDFDownloadLink>
+                                )}
                             </div>
                         )}
 
@@ -1079,6 +1125,21 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center">
                                                     <div className="flex items-center justify-center gap-1.5">
+                                                        {item.empresaId && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const companyData = companies.find((c) => c._id === item.empresaId);
+                                                                    if (companyData) {
+                                                                        handleOpenDetails(companyData);
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 text-app-muted hover:text-blue-500 hover:bg-app-button rounded-lg transition-colors"
+                                                                title="Ver detalles de la empresa"
+                                                            >
+                                                                <Building2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
                                                         <button
                                                             onClick={() => {
                                                                 setSelectedFollow(item);
@@ -1167,6 +1228,21 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                         </div>
 
                                         <div className="flex items-center gap-1">
+                                            {item.empresaId && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const companyData = companies.find((c) => c._id === item.empresaId);
+                                                        if (companyData) {
+                                                            handleOpenDetails(companyData);
+                                                        }
+                                                    }}
+                                                    className="p-1 text-app-muted hover:text-blue-500 hover:bg-app-button rounded transition-colors"
+                                                    title="Ver detalles de la empresa"
+                                                >
+                                                    <Building2 className="w-4 h-4" />
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => {
                                                     setSelectedFollow(item);
@@ -1471,6 +1547,13 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                 isOpen={isChartsModalOpen}
                 onClose={() => setIsChartsModalOpen(false)}
                 follows={filteredFollows}
+            />
+
+            {/* MODAL VER DETALLES DE LA EMPRESA */}
+            <CompanyDetailsModal
+                isOpen={isDetailsOpen}
+                company={viewingCompany}
+                onClose={handleCloseDetails}
             />
         </div>
     );
