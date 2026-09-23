@@ -3,7 +3,7 @@ import { useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import {
-    ChartLine, Building2, Users, ChartGantt, History, Settings, X, ChevronRight
+    ChartLine, Building2, Users, ChartGantt, History, Settings, X, ChevronRight, Map
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -18,6 +18,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         { path: '/', label: 'Estadísticas', icon: ChartLine, allowedRoles: ['admin', 'editor', 'lector'] },
         { path: '/empresas', label: 'Empresas', icon: Building2, allowedRoles: ['admin', 'editor', 'lector'] },
         { path: '/empresas/seguimientos', label: 'Seguimientos', icon: ChartGantt, allowedRoles: ['admin', 'editor', 'lector'] },
+        { path: '/mapa', label: 'Mapa', icon: Map, allowedRoles: ['admin', 'editor', 'lector'] },
         { path: '/auditoria', label: 'Auditoría', icon: History, allowedRoles: ['admin'] },
         { path: '/usuarios', label: 'Usuarios', icon: Users, allowedRoles: ['admin'] },
         { path: '/micuenta', label: 'Mi Cuenta', icon: Settings, allowedRoles: ['admin', 'editor', 'lector'] },
@@ -56,7 +57,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                         <NavLink
                             key={item.path}
                             to={item.path}
-                            end={item.path === '/' || item.path === '/empresas'}
+                            end={item.path === '/' || item.path === '/empresas' || item.path === '/mapa'}
                             onClick={() => {
                                 // Cierra el menú al presionar una opción en dispositivos móviles
                                 if (window.innerWidth < 1024) onClose();

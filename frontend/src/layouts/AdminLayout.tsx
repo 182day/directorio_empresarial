@@ -4,7 +4,7 @@ import { Outlet, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Sidebar } from '../components/Sidebar';
 import { CompanyForm } from '../components/CompanyForm';
-import { ChartLine, Building2, Users, Menu, X, LogOut, LogIn, LayoutDashboard, History, Settings, ChartGantt } from 'lucide-react';
+import { ChartLine, Building2, Users, Menu, X, LogOut, LogIn, LayoutDashboard, History, Settings, ChartGantt, Map } from 'lucide-react';
 import { useCompanyStore } from '../stores/useCompanyStore';
 import { AIChatWidget } from '../components/AIChatWidget';
 
@@ -43,6 +43,13 @@ export const AdminLayout = () => {
             return {
                 title: 'Empresas',
                 icon: <Building2 className="w-6 h-6" />,
+            };
+        }
+
+        if (path.startsWith('/mapa')) {
+            return {
+                title: 'Mapa económico',
+                icon: <Map className="w-6 h-6" />,
             };
         }
 
