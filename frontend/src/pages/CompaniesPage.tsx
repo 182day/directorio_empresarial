@@ -12,7 +12,7 @@ import { CompanyDetailsModal } from '../components/CompanyDetailsModal';
 import { CompaniesFollowPage } from './CompaniesFollowPage';
 import {
     Plus, Pencil, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download, FileText, BarChart3,
-    Hash, Calendar, Layers, Truck, Flag, CheckSquare, Square, ListChecks, CheckCheck, ChartGantt, ArrowUp, ArrowDown
+    Hash, Calendar, Layers, Truck, Flag, CheckSquare, Square, ListChecks, CheckCheck, ChartGantt, ArrowUp, ArrowDown, Map
 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { exportCompaniesToExcel } from '../components/CompaniesSheetExcel';
@@ -22,6 +22,7 @@ import { CompaniesGraphics } from '../components/CompaniesGraphics';
 import { CompaniesPDFDocument } from '../components/CompaniesPDFDocument';
 import { CompanySheetPDFDocument } from '../components/CompanySheetPDFDocument';
 import { useCompanyStore } from '../stores/useCompanyStore';
+import { useMapCompaniesStore } from '../stores/useMapCompaniesStore';
 import {
     SORT_OPTIONS,
     OPCIONES_TAMANO
@@ -45,6 +46,7 @@ export const CompaniesPage = () => {
 
     // Consumir el estado y las acciones globales de Zustand
     const { companies, loading, fetchCompanies } = useCompanyStore();
+    const { setMapCompanies } = useMapCompaniesStore();
 
     const [search, setSearch] = useState('');
     const [tipoVista, setTipoVista] = useState<'tabla' | 'cards'>('cards');
@@ -654,6 +656,22 @@ export const CompaniesPage = () => {
                                 <FileText className="w-4 h-4" />
                                 <span className="hidden sm:inline">PDF</span>
                             </button>
+
+                            {/* Botón Enviar al mapa (Se muestra si hay filtros aplicados) */}
+                            {displayedCompanies.length > 0 && companies.length > displayedCompanies.length && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setMapCompanies(displayedCompanies);
+                                        toast.success(`${displayedCompanies.length} empresas enviadas al mapa correctamente`);
+                                    }}
+                                    title="Enviar las empresas filtradas al mapa"
+                                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0"
+                                >
+                                    <Map className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Mapa ({displayedCompanies.length})</span>
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>

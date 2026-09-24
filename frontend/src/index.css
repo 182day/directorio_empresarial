@@ -33,6 +33,47 @@ html.dark {
   --color-app-button-hover: var(--color-app-button-hover);
 }
 
+/* --- ADAPTACIÓN DARK/LIGHT PARA POPUPS DE LEAFLET --- */
+.leaflet-popup-content-wrapper {
+  background-color: var(--color-bg-card, #1e293b) !important; /* Si usas variables CSS de tu tema */
+  color: var(--color-text, #f8fafc) !important;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: 0.75rem !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+}
+
+/* La patita/flecha del popup */
+.leaflet-popup-tip {
+  background-color: var(--color-bg-card, #1e293b) !important;
+}
+
+/* Si utilizas Tailwind con clase .dark en el <html> / <body> */
+.dark .leaflet-popup-content-wrapper,
+.dark .leaflet-popup-tip {
+  background-color: #0f172a !important; /* bg-app-card en modo dark */
+  border-color: #334155 !important;
+}
+
+:root:not(.dark) .leaflet-popup-content-wrapper,
+:root:not(.dark) .leaflet-popup-tip {
+  background-color: #ffffff !important; /* bg-app-card en modo light */
+  border-color: #e2e8f0 !important;
+}
+
+/* Botón de cerrar "X" del popup */
+.leaflet-container a.leaflet-popup-close-button {
+  color: #94a3b8 !important;
+  padding: 8px 8px 0 0 !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: #3b82f6 !important;
+}
+
+.leaflet-popup-content p {
+  margin: 0 !important;
+}
+
 /* 4. Transición suave de colores global en el Body */
 body {
   background-color: var(--color-app-bg);

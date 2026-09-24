@@ -48,7 +48,7 @@ export const AdminLayout = () => {
 
         if (path.startsWith('/mapa')) {
             return {
-                title: 'Mapa económico',
+                title: 'Mapa digital',
                 icon: <Map className="w-6 h-6" />,
             };
         }
@@ -86,6 +86,7 @@ export const AdminLayout = () => {
 
     return (
         <div className="h-screen bg-app-bg text-app-text flex flex-col overflow-hidden transition-colors duration-200">
+            {user && (<AIChatWidget />)}
             {/* Topbar Superior */}
             <header className="bg-app-card border-b border-app-border z-30 shrink-0 transition-colors duration-200">
                 <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -115,7 +116,6 @@ export const AdminLayout = () => {
                     <div className="flex items-center gap-3">
                         {user ? (
                             <>
-                                <AIChatWidget />
                                 <span className="text-sm text-app-muted hidden sm:inline">
                                     Hola, <strong className="text-app-text">{user.nombre}</strong>
                                 </span>

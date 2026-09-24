@@ -31,3 +31,9 @@ dist-ssr
 
 # Archivos
 *.rar
+
+# Ignora todo dentro de la carpeta layers
+src/data/layers/
+
+# Pero no ignores el archivo .gitkeep
+!src/data/layers/.gitkeep

@@ -124,7 +124,7 @@ export const AIChatWidget = () => {
     };
 
     return (
-        <div className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-100 flex flex-col items-end">
+        <div className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-47 flex flex-col items-end">
             {abierto && (
                 <div
                     className="fixed inset-x-3 top-[max(1rem,env(safe-area-inset-top))] bottom-[max(1rem,env(safe-area-inset-bottom))]
