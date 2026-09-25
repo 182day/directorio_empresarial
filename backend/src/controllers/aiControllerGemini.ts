@@ -15,6 +15,7 @@ const getGeminiClient = () => {
 
 // Nombre oficial soportado por la API de Gemini
 const MODEL = 'gemini-3.6-flash';
+//const MODEL = 'gemini-2.5-flash';
 const MAX_TOOL_ITERATIONS = 6;
 
 const SYSTEM_PROMPT = `

@@ -1,38 +1,78 @@
 // src/pages/MapPage.tsx
 import { useState, useEffect } from 'react';
+import { renderToString } from 'react-dom/server';
 import { useTheme } from '../context/ThemeContext';
 import { useCompanyStore } from '../stores/useCompanyStore';
 import { useMapCompaniesStore } from '../stores/useMapCompaniesStore';
 import { CompanyDetailsModal } from '../components/CompanyDetailsModal';
 import { type CompanyFormData } from '../interfaces/company.interface';
-import { Building2, MapPin } from 'lucide-react';
+import {
+    Building2, MapPin, Cylinder, Droplet, Ambulance, GraduationCap,
+    Church, ShoppingBag, TowerControl, Cross, ShoppingBasket, SportShoe, Dome, HelpCircle
+} from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
 import type { LatLngExpression } from 'leaflet';
 import L from 'leaflet';
-import datosGeoJson from '../data/qro_mun.json';
 import { LayerFilterMap } from '../components/LayerFilterMap';
 import { CATALOGO_CAPAS, type MapLayerConfig } from '../data/mapCatalog';
 import 'leaflet/dist/leaflet.css';
+import { normalizeKey } from '../utils/formUtils';
 
-// --- Importación de las capas GeoJSON dinámicas ---
+// --- Importación de capas GeoJSON ---
+import localidadesData from '../data/layers/localidades.json';
+import municipioGeoJson from '../data/layers/municipios.json';
 import agebGeoJson from '../data/layers/ageb.json';
 import aguaGeoJson from '../data/layers/agua.json';
 import estadoGeoJson from '../data/layers/estado.json';
+import republicaGeoJson from '../data/layers/republica.json';
+import sipGeoJson from '../data/layers/sip.json';
 
-// Diccionario que vincula el string de la propiedad 'layer' con el archivo GeoJSON importado
+// Tipado del catálogo de localidades
+interface Localidad {
+    CVE_MUN: string;
+    NOM_MUN: string;
+    CVE_LOC: string;
+    NOM_LOC: string;
+    AMBITO: string;
+    LATITUD: string;
+    LONGITUD: string;
+}
+
 const GEOJSON_DATA_MAP: Record<string, any> = {
     estado: estadoGeoJson,
     agua: aguaGeoJson,
     ageb: agebGeoJson,
 };
 
+const ICON_COMPONENTS: Record<string, any> = {
+    Cylinder,
+    Droplet,
+    Ambulance,
+    SportShoe,
+    GraduationCap,
+    Church,
+    Dome,
+    ShoppingBag,
+    TowerControl,
+    Cross,
+    ShoppingBasket,
+    MapPin
+};
+
 // Función auxiliar para mapear clases de Tailwind text-* a colores Hexadecimales para SVG/Leaflet
 const getHexFromColorClass = (colorClass: string): string => {
     if (colorClass.includes('slate') || colorClass.includes('dark')) return '#64748b';
+    if (colorClass.includes('stone')) return '#78716c';
+    if (colorClass.includes('gray')) return '#6b7280';
+    if (colorClass.includes('teal')) return '#14b8a6';
     if (colorClass.includes('cyan')) return '#06b6d4';
+    if (colorClass.includes('sky')) return '#0ea5e9';
+    if (colorClass.includes('blue')) return '#3b82f6';
     if (colorClass.includes('fuchsia')) return '#d946ef';
     if (colorClass.includes('emerald') || colorClass.includes('green')) return '#10b981';
     if (colorClass.includes('amber')) return '#f59e0b';
+    if (colorClass.includes('orange')) return '#f97316';
+    if (colorClass.includes('red')) return '#ef4444';
     return '#3b82f6'; // Azul por defecto
 };
 
@@ -42,22 +82,33 @@ const BASE_URL_LIGHT = 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x
 const posicionInicial: LatLngExpression = [20.8563, -99.8302];
 const API_KEY = import.meta.env.VITE_API_KEY;
 
-// Función para generar un icono SVG dinámico de Leaflet con el color de la capa
-const createCustomMarkerIcon = (colorClass: string) => {
+// Generador de Marker Icon personalizado según el icono Lucide de la capa
+const createDynamicMarkerIcon = (colorClass: string, iconName?: string) => {
     const hexColor = getHexFromColorClass(colorClass);
+    const IconComponent = (iconName && ICON_COMPONENTS[iconName]) ? ICON_COMPONENTS[iconName] : HelpCircle;
+
+    const iconHtml = renderToString(<IconComponent size={16} color="#ffffff" strokeWidth={2.5} />);
 
     return L.divIcon({
         className: 'custom-leaflet-marker',
         html: `
-            <div style="display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${hexColor}" width="28" height="28" style="filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.4));">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                </svg>
+            <div style="
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                width: 32px; 
+                height: 32px; 
+                background-color: ${hexColor}; 
+                border-radius: 50%; 
+                border: 2px solid white; 
+                box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
+            ">
+                ${iconHtml}
             </div>
         `,
-        iconSize: [30, 30],
-        iconAnchor: [15, 30],
-        popupAnchor: [0, -28],
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -16],
     });
 };
 
@@ -117,6 +168,14 @@ export const MapPage = () => {
         );
     };
 
+    const estiloEstado = {
+        color: '#fff',
+        weight: 1.5,
+        opacity: 0.7,
+        fillColor: '#c4c4c4',
+        fillOpacity: 0.15,
+    };
+
     const estiloMunicipios = {
         color: '#2563eb',
         weight: 1.5,
@@ -125,18 +184,15 @@ export const MapPage = () => {
         fillOpacity: 0.15,
     };
 
-    const alCargarCadaMunicipio = (feature: any, layer: any) => {
-        const { NOMGEO, CVEGEO, URL } = feature.properties || {};
+    const crearCargadorInformacion = (estiloBase: L.PathOptions) => (feature: any, layer: any) => {
+        const { NOMGEO, URL } = feature.properties || {};
 
         layer.bindPopup(`
         <div class="p-1 space-y-2 text-app-text font-sans">
             <div>
                 <h4 class="m-0 font-bold text-sm text-blue-500 leading-tight">
-                    Municipio: <strong>${NOMGEO || 'Desconocido'}</strong>
+                    <strong>${NOMGEO || 'Desconocido'}</strong>
                 </h4>
-                <p class="m-0 text-xs text-app-muted mt-0.5">
-                    Clave Geográfica: <code class="px-1 py-0.5 bg-app-bg border border-app-border rounded text-app-text font-mono">${CVEGEO || 'N/A'}</code>
-                </p>
             </div>
             <div class="pt-2 border-t border-app-border flex justify-end">
                 <a
@@ -161,16 +217,16 @@ export const MapPage = () => {
                 e.target.setStyle({ fillOpacity: 0.4, weight: 2.5 });
             },
             mouseout: (e: any) => {
-                e.target.setStyle(estiloMunicipios);
+                // Restaura exactamente el estilo base de esta capa en particular
+                e.target.setStyle(estiloBase);
             },
         });
     };
 
-    // Identificamos el ID de la capa de empresas actualmente activa
-    const capaActivaId = capasActivas.includes('empresas') 
-        ? 'empresas' 
-        : capasActivas.includes('empresasDirectorio') 
-            ? 'empresasDirectorio' 
+    const capaActivaId = capasActivas.includes('empresas')
+        ? 'empresas'
+        : capasActivas.includes('empresasDirectorio')
+            ? 'empresasDirectorio'
             : null;
 
     const capaConfig = CATALOGO_CAPAS.find((c) => c.id === capaActivaId);
@@ -181,7 +237,7 @@ export const MapPage = () => {
             ? companies
             : [];
 
-    const customIcon = capaConfig ? createCustomMarkerIcon(capaConfig.color) : undefined;
+    const customIcon = capaConfig ? createDynamicMarkerIcon(capaConfig.color, capaConfig.icon) : undefined;
 
     const empresasConCoordenadas = listaEmpresasAVisualizar.filter((emp) => {
         const lat = emp.ubicacion?.latitud;
@@ -191,7 +247,6 @@ export const MapPage = () => {
 
     return (
         <div className="relative w-full h-[calc(100vh-4rem)] bg-app-bg overflow-hidden transition-colors duration-200">
-            {/* Componente del Filtro de Capas */}
             <LayerFilterMap
                 isMenuOpen={isMenuOpen}
                 setIsMenuOpen={setIsMenuOpen}
@@ -199,7 +254,6 @@ export const MapPage = () => {
                 onToggleCapa={toggleCapa}
             />
 
-            {/* Contenedor del Mapa */}
             <MapContainer
                 center={posicionInicial}
                 zoom={8.5}
@@ -210,22 +264,31 @@ export const MapPage = () => {
                 <ResizeMap />
 
                 <TileLayer
-                    attribution='&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
+                    attribution='&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> &copy; <a href="https://www.inegi.org.mx/" target="_blank">INEGI</a>'
                     url={urlMapa}
                     maxNativeZoom={18}
                     maxZoom={22}
                 />
 
-                {/* Capa de Vectoriales GeoJSON de Municipios */}
+                {/* Municipios */}
                 {capasActivas.includes('municipios') && (
                     <GeoJSON
-                        data={datosGeoJson as any}
+                        data={municipioGeoJson as any}
                         style={estiloMunicipios}
-                        onEachFeature={alCargarCadaMunicipio}
+                        onEachFeature={crearCargadorInformacion(estiloMunicipios)}
                     />
                 )}
 
-                {/* Renderizado dinámico de Capas GeoJSON adicionales (estado, agua, ageb, etc.) */}
+                {/* Estados */}
+                {capasActivas.includes('republica') && (
+                    <GeoJSON
+                        data={republicaGeoJson as any}
+                        style={estiloEstado}
+                        onEachFeature={crearCargadorInformacion(estiloEstado)}
+                    />
+                )}
+
+                {/* Capas GeoJSON Vectoriales (estado, agua, ageb, etc.) */}
                 {CATALOGO_CAPAS.filter(
                     (capa: MapLayerConfig) => capa.layer && capasActivas.includes(capa.id)
                 ).sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0)).map((capa: MapLayerConfig) => {
@@ -250,15 +313,105 @@ export const MapPage = () => {
                     );
                 })}
 
-                {/* Capa de Marcadores de Empresas (Filtradas OR Directorio) */}
+                {/* Marcadores Filtrados Dináminamente desde sip.json con su respectivo Icono Lucide */}
+                {(() => {
+                    const features = (sipGeoJson as any).features || [];
+
+                    const featuresFiltradas = features.filter((feature: any) => {
+                        const valorGeografico = feature.properties?.GEOGRAFICO || '';
+                        const idNormalizado = normalizeKey(valorGeografico);
+                        return capasActivas.includes(idNormalizado);
+                    });
+
+                    return featuresFiltradas.map((feature: any, index: number) => {
+                        const coordinates = feature.geometry?.coordinates;
+                        if (!coordinates || coordinates.length < 2) return null;
+
+                        const [lng, lat] = coordinates;
+                        if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) return null;
+
+                        const valorGeografico = feature.properties?.GEOGRAFICO || '';
+                        const idNormalizado = normalizeKey(valorGeografico);
+
+                        // Búsqueda del municipio y localidad en el catálogo localidades.json
+                        const cveMun = feature.properties?.CVE_MUN;
+                        const cveLoc = feature.properties?.CVE_LOC;
+
+                        const infoLocalidad = (localidadesData as Localidad[]).find(
+                            (loc) => loc.CVE_MUN === cveMun && loc.CVE_LOC === cveLoc
+                        );
+
+                        const nombreMunicipio = infoLocalidad?.NOM_MUN || `Mun. ${cveMun || 'N/A'}`;
+                        const nombreLocalidad = infoLocalidad?.NOM_LOC || feature.properties?.NOMBRE || feature.properties?.DENOMINACION || `Loc. ${cveLoc || 'N/A'}`;
+
+                        // Se obtiene la configuración dinámica desde mapCatalog
+                        const configCapa = CATALOGO_CAPAS.find((c) => c.id === idNormalizado);
+                        const markerIcon = createDynamicMarkerIcon(
+                            configCapa?.color || 'text-red-500',
+                            configCapa?.icon
+                        );
+
+                        return (
+                            <Marker
+                                key={feature.id || `sip-${idNormalizado}-${index}`}
+                                position={[lat, lng]}
+                                icon={markerIcon}
+                            >
+                                <Popup className={theme}>
+                                    <div className="p-1 space-y-1 text-app-text min-w-40">
+                                        {/* Badge de tipo/valor geográfico */}
+                                        <div className="flex justify-start mb-2">
+                                            <span
+                                                className="px-2 py-0.5 text-[10px] font-semibold rounded-full border inline-block mb-1"
+                                                style={{
+                                                    color: getHexFromColorClass(configCapa?.color || 'text-red-500'),
+                                                    backgroundColor: `${getHexFromColorClass(configCapa?.color || 'text-red-500')}1A`, // 1A equivale a ~10% de opacidad
+                                                    borderColor: `${getHexFromColorClass(configCapa?.color || 'text-red-500')}33`, // 33 equivale a ~20% de opacidad
+                                                }}
+                                            >
+                                                {valorGeografico}
+                                            </span>
+                                        </div>
+
+                                        {/* Nombre de la Localidad (NOM_LOC) */}
+                                        <h4 className="font-bold text-sm leading-tight">
+                                            {nombreLocalidad}
+                                        </h4>
+
+                                        {/* Nombre del Municipio (NOM_MUN) */}
+                                        <p className="text-xs text-app-muted uppercase">
+                                            {nombreMunicipio}
+                                        </p>
+
+                                        {/* Información adicional del SIP (Condición, Servicio, etc.) */}
+                                        {feature.properties?.CONDICION && (
+                                            <div className="pt-1 text-[11px] border-t border-gray-200/20 space-y-0.5">
+                                                <p>
+                                                    <span className="font-medium">Condición:</span> {feature.properties.CONDICION}
+                                                </p>
+                                                {(feature.properties?.NOMSERV && feature.properties?.NOMSERV !== 'Ninguno') && (
+                                                    <p>
+                                                        <span className="font-medium">Servicio:</span> {feature.properties.NOMSERV}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        );
+                    });
+                })()}
+
+                {/* Capa de Marcadores de Empresas */}
                 {(capasActivas.includes('empresas') || capasActivas.includes('empresasDirectorio')) &&
                     empresasConCoordenadas.map((empresa) => {
                         const lat = empresa.ubicacion.latitud as number;
                         const lng = empresa.ubicacion.longitud as number;
 
                         return (
-                            <Marker 
-                                key={empresa._id || `${lat}-${lng}`} 
+                            <Marker
+                                key={empresa._id || `${lat}-${lng}`}
                                 position={[lat, lng]}
                                 icon={customIcon}
                             >
@@ -292,7 +445,7 @@ export const MapPage = () => {
                                             </div>
                                         )}
 
-                                        <div className="pt-2 border-t border-app-border flex justify-end">
+                                        <div className="pt-2 border-t border-app-border flex items-center justify-between gap-2">
                                             <button
                                                 type="button"
                                                 onClick={() => handleOpenDetails(empresa)}
@@ -309,8 +462,7 @@ export const MapPage = () => {
                         );
                     })}
             </MapContainer>
-            
-            {/* MODAL VER DETALLES DE LA EMPRESA */}
+
             <CompanyDetailsModal
                 isOpen={isDetailsOpen}
                 company={viewingCompany}

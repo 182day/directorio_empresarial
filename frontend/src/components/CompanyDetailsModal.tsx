@@ -6,6 +6,7 @@ import { type CompanyFormData } from '../interfaces/company.interface';
 import { AuthContext } from '../context/AuthContext';
 import { CompaniesPDFDocument } from './CompaniesPDFDocument';
 import { SECTORES_CONFIG, type ColorTheme } from './CompanyForm';
+import { formatUrl } from '../utils/formUtils';
 
 interface CompanyDetailsModalProps {
     company: CompanyFormData | null;
@@ -244,7 +245,7 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                         <Globe className="w-4 h-4 text-app-muted shrink-0" />
                                         <strong className="text-app-muted">Sitio Web:</strong>
                                     </div>
-                                    <a href={sitioWeb.startsWith('http') ? sitioWeb : `https://${sitioWeb}`} target="_blank" rel="noreferrer" className="text-blue-500 dark:text-blue-400 hover:underline pl-6 block break-all">
+                                    <a href={formatUrl(sitioWeb)} target="_blank" rel="noreferrer" className="text-blue-500 dark:text-blue-400 hover:underline pl-6 block break-all">
                                         {sitioWeb}
                                     </a>
                                 </div>

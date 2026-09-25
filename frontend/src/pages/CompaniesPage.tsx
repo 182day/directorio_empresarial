@@ -17,6 +17,7 @@ import {
 import { saveAs } from 'file-saver';
 import { exportCompaniesToExcel } from '../components/CompaniesSheetExcel';
 import { CompaniesGraphics } from '../components/CompaniesGraphics';
+import { formatUrl } from '../utils/formUtils';
 
 // Importación de React PDF
 import { CompaniesPDFDocument } from '../components/CompaniesPDFDocument';
@@ -1120,7 +1121,12 @@ export const CompaniesPage = () => {
                                                 {comp.sitioWeb && (
                                                     <div className="flex items-center gap-2">
                                                         <Globe className="w-4 h-4 text-app-muted shrink-0" />
-                                                        <a href={comp.sitioWeb} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline truncate">
+                                                        <a
+                                                            href={formatUrl(comp.sitioWeb)}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="text-blue-400 hover:underline truncate"
+                                                        >
                                                             {comp.sitioWeb}
                                                         </a>
                                                     </div>

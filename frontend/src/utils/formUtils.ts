@@ -7,6 +7,13 @@ export const PHONE_REGEX = /^\d{10}$/;
 
 // --- FUNCIONES HELPER / FORMATTER ---
 
+export const formatUrl = (url: string) => {
+  if (!url) return '';
+  const trimmedUrl = url.trim();
+  // Si ya empieza con http:// o https:// se deja tal cual, de lo contrario se le antepone https://
+  return /^https?:\/\//i.test(trimmedUrl) ? trimmedUrl : `https://${trimmedUrl}`;
+};
+
 /**
  * Normaliza un texto convirtiéndolo a minúsculas y removiendo acentos/tildes.
  * Útil para autocompletados y búsquedas.
@@ -16,6 +23,15 @@ export const normalizeText = (text: string): string =>
         .toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '');
+
+export const normalizeKey = (text: string) =>
+    text
+        ? text
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "") // Quita acentos
+            .replace(/\s+/g, "")             // Quita espacios
+        : "";
 
 /**
  * Filtra solo caracteres numéricos y limita la longitud.

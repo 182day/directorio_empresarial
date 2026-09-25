@@ -1,6 +1,7 @@
 // src/routes/aiRoutes.ts
 import { Router } from 'express';
-import { chatConIA } from '../controllers/aiController';
+//import { chatConIA } from '../controllers/aiControllerGemini';
+import { chatConIA } from '../controllers/aiControllerGroq';
 import { protect } from '../middlewares/authMiddleware';
 
 const router = Router();
