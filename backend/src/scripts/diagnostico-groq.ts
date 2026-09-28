@@ -1,4 +1,4 @@
-// diagnostico-groq.ts
+// src/scripts/diagnostico-groq.ts
 //
 // Script aislado para confirmar qué modelos ve tu API key de Groq,
 // sin pasar por tu app de Express (para descartar cualquier otra causa).
@@ -7,7 +7,7 @@
 //   npx tsx diagnostico-groq.ts
 //
 // (si no tienes tsx: npm install -g tsx, o usa ts-node)
-// npx tsx src/utils/diagnostico-groq.ts
+// npx tsx src/acripts/diagnostico-groq.ts
 
 import 'dotenv/config';
 import Groq from 'groq-sdk';

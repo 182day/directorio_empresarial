@@ -1,5 +1,5 @@
 // src/pages/CompaniesPage.tsx
-import { useState, useEffect, useContext, useMemo } from 'react';
+import { useState, useEffect, useContext, useMemo, useRef } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
@@ -11,8 +11,8 @@ import { Pagination } from '../components/Pagination';
 import { CompanyDetailsModal } from '../components/CompanyDetailsModal';
 import { CompaniesFollowPage } from './CompaniesFollowPage';
 import {
-    Plus, Pencil, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, Download, FileText, BarChart3,
-    Hash, Calendar, Layers, Truck, Flag, CheckSquare, Square, ListChecks, CheckCheck, ChartGantt, ArrowUp, ArrowDown, Map
+    Plus, Pencil, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, FileText, BarChart3,
+    Hash, Calendar, Layers, Truck, Flag, CheckSquare, Square, ListChecks, CheckCheck, ChartGantt, ArrowUp, ArrowDown, Map, ChevronDown, FileSpreadsheet
 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { exportCompaniesToExcel } from '../components/CompaniesSheetExcel';
@@ -81,6 +81,8 @@ export const CompaniesPage = () => {
     const [selectedPaisOrigen, setSelectedPaisOrigen] = useState<string[]>([]);
     const [selectedSectores, setSelectedSectores] = useState<string[]>([]);
     const [selectedProductos, setSelectedProductos] = useState<string[]>([]);
+    const [selectedFechaDesde, setSelectedFechaDesde] = useState<string>('');
+    const [selectedFechaHasta, setSelectedFechaHasta] = useState<string>('');
 
     // Estados para Modal Crear/Editar
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -168,17 +170,34 @@ export const CompaniesPage = () => {
             const matchProductos = selectedProductos.length === 0 ||
                 selectedProductos.some((p) => productosEmpresa.includes(p));
 
+            // Lógica para rango de fechas
+            const compFecha = comp.createdAt ? new Date(comp.createdAt).getTime() : null;
+            let matchFecha = true;
+
+            if (compFecha) {
+                if (selectedFechaDesde) {
+                    const desdeTime = new Date(`${selectedFechaDesde}T00:00:00`).getTime();
+                    if (compFecha < desdeTime) matchFecha = false;
+                }
+                if (selectedFechaHasta) {
+                    const hastaTime = new Date(`${selectedFechaHasta}T23:59:59.999`).getTime();
+                    if (compFecha > hastaTime) matchFecha = false;
+                }
+            } else if (selectedFechaDesde || selectedFechaHasta) {
+                matchFecha = false;
+            }
+
             return matchSearch && matchTamano && matchEstado && matchMunicipio && matchEstatus &&
                 matchEtiquetas && matchExporta && matchPaises && matchCert &&
                 matchApoyos && matchTipoOp && matchTipoSum && matchPaisOrigen &&
-                matchSectores && matchProductos;
+                matchSectores && matchProductos && matchFecha;
         });
     }, [
         companies, search, selectedTamanos, selectedEstados, selectedMunicipios,
         selectedEstatus, selectedEtiquetas, selectedExporta,
         selectedPaisesDestino, selectedCertificaciones, selectedApoyos,
         selectedTipoOperaciones, selectedTipoSuministro, selectedPaisOrigen,
-        selectedSectores, selectedProductos
+        selectedSectores, selectedProductos, selectedFechaDesde, selectedFechaHasta // 👈 Agregar dependencias
     ]);
 
     // 2. DESPUÉS: ORDENAMIENTO DE EMPRESAS
@@ -436,6 +455,8 @@ export const CompaniesPage = () => {
         setSelectedPaisOrigen([]);
         setSelectedSectores([]);
         setSelectedProductos([]);
+        setSelectedFechaDesde('');
+        setSelectedFechaHasta('');
         setCurrentPage(1);
     };
 
@@ -536,11 +557,28 @@ export const CompaniesPage = () => {
         selectedTipoSuministro.length +
         selectedPaisOrigen.length +
         selectedSectores.length +
-        selectedProductos.length;
+        selectedProductos.length +
+        (selectedFechaDesde ? 1 : 0) +
+        (selectedFechaHasta ? 1 : 0);
 
     const handleExportExcel = async () => {
         await exportCompaniesToExcel(displayedCompanies, user);
     };
+
+    /* MOSTRAR REPORTES */
+    const [isReportsMenuOpen, setIsReportsMenuOpen] = useState(false);
+    const reportsMenuRef = useRef<HTMLDivElement>(null);
+
+    // Cerrar el menú si se hace clic fuera de él
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (reportsMenuRef.current && !reportsMenuRef.current.contains(event.target as Node)) {
+                setIsReportsMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     return (
         <>
@@ -615,64 +653,121 @@ export const CompaniesPage = () => {
                                 </button>
                             )}
 
-                            {/* Botones de Acción (Gráficas, Excel, PDF) */}
-                            <button
-                                type="button"
-                                onClick={() => setIsChartsModalOpen(true)}
-                                title="Ver Gráficas"
-                                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0"
-                            >
-                                <BarChart3 className="w-4 h-4" />
-                                <span className="hidden sm:inline">Gráficas</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={handleExportExcel}
-                                title="Exportar Excel"
-                                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0"
-                            >
-                                <Download className="w-4 h-4" />
-                                <span className="hidden sm:inline">Excel</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={async () => {
-                                    const { pdf } = await import('@react-pdf/renderer');
-                                    const doc = tipoVista === 'tabla'
-                                        ? <CompanySheetPDFDocument companies={displayedCompanies} />
-                                        : <CompaniesPDFDocument companies={displayedCompanies} />;
-
-                                    const blob = await pdf(doc).toBlob();
-                                    const nombreArchivo = tipoVista === 'tabla'
-                                        ? `Reporte_Empresas_Tabla_${new Date().toISOString().split('T')[0]}.pdf`
-                                        : `Fichas_Tecnicas_Empresas_${new Date().toISOString().split('T')[0]}.pdf`;
-
-                                    saveAs(blob, nombreArchivo);
-                                }}
-                                title={tipoVista === 'tabla' ? 'Descargar reporte en PDF' : 'Descargar fichas en PDF'}
-                                className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0"
-                            >
-                                <FileText className="w-4 h-4" />
-                                <span className="hidden sm:inline">PDF</span>
-                            </button>
-
-                            {/* Botón Enviar al mapa (Se muestra si hay filtros aplicados) */}
-                            {displayedCompanies.length > 0 && companies.length > displayedCompanies.length && (
+                            {/* 📑 BOTÓN MENÚ DE REPORTES DESPLEGABLE */}
+                            <div className="relative shrink-0" ref={reportsMenuRef}>
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setMapCompanies(displayedCompanies);
-                                        toast.success(`${displayedCompanies.length} empresas enviadas al mapa correctamente`);
-                                    }}
-                                    title="Enviar las empresas filtradas al mapa"
-                                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm shrink-0"
+                                    onClick={() => setIsReportsMenuOpen((prev) => !prev)}
+                                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
                                 >
-                                    <Map className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Mapa ({displayedCompanies.length})</span>
+                                    <FileText className="w-4 h-4" />
+                                    <span>Reportes</span>
+                                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isReportsMenuOpen ? 'rotate-180' : ''}`} />
                                 </button>
-                            )}
+
+                                {/* Menú Flotante de Reportes */}
+                                {isReportsMenuOpen && (
+                                    <div className="absolute right-0 mt-2 w-56 bg-app-card border border-app-border rounded-xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                                        {/* Gráficas Estadísticas */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsReportsMenuOpen(false);
+                                                setIsChartsModalOpen(true);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left"
+                                        >
+                                            <BarChart3 className="w-4 h-4 text-indigo-400 shrink-0" />
+                                            <span>Ver Gráficas</span>
+                                        </button>
+
+                                        {/* Exportar Excel */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsReportsMenuOpen(false);
+                                                handleExportExcel();
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left"
+                                        >
+                                            <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />
+                                            <span>Exportar a Excel</span>
+                                        </button>
+
+                                        <div className="my-1 border-t border-app-border" />
+
+                                        {/* 📄 1. Descargar PDF Tabla */}
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                setIsReportsMenuOpen(false);
+                                                const { pdf } = await import('@react-pdf/renderer');
+                                                const doc = <CompanySheetPDFDocument companies={displayedCompanies} />;
+                                                const blob = await pdf(doc).toBlob();
+                                                const fecha = new Date().toISOString().split('T')[0];
+                                                saveAs(blob, `Reporte_Empresas_Tabla_${fecha}.pdf`);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left"
+                                        >
+                                            <FileText className="w-4 h-4 text-rose-400 shrink-0" />
+                                            <span>PDF Tabla</span>
+                                        </button>
+
+                                        {/* 📇 2. Descargar PDF Fichas (Normal) */}
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                setIsReportsMenuOpen(false);
+                                                const { pdf } = await import('@react-pdf/renderer');
+                                                const doc = <CompaniesPDFDocument companies={displayedCompanies} full={false} user={user} />;
+                                                const blob = await pdf(doc).toBlob();
+                                                const fecha = new Date().toISOString().split('T')[0];
+                                                saveAs(blob, `Fichas_Tecnicas_Empresas_${fecha}.pdf`);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left"
+                                        >
+                                            <FileText className="w-4 h-4 text-amber-400 shrink-0" />
+                                            <span>PDF Fichas Técnica</span>
+                                        </button>
+
+                                        {/* 📇 3. Descargar PDF Fichas (FULL) */}
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                setIsReportsMenuOpen(false);
+                                                const { pdf } = await import('@react-pdf/renderer');
+                                                const doc = <CompaniesPDFDocument companies={displayedCompanies} full={true} user={user} />;
+                                                const blob = await pdf(doc).toBlob();
+                                                const fecha = new Date().toISOString().split('T')[0];
+                                                saveAs(blob, `Fichas_Tecnicas_Empresas_FULL_${fecha}.pdf`);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left"
+                                        >
+                                            <FileText className="w-4 h-4 text-orange-400 shrink-0" />
+                                            <span>PDF Fichas Completas</span>
+                                        </button>
+
+                                        {/* Enviar al Mapa (si hay empresas filtradas) */}
+                                        {displayedCompanies.length > 0 && companies.length > displayedCompanies.length && (
+                                            <>
+                                                <div className="my-1 border-t border-app-border" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsReportsMenuOpen(false);
+                                                        setMapCompanies(displayedCompanies);
+                                                        toast.success(`${displayedCompanies.length} empresas enviadas al mapa correctamente`);
+                                                    }}
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left"
+                                                >
+                                                    <Map className="w-4 h-4 text-teal-400 shrink-0" />
+                                                    <span>Enviar al Mapa ({displayedCompanies.length})</span>
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -868,6 +963,24 @@ export const CompaniesPage = () => {
                             </button>
                         </span>
                     ))}
+
+                    {selectedFechaDesde && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20">
+                            Desde: {selectedFechaDesde}
+                            <button onClick={() => { setCurrentPage(1); setSelectedFechaDesde(''); }} className="hover:text-app-text">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    )}
+
+                    {selectedFechaHasta && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20">
+                            Hasta: {selectedFechaHasta}
+                            <button onClick={() => { setCurrentPage(1); setSelectedFechaHasta(''); }} className="hover:text-app-text">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    )}
 
                     <button
                         onClick={clearAllFilters}
@@ -1261,6 +1374,8 @@ export const CompaniesPage = () => {
                 selectedPaisOrigen={selectedPaisOrigen}
                 selectedSectores={selectedSectores}
                 selectedProductos={selectedProductos}
+                selectedFechaDesde={selectedFechaDesde}
+                selectedFechaHasta={selectedFechaHasta}
                 onToggleTamano={(val) => toggleFilter(val, selectedTamanos, setSelectedTamanos)}
                 onToggleEstado={(val) => toggleFilter(val, selectedEstados, setSelectedEstados)}
                 onToggleMunicipio={(val) => toggleFilter(val, selectedMunicipios, setSelectedMunicipios)}
@@ -1281,6 +1396,8 @@ export const CompaniesPage = () => {
                 onTogglePaisOrigen={(val) => toggleFilter(val, selectedPaisOrigen, setSelectedPaisOrigen)}
                 onToggleSector={(val) => toggleFilter(val, selectedSectores, setSelectedSectores)}
                 onToggleProducto={(val) => toggleFilter(val, selectedProductos, setSelectedProductos)}
+                onChangeFechaDesde={(val) => { setCurrentPage(1); setSelectedFechaDesde(val); }}
+                onChangeFechaHasta={(val) => { setCurrentPage(1); setSelectedFechaHasta(val); }}
                 onClearAll={clearAllFilters}
                 totalResultados={filteredCompanies.length}
             />

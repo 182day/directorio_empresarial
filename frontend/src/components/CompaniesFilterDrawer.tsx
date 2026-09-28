@@ -18,7 +18,7 @@ interface FilterDrawerProps {
     opcionesTipoSuministro: string[];
     opcionesPaisOrigen: string[];
     opcionesSectores: string[];
-    opcionesProductos: string[];         // 👈 NUEVO: Opciones de productos/servicios
+    opcionesProductos: string[];
     // Selecciones
     selectedTamanos: string[];
     selectedEstados: string[];
@@ -33,7 +33,9 @@ interface FilterDrawerProps {
     selectedTipoSuministro: string[];
     selectedPaisOrigen: string[];
     selectedSectores: string[];
-    selectedProductos: string[];         // 👈 NUEVO: Productos/servicios seleccionados
+    selectedProductos: string[];
+    selectedFechaDesde: string;
+    selectedFechaHasta: string;
     // Handlers
     onToggleTamano: (val: string) => void;
     onToggleEstado: (val: string) => void;
@@ -48,7 +50,9 @@ interface FilterDrawerProps {
     onToggleTipoSuministro: (val: string) => void;
     onTogglePaisOrigen: (val: string) => void;
     onToggleSector: (val: string) => void;
-    onToggleProducto: (val: string) => void;     // 👈 NUEVO: Handler para toggle de productos
+    onToggleProducto: (val: string) => void;
+    onChangeFechaDesde: (val: string) => void;
+    onChangeFechaHasta: (val: string) => void;
     onClearAll: () => void;
     totalResultados: number;
 }
@@ -68,7 +72,7 @@ export const CompaniesFilterDrawer = ({
     opcionesTipoSuministro,
     opcionesPaisOrigen,
     opcionesSectores,
-    opcionesProductos,                 // 👈 NUEVO
+    opcionesProductos,
     selectedTamanos,
     selectedEstados,
     selectedMunicipios,
@@ -82,7 +86,9 @@ export const CompaniesFilterDrawer = ({
     selectedTipoSuministro,
     selectedPaisOrigen,
     selectedSectores,
-    selectedProductos,                 // 👈 NUEVO
+    selectedProductos,
+    selectedFechaDesde,
+    selectedFechaHasta,
     onToggleTamano,
     onToggleEstado,
     onToggleMunicipio,
@@ -96,7 +102,9 @@ export const CompaniesFilterDrawer = ({
     onToggleTipoSuministro,
     onTogglePaisOrigen,
     onToggleSector,
-    onToggleProducto,                  // 👈 NUEVO
+    onToggleProducto,
+    onChangeFechaDesde,
+    onChangeFechaHasta,
     onClearAll,
     totalResultados,
 }: FilterDrawerProps) => {
@@ -177,8 +185,8 @@ export const CompaniesFilterDrawer = ({
                                     type="button"
                                     onClick={() => setOpenFilterMenu(openFilterMenu === 'estatus' ? null : 'estatus')}
                                     className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedEstatus.length > 0
-                                            ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                            : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                         }`}
                                 >
                                     <span>
@@ -223,8 +231,8 @@ export const CompaniesFilterDrawer = ({
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'tamano' ? null : 'tamano')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedTamanos.length > 0
-                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                     }`}
                             >
                                 <span>
@@ -274,8 +282,8 @@ export const CompaniesFilterDrawer = ({
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'sector' ? null : 'sector')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedSectores.length > 0
-                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                     }`}
                             >
                                 <span>
@@ -327,8 +335,8 @@ export const CompaniesFilterDrawer = ({
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'producto' ? null : 'producto')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedProductos.length > 0
-                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                     }`}
                             >
                                 <span>
@@ -380,8 +388,8 @@ export const CompaniesFilterDrawer = ({
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'tipoOp' ? null : 'tipoOp')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedTipoOperaciones.length > 0
-                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                     }`}
                             >
                                 <span>
@@ -433,8 +441,8 @@ export const CompaniesFilterDrawer = ({
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'tipoSum' ? null : 'tipoSum')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedTipoSuministro.length > 0
-                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                     }`}
                             >
                                 <span>
@@ -486,8 +494,8 @@ export const CompaniesFilterDrawer = ({
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'paisOrigen' ? null : 'paisOrigen')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedPaisOrigen.length > 0
-                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                     }`}
                             >
                                 <span>
@@ -539,8 +547,8 @@ export const CompaniesFilterDrawer = ({
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'estado' ? null : 'estado')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedEstados.length > 0
-                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                     }`}
                             >
                                 <span>
@@ -592,8 +600,8 @@ export const CompaniesFilterDrawer = ({
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'municipio' ? null : 'municipio')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedMunicipios.length > 0
-                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                     }`}
                             >
                                 <span>
@@ -645,8 +653,8 @@ export const CompaniesFilterDrawer = ({
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'exporta' ? null : 'exporta')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedExporta !== ''
-                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                     }`}
                             >
                                 <span>
@@ -688,8 +696,8 @@ export const CompaniesFilterDrawer = ({
                                     type="button"
                                     onClick={() => setOpenFilterMenu(openFilterMenu === 'pais' ? null : 'pais')}
                                     className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedPaisesDestino.length > 0
-                                            ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                            : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                         }`}
                                 >
                                     <span>
@@ -742,8 +750,8 @@ export const CompaniesFilterDrawer = ({
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'certificacion' ? null : 'certificacion')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedCertificaciones.length > 0
-                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                     }`}
                             >
                                 <span>
@@ -795,8 +803,8 @@ export const CompaniesFilterDrawer = ({
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'apoyo' ? null : 'apoyo')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedApoyos.length > 0
-                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                     }`}
                             >
                                 <span>
@@ -848,8 +856,8 @@ export const CompaniesFilterDrawer = ({
                                 type="button"
                                 onClick={() => setOpenFilterMenu(openFilterMenu === 'etiqueta' ? null : 'etiqueta')}
                                 className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedEtiquetas.length > 0
-                                        ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
                                     }`}
                             >
                                 <span>
@@ -890,6 +898,51 @@ export const CompaniesFilterDrawer = ({
                                                     </button>
                                                 );
                                             })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Filtro: Rango de Fechas (createdAt) */}
+                        <div className="relative w-full text-left">
+                            <button
+                                type="button"
+                                onClick={() => setOpenFilterMenu(openFilterMenu === 'fechas' ? null : 'fechas')}
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedFechaDesde || selectedFechaHasta
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
+                            >
+                                <span>
+                                    Fecha de Registro
+                                    {(selectedFechaDesde || selectedFechaHasta) && (
+                                        <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-600 text-white rounded-full font-bold">
+                                            {(selectedFechaDesde ? 1 : 0) + (selectedFechaHasta ? 1 : 0)}
+                                        </span>
+                                    )}
+                                </span>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${openFilterMenu === 'fechas' ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {openFilterMenu === 'fechas' && (
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                    <div>
+                                        <label className="block text-xs font-medium text-app-muted mb-1">Fecha Desde:</label>
+                                        <input
+                                            type="date"
+                                            value={selectedFechaDesde}
+                                            onChange={(e) => onChangeFechaDesde(e.target.value)}
+                                            className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text focus:outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-app-muted mb-1">Fecha Hasta:</label>
+                                        <input
+                                            type="date"
+                                            value={selectedFechaHasta}
+                                            onChange={(e) => onChangeFechaHasta(e.target.value)}
+                                            className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text focus:outline-none focus:border-blue-500"
+                                        />
                                     </div>
                                 </div>
                             )}

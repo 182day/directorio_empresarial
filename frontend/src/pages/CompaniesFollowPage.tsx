@@ -11,13 +11,13 @@ import { CompaniesFollowGraphics } from '../components/CompaniesFollowGraphics';
 import { CompanyDetailsModal } from '../components/CompanyDetailsModal';
 import { formatFechaLarga } from '../utils/formUtils';
 import { Pagination } from '../components/Pagination';
-import { PDFDownloadLink } from '@react-pdf/renderer';
 import { useCompanyStore } from '../stores/useCompanyStore';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
 import api from '../api/axios';
+import { saveAs } from 'file-saver';
 import {
-    ArrowUp, ArrowDown, BarChart3, Download, Plus, X, History, Search, Table, LayoutGrid, Calendar, Building2, Eye, Pencil, Trash2, SlidersHorizontal, ChevronDown, Check, User, Tag, CheckCircle2, PhoneCall, ChartGantt, FileText
+    ArrowUp, ArrowDown, BarChart3, Plus, X, History, Search, Table, LayoutGrid, Calendar, Building2, Eye, Pencil, Trash2, SlidersHorizontal, ChevronDown, Check, User, Tag, CheckCircle2, PhoneCall, ChartGantt, FileText, FileSpreadsheet
 } from 'lucide-react';
 import {
     OPCIONES_TIPO_SEGUIMIENTO,
@@ -58,6 +58,10 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
     // Estado para mostrar gráficas
     const [isChartsModalOpen, setIsChartsModalOpen] = useState(false);
+
+    // Estado para el menú desplegable de Reportes
+    const [isReportsMenuOpen, setIsReportsMenuOpen] = useState(false);
+    const reportsMenuRef = useRef<HTMLDivElement>(null);
 
     // Búsquedas internas para cada menú Typeahead
     const [searchTipo, setSearchTipo] = useState('');
@@ -134,7 +138,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         selectedEstatus, selectedEmpresa, selectedUsuario, fechaDesde, fechaHasta
     ]);
 
-    // 2. DESPUÉS: Declaras sortedFollows (ya puede consumir filteredFollows sin error)
+    // 2. DESPUÉS: Declaras sortedFollows
     const sortedFollows = useMemo(() => {
         if (!sortBy) return filteredFollows;
 
@@ -142,25 +146,21 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
             let aValue = a[sortBy];
             let bValue = b[sortBy];
 
-            // Manejo de nulos o indefinidos
             if (aValue == null) aValue = '';
             if (bValue == null) bValue = '';
 
-            // Lógica específica para fechas
             if (sortBy === 'fechaSeguimiento') {
                 const dateA = new Date(aValue as string).getTime();
                 const dateB = new Date(bValue as string).getTime();
                 return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
             }
 
-            // Comparación de cadenas de texto
             if (typeof aValue === 'string' && typeof bValue === 'string') {
                 return sortOrder === 'asc'
                     ? aValue.localeCompare(bValue)
                     : bValue.localeCompare(aValue);
             }
 
-            // Fallback genérico
             if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
             if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
             return 0;
@@ -180,7 +180,17 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Función auxiliar para alternar elementos en filtros múltiples
+    // Cerrar el menú flotante de Reportes al hacer clic fuera
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (reportsMenuRef.current && !reportsMenuRef.current.contains(event.target as Node)) {
+                setIsReportsMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const toggleMultiSelect = (item: string, currentList: string[], setList: React.Dispatch<React.SetStateAction<string[]>>) => {
         if (currentList.includes(item)) {
             setList(currentList.filter(i => i !== item));
@@ -189,7 +199,6 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         }
     };
 
-    // Contador de Filtros Activos
     const totalFiltrosActivos =
         selectedTipo.length +
         selectedMedio.length +
@@ -222,7 +231,6 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         }
     }, [company]);
 
-    // Cargar catálogo de filtros optimizado al montar el componente
     useEffect(() => {
         const fetchFilterCatalogs = async () => {
             try {
@@ -241,7 +249,6 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         fetchFilterCatalogs();
     }, []);
 
-    // Petición al Backend
     const fetchFollows = async () => {
         try {
             setLoading(true);
@@ -298,7 +305,6 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         if (!id) return;
 
         const targetName = nombre || 'este seguimiento';
-        //const isDarkMode = document.documentElement.classList.contains('dark');
 
         Swal.fire({
             title: '¿Está seguro de eliminar el seguimiento?',
@@ -330,7 +336,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
     const handleExportExcel = async () => {
         await exportFollowsToExcel(sortedFollows, company?.nombreComercial);
-    }
+    };
 
     const paginatedFollows = useMemo(() => {
         if (pageSize === 'all') return sortedFollows;
@@ -391,7 +397,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
                     {/* Grupo Izquierdo: Buscador + Filtros + Buscar */}
                     <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                        {/* Input de Búsqueda (Ocupa todo el espacio dinámico disponible) */}
+                        {/* Input de Búsqueda */}
                         <div className="relative flex-1 min-w-50">
                             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-app-muted" />
                             <input
@@ -437,68 +443,99 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                     {/* Grupo Derecho: Exportaciones y Conmutador de Vista */}
                     <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
                         {filteredFollows.length > 0 && (
-                            <div className="flex items-center gap-2">
-                                {/* Botón de Gráficas */}
+                            /* 📑 BOTÓN MENÚ DE REPORTES DESPLEGABLE */
+                            <div className="relative shrink-0" ref={reportsMenuRef}>
                                 <button
                                     type="button"
-                                    onClick={() => setIsChartsModalOpen(true)}
-                                    title="Ver Gráficas"
-                                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-3.5 py-2 rounded-lg text-sm transition-colors shadow-sm"
+                                    onClick={() => setIsReportsMenuOpen((prev) => !prev)}
+                                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
                                 >
-                                    <BarChart3 className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Gráficas</span>
+                                    <FileText className="w-4 h-4" />
+                                    <span>Reportes</span>
+                                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isReportsMenuOpen ? 'rotate-180' : ''}`} />
                                 </button>
 
-                                {/* Botón de Excel */}
-                                <button
-                                    type="button"
-                                    onClick={handleExportExcel}
-                                    title="Exportar a Excel"
-                                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-3.5 py-2 rounded-lg text-sm transition-colors shadow-sm"
-                                >
-                                    <Download className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Excel</span>
-                                </button>
+                                {/* Menú Flotante de Reportes */}
+                                {isReportsMenuOpen && (
+                                    <div className="absolute right-0 mt-2 w-56 bg-app-card border border-app-border rounded-xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                                        {/* Gráficas Estadísticas */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsReportsMenuOpen(false);
+                                                setIsChartsModalOpen(true);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left"
+                                        >
+                                            <BarChart3 className="w-4 h-4 text-indigo-400 shrink-0" />
+                                            <span>Ver Gráficas</span>
+                                        </button>
 
-                                {/* 1. Botón PDF de Seguimientos (SIEMPRE PRESENTE) */}
-                                <PDFDownloadLink
-                                    document={
-                                        <CompaniesFollowSheetPDFDocument
-                                            follows={filteredFollows}
-                                            companyName={company?.nombreComercial}
-                                        />
-                                    }
-                                    fileName={`Seguimientos_${company?.nombreComercial ? company.nombreComercial.replace(/\s+/g, '_') : 'Global'}_${new Date().toISOString().split('T')[0]}.pdf`}
-                                    className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white font-medium px-3.5 py-2 rounded-lg text-sm transition-colors shadow-sm"
-                                >
-                                    {({ loading }) => (
-                                        <>
-                                            <FileText className="w-4 h-4" />
-                                            <span className="hidden sm:inline">{loading ? '...' : company?._id ? 'Seguimientos' : 'PDF'}</span>
-                                        </>
-                                    )}
-                                </PDFDownloadLink>
+                                        {/* Exportar Excel */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsReportsMenuOpen(false);
+                                                handleExportExcel();
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left"
+                                        >
+                                            <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />
+                                            <span>Exportar a Excel</span>
+                                        </button>
 
-                                {/* 2. Botón PDF de Ficha Técnica (SOLO SI EXISTE UNA EMPRESA SELECCIONADA) */}
-                                {company?._id && (
-                                    <PDFDownloadLink
-                                        document={
-                                            <CompaniesPDFDocument
-                                                company={company}
-                                                follows={filteredFollows}
-                                                isFromFollows={true}
-                                            />
-                                        }
-                                        fileName={`Ficha_Empresa_${company.nombreComercial ? company.nombreComercial.replace(/\s+/g, '_') : 'Detalle'}_${new Date().toISOString().split('T')[0]}.pdf`}
-                                        className="flex items-center gap-2 bg-rose-700 hover:bg-rose-600 text-white font-medium px-3.5 py-2 rounded-lg text-sm transition-colors shadow-sm"
-                                    >
-                                        {({ loading }) => (
-                                            <>
-                                                <FileText className="w-4 h-4" />
-                                                <span className="hidden sm:inline">{loading ? '...' : 'Ficha Técnica'}</span>
-                                            </>
+                                        <div className="my-1 border-t border-app-border" />
+
+                                        {/* 1. PDF Seguimientos */}
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                setIsReportsMenuOpen(false);
+                                                const { pdf } = await import('@react-pdf/renderer');
+                                                const doc = (
+                                                    <CompaniesFollowSheetPDFDocument
+                                                        follows={filteredFollows}
+                                                        companyName={company?.nombreComercial}
+                                                    />
+                                                );
+                                                const blob = await pdf(doc).toBlob();
+                                                const companySlug = company?.nombreComercial ? company.nombreComercial.replace(/\s+/g, '_') : 'Global';
+                                                const fecha = new Date().toISOString().split('T')[0];
+                                                saveAs(blob, `Seguimientos_${companySlug}_${fecha}.pdf`);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left"
+                                        >
+                                            <FileText className="w-4 h-4 text-rose-400 shrink-0" />
+                                            <span>PDF Seguimientos</span>
+                                        </button>
+
+                                        {/* 2. PDF Ficha Técnica (SOLO SI EXISTE UNA EMPRESA SELECCIONADA) */}
+                                        {company?._id && (
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    setIsReportsMenuOpen(false);
+                                                    const { pdf } = await import('@react-pdf/renderer');
+                                                    const doc = (
+                                                        <CompaniesPDFDocument
+                                                            company={company}
+                                                            follows={filteredFollows}
+                                                            isFromFollows={true}
+                                                            user={user}
+                                                        />
+                                                    );
+                                                    const blob = await pdf(doc).toBlob();
+                                                    const companySlug = company.nombreComercial ? company.nombreComercial.replace(/\s+/g, '_') : 'Detalle';
+                                                    const fecha = new Date().toISOString().split('T')[0];
+                                                    saveAs(blob, `Ficha_Empresa_${companySlug}_${fecha}.pdf`);
+                                                }}
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left"
+                                            >
+                                                <FileText className="w-4 h-4 text-amber-400 shrink-0" />
+                                                <span>PDF Ficha Técnica</span>
+                                            </button>
                                         )}
-                                    </PDFDownloadLink>
+                                    </div>
                                 )}
                             </div>
                         )}
@@ -1053,7 +1090,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                 >
                                     <option value="" className="bg-app-card text-app-text">Sin ordenar</option>
                                     {FOLLOW_SORT_OPTIONS
-                                        .filter((opt) => !(company && opt.value === 'companyName')) // Si estamos dentro del detalle de una empresa, ocultamos la opción 'Empresa'
+                                        .filter((opt) => !(company && opt.value === 'companyName'))
                                         .map((opt) => (
                                             <option key={opt.value} value={opt.value} className="bg-app-card text-app-text">
                                                 {opt.label}
@@ -1542,6 +1579,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                     </div>
                 </div>
             )}
+
             {/* Modal de Gráficas Estadísticas */}
             <CompaniesFollowGraphics
                 isOpen={isChartsModalOpen}

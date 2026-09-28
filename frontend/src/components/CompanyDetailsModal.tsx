@@ -1,12 +1,12 @@
 // src/components/CompanyDetailsModal.tsx
-import React, { useContext } from 'react';
-import { X, Building2, MapPin, Phone, Mail, ShieldCheck, Tag, Users, Award, FileText, Calendar, Hash, Pencil, Trash2, Globe, Briefcase, ExternalLink } from 'lucide-react';
+import React, { useState, useContext } from 'react';
+import { X, Building2, MapPin, Phone, Mail, ShieldCheck, Tag, Users, Award, FileText, Calendar, Hash, Pencil, Trash2, Globe, Briefcase, ExternalLink, ChevronUp } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { type CompanyFormData } from '../interfaces/company.interface';
 import { AuthContext } from '../context/AuthContext';
 import { CompaniesPDFDocument } from './CompaniesPDFDocument';
 import { SECTORES_CONFIG, type ColorTheme } from './CompanyForm';
-import { formatUrl } from '../utils/formUtils';
+import { formatUrl, formatFechaLarga } from '../utils/formUtils';
 
 interface CompanyDetailsModalProps {
     company: CompanyFormData | null;
@@ -31,6 +31,9 @@ const COLOR_CLASSES: Record<ColorTheme, string> = {
 export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ company, isOpen, onClose, onEdit, onDelete }) => {
     const { user } = useContext(AuthContext);
 
+    // 👈 Estado para controlar el desplegable de opciones de PDF
+    const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+
     if (!isOpen || !company) return null;
 
     const isAdmin = user?.rol === 'admin';
@@ -53,7 +56,8 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
         anioInicio,
         retosActuales,
         apoyosYNecesidades,
-        correoElectronico
+        correoElectronico,
+        createdAt
     } = company;
 
     // Helper para construir la URL de Google Maps
@@ -98,15 +102,31 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
         }).filter((grupo) => grupo.productos.length > 0)
         : [];
 
+    // 1. Descargar Ficha Técnica Individual (Estándar)
     const handleDownloadPDF = async () => {
         try {
+            setIsDownloadMenuOpen(false);
             const { pdf } = await import('@react-pdf/renderer');
-            const doc = <CompaniesPDFDocument company={company} />;
+            const doc = <CompaniesPDFDocument company={company} user={user} />;
             const blob = await pdf(doc).toBlob();
             const nombreLimpio = (nombreComercial || 'Empresa').replace(/[^a-zA-Z0-9_-]/g, '_');
             saveAs(blob, `Ficha_Tecnica_${nombreLimpio}.pdf`);
         } catch (error) {
             console.error('Error generando el PDF:', error);
+        }
+    };
+
+    // 2. Descargar Ficha Técnica Completa (FULL)
+    const handleDownloadPDFFull = async () => {
+        try {
+            setIsDownloadMenuOpen(false);
+            const { pdf } = await import('@react-pdf/renderer');
+            const doc = <CompaniesPDFDocument company={company} full={true} user={user} />;
+            const blob = await pdf(doc).toBlob();
+            const nombreLimpio = (nombreComercial || 'Empresa').replace(/[^a-zA-Z0-9_-]/g, '_');
+            saveAs(blob, `Ficha_Tecnica_FULL_${nombreLimpio}.pdf`);
+        } catch (error) {
+            console.error('Error generando el PDF FULL:', error);
         }
     };
 
@@ -169,6 +189,17 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                 <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full border ${activa ? 'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 dark:text-rose-400 border-rose-500/20'}`}>
                                     {activa ? 'Activo' : 'Inactivo'}
                                 </span>
+                            </div>
+                        )}
+
+                        {/* Fecha de Registro / Creado solo si canEdit es true */}
+                        {canEdit && (
+                            <div>
+                                <span className="text-xs font-semibold text-app-muted uppercase tracking-wider block mb-1">Fecha de Registro</span>
+                                <div className="flex items-center gap-1.5 text-app-text text-xs font-medium">
+                                    <Calendar className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 shrink-0" />
+                                    <span>{formatFechaLarga(createdAt)}</span>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -458,16 +489,53 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                 </div>
 
                 {/* Pie del Modal */}
-                <div className="p-4 border-t border-app-border bg-app-bg flex items-center justify-between">
-                    <button
-                        type="button"
-                        onClick={handleDownloadPDF}
-                        className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm"
-                    >
-                        <FileText className="w-4 h-4" />
-                        <span>Descargar Ficha Técnica PDF</span>
-                    </button>
+                <div className="p-4 border-t border-app-border bg-app-bg flex items-center justify-between relative">
 
+                    {/* Botón Menú Desplegable PDF */}
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setIsDownloadMenuOpen((prev) => !prev)}
+                            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm cursor-pointer"
+                        >
+                            <FileText className="w-4 h-4" />
+                            <span>Descargar PDF</span>
+                            <ChevronUp className={`w-4 h-4 transition-transform duration-200 ${isDownloadMenuOpen ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {/* Opciones del Menú (Despliega hacia arriba) */}
+                        {isDownloadMenuOpen && (
+                            <div className="absolute left-0 bottom-full mb-2 w-64 bg-app-card border border-app-border rounded-xl shadow-2xl py-1 z-30 animate-in fade-in slide-in-from-bottom-2 duration-150">
+
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadPDF}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left"
+                                >
+                                    <FileText className="w-4 h-4 text-rose-500 shrink-0" />
+                                    <div>
+                                        <div className="font-medium leading-tight">Ficha Técnica</div>
+                                        <div className="text-[11px] text-app-muted">Vista general para compartir</div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadPDFFull}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left border-t border-app-border/50"
+                                >
+                                    <FileText className="w-4 h-4 text-orange-400 shrink-0" />
+                                    <div>
+                                        <div className="font-medium leading-tight">Ficha Técnica Completa</div>
+                                        <div className="text-[11px] text-app-muted">Incluye todos los datos</div>
+                                    </div>
+                                </button>
+
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Acciones Secundarias (Editar, Eliminar, Cerrar) */}
                     <div className="flex items-center gap-2">
                         {canEdit && onEdit && (
                             <button
@@ -506,6 +574,7 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                             Cerrar
                         </button>
                     </div>
+
                 </div>
 
             </div>

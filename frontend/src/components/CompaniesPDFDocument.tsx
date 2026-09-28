@@ -2,6 +2,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { type CompanyFormData } from '../interfaces/company.interface';
+import { type User } from '../interfaces/user.interface';
 
 // Interfaz para el registro de seguimientos
 export interface FollowRecord {
@@ -19,6 +20,8 @@ interface CompaniesPDFProps {
   companies?: CompanyFormData[]; // Compatible para imprimir 1 o varias empresas
   follows?: FollowRecord[];
   isFromFollows?: boolean;
+  full?: boolean;
+  user?: User | null;
 }
 
 const styles = StyleSheet.create({
@@ -179,11 +182,13 @@ const styles = StyleSheet.create({
   },
 });
 
-export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({ 
-  company, 
-  companies, 
-  follows = [], 
-  isFromFollows = false 
+export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({
+  company,
+  companies,
+  follows = [],
+  isFromFollows = false,
+  full = false,
+  user = null
 }) => {
   // Manejo de compatibilidad para recibir una lista o una sola empresa
   const listToRender = companies && companies.length > 0 ? companies : company ? [company] : [];
@@ -193,6 +198,10 @@ export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({
     month: 'long',
     day: 'numeric',
   });
+
+  // Validación de roles de usuario
+  //const isAdmin = user?.rol === 'admin';
+  const canSeeStatus = user?.rol === 'admin' || user?.rol === 'editor';
 
   return (
     <Document>
@@ -215,50 +224,56 @@ export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({
         }
 
         return (
-          <Page key={comp._id || index} size="A4" style={styles.page}>
-            
+          <Page key={comp._id || index} size="LETTER" style={styles.page}>
+
             {/* ENCABEZADO */}
             <View style={styles.header}>
               <View style={{ width: '75%' }}>
                 <Text style={styles.title}>{comp.nombreComercial || 'Ficha Técnica de Empresa'}</Text>
                 <Text style={styles.subtitle}>{comp.razonSocial || 'Sin Razón Social'}</Text>
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={[styles.badge, comp.activa ? styles.badgeActive : styles.badgeInactive]}>
-                  {comp.activa ? 'ESTATUS: ACTIVO' : 'ESTATUS: INACTIVO'}
-                </Text>
-                <Text style={{ fontSize: 7, color: '#64748b', marginTop: 4 }}>
-                  RFC: {comp.rfc || 'N/A'}
-                </Text>
-              </View>
+              {full && (
+                <View style={{ alignItems: 'flex-end' }}>
+                  {canSeeStatus && (
+                    <Text style={[styles.badge, comp.activa ? styles.badgeActive : styles.badgeInactive]}>
+                      {comp.activa ? 'ESTATUS: ACTIVO' : 'ESTATUS: INACTIVO'}
+                    </Text>
+                  )}
+                  <Text style={{ fontSize: 7, color: '#64748b', marginTop: 4 }}>
+                    RFC: {comp.rfc || 'N/A'}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* SECCIÓN 1: DATOS GENERALES Y UBICACIÓN */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>1. Información General y Ubicación</Text>
               <View style={styles.grid2}>
-                <View style={styles.col3}>
-                  <Text style={styles.label}>Tamaño de Empresa:</Text>
-                  <Text style={styles.value}>{comp.tamanoEmpresa || 'N/A'}</Text>
-                </View>
-                <View style={styles.col3}>
-                  <Text style={styles.label}>Año de Inicio:</Text>
-                  <Text style={styles.value}>{comp.anioInicio || 'N/A'}</Text>
-                </View>
-                <View style={styles.col6}>
-                  <Text style={styles.label}>Correo Electrónico Principal:</Text>
-                  <Text style={styles.value}>{comp.correoElectronico || 'N/A'}</Text>
-                </View>
-
+                {full && (<>
+                  <View style={styles.col3}>
+                    <Text style={styles.label}>Tamaño de Empresa:</Text>
+                    <Text style={styles.value}>{comp.tamanoEmpresa || 'N/A'}</Text>
+                  </View>
+                  <View style={styles.col3}>
+                    <Text style={styles.label}>Año de Inicio:</Text>
+                    <Text style={styles.value}>{comp.anioInicio || 'N/A'}</Text>
+                  </View>
+                  <View style={styles.col6}>
+                    <Text style={styles.label}>Correo Electrónico Principal:</Text>
+                    <Text style={styles.value}>{comp.correoElectronico || 'N/A'}</Text>
+                  </View>
+                </>)}
                 <View style={styles.col6}>
                   <Text style={styles.label}>Sitio Web:</Text>
                   <Text style={styles.value}>{comp.sitioWeb || 'N/A'}</Text>
                 </View>
-                <View style={styles.col6}>
-                  <Text style={styles.label}>Presentación Comercial:</Text>
-                  <Text style={styles.value}>{comp.presentacionComercial || 'N/A'}</Text>
-                </View>
-
+                {full && (
+                  <View style={styles.col6}>
+                    <Text style={styles.label}>Presentación Comercial:</Text>
+                    <Text style={styles.value}>{comp.presentacionComercial || 'N/A'}</Text>
+                  </View>
+                )}
                 <View style={styles.col12}>
                   <Text style={styles.label}>Dirección Completa:</Text>
                   <Text style={styles.value}>
@@ -273,32 +288,38 @@ export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({
                   <Text style={styles.label}>Estado:</Text>
                   <Text style={styles.value}>{comp.ubicacion?.estado || 'N/A'}</Text>
                 </View>
-                <View style={styles.col6}>
-                  <Text style={styles.label}>Parque Industrial:</Text>
-                  <Text style={styles.value}>{comp.ubicacion?.parqueIndustrial || 'N/A'}</Text>
-                </View>
+                {(full && comp.ubicacion?.parqueIndustrial) && (
+                  <View style={styles.col6}>
+                    <Text style={styles.label}>Parque Industrial:</Text>
+                    <Text style={styles.value}>{comp.ubicacion?.parqueIndustrial || 'N/A'}</Text>
+                  </View>
+                )}
               </View>
             </View>
 
             {/* SECCIÓN 2: DIRECTIVO Y CONTACTOS */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>2. Contactos Clave de la Empresa</Text>
+              <Text style={styles.sectionTitle}>2. Contacto de la Empresa</Text>
               <View style={styles.grid2}>
                 {/* Director General */}
-                <View style={styles.contactBox}>
-                  <Text style={[styles.label, { color: '#1e3a8a' }]}>Director General</Text>
-                  <Text style={styles.value}>{comp.contactos?.directorGeneral?.nombreCompleto || 'No registrado'}</Text>
-                  <Text style={{ fontSize: 7, color: '#475569' }}>Tel: {comp.contactos?.directorGeneral?.telefono || comp.contactos?.directorGeneral?.celularWhatsapp || 'N/A'}</Text>
-                  <Text style={{ fontSize: 7, color: '#475569' }}>Correo: {comp.contactos?.directorGeneral?.correoElectronico || 'N/A'}</Text>
-                </View>
+                {full && (
+                  <View style={styles.contactBox}>
+                    <Text style={[styles.label, { color: '#1e3a8a' }]}>Director General</Text>
+                    <Text style={styles.value}>{comp.contactos?.directorGeneral?.nombreCompleto || 'No registrado'}</Text>
+                    <Text style={{ fontSize: 7, color: '#475569' }}>Tel: {comp.contactos?.directorGeneral?.telefono || comp.contactos?.directorGeneral?.celularWhatsapp || 'N/A'}</Text>
+                    <Text style={{ fontSize: 7, color: '#475569' }}>Correo: {comp.contactos?.directorGeneral?.correoElectronico || 'N/A'}</Text>
+                  </View>
+                )}
 
                 {/* Compras */}
-                <View style={styles.contactBox}>
-                  <Text style={[styles.label, { color: '#1e3a8a' }]}>Área de Compras</Text>
-                  <Text style={styles.value}>{comp.contactos?.compras?.nombreCompleto || 'No registrado'} {comp.contactos?.compras?.cargo ? `(${comp.contactos.compras.cargo})` : ''}</Text>
-                  <Text style={{ fontSize: 7, color: '#475569' }}>Tel: {comp.contactos?.compras?.telefono || comp.contactos?.compras?.celularWhatsapp || 'N/A'}</Text>
-                  <Text style={{ fontSize: 7, color: '#475569' }}>Correo: {comp.contactos?.compras?.correoElectronico || 'N/A'}</Text>
-                </View>
+                {full && (
+                  <View style={styles.contactBox}>
+                    <Text style={[styles.label, { color: '#1e3a8a' }]}>Área de Compras</Text>
+                    <Text style={styles.value}>{comp.contactos?.compras?.nombreCompleto || 'No registrado'} {comp.contactos?.compras?.cargo ? `(${comp.contactos.compras.cargo})` : ''}</Text>
+                    <Text style={{ fontSize: 7, color: '#475569' }}>Tel: {comp.contactos?.compras?.telefono || comp.contactos?.compras?.celularWhatsapp || 'N/A'}</Text>
+                    <Text style={{ fontSize: 7, color: '#475569' }}>Correo: {comp.contactos?.compras?.correoElectronico || 'N/A'}</Text>
+                  </View>
+                )}
 
                 {/* Ventas */}
                 <View style={styles.contactBox}>
@@ -309,12 +330,14 @@ export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({
                 </View>
 
                 {/* Recursos Humanos */}
-                <View style={styles.contactBox}>
-                  <Text style={[styles.label, { color: '#1e3a8a' }]}>Recursos Humanos</Text>
-                  <Text style={styles.value}>{comp.contactos?.recursosHumanos?.nombreCompleto || 'No registrado'} {comp.contactos?.recursosHumanos?.cargo ? `(${comp.contactos.recursosHumanos.cargo})` : ''}</Text>
-                  <Text style={{ fontSize: 7, color: '#475569' }}>Tel: {comp.contactos?.recursosHumanos?.telefono || comp.contactos?.recursosHumanos?.celularWhatsapp || 'N/A'}</Text>
-                  <Text style={{ fontSize: 7, color: '#475569' }}>Correo: {comp.contactos?.recursosHumanos?.correoElectronico || 'N/A'}</Text>
-                </View>
+                {full && (
+                  <View style={styles.contactBox}>
+                    <Text style={[styles.label, { color: '#1e3a8a' }]}>Recursos Humanos</Text>
+                    <Text style={styles.value}>{comp.contactos?.recursosHumanos?.nombreCompleto || 'No registrado'} {comp.contactos?.recursosHumanos?.cargo ? `(${comp.contactos.recursosHumanos.cargo})` : ''}</Text>
+                    <Text style={{ fontSize: 7, color: '#475569' }}>Tel: {comp.contactos?.recursosHumanos?.telefono || comp.contactos?.recursosHumanos?.celularWhatsapp || 'N/A'}</Text>
+                    <Text style={{ fontSize: 7, color: '#475569' }}>Correo: {comp.contactos?.recursosHumanos?.correoElectronico || 'N/A'}</Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -326,23 +349,25 @@ export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({
                   <Text style={styles.label}>Productos / Servicios que Fabrica:</Text>
                   <Text style={styles.value}>{comp.informacionEmpresa?.productosFabrica || 'N/A'}</Text>
                 </View>
-                <View style={styles.col6}>
-                  <Text style={styles.label}>Principales Clientes:</Text>
-                  <Text style={styles.value}>{comp.informacionEmpresa?.principalesClientes || 'N/A'}</Text>
-                </View>
+                {full && (<>
+                  <View style={styles.col6}>
+                    <Text style={styles.label}>Principales Clientes:</Text>
+                    <Text style={styles.value}>{comp.informacionEmpresa?.principalesClientes || 'N/A'}</Text>
+                  </View>
+                  <View style={styles.col3}>
+                    <Text style={styles.label}>País de Origen:</Text>
+                    <Text style={styles.value}>{comp.informacionEmpresa?.paisOrigen || 'N/A'}</Text>
+                  </View>
+                  <View style={styles.col3}>
+                    <Text style={styles.label}>Inv. Nacional / Extranjera:</Text>
+                    <Text style={styles.value}>
+                      {comp.informacionEmpresa?.porcentajeInversionNacional ? `${comp.informacionEmpresa.porcentajeInversionNacional}% Nac.` : ''}
+                      {comp.informacionEmpresa?.porcentajeInversionExtranjero ? ` / ${comp.informacionEmpresa.porcentajeInversionExtranjero}% Ext.` : ''}
+                      {!comp.informacionEmpresa?.porcentajeInversionNacional && !comp.informacionEmpresa?.porcentajeInversionExtranjero ? 'N/A' : ''}
+                    </Text>
+                  </View>
+                </>)}
 
-                <View style={styles.col3}>
-                  <Text style={styles.label}>País de Origen:</Text>
-                  <Text style={styles.value}>{comp.informacionEmpresa?.paisOrigen || 'N/A'}</Text>
-                </View>
-                <View style={styles.col3}>
-                  <Text style={styles.label}>Inv. Nacional / Extranjera:</Text>
-                  <Text style={styles.value}>
-                    {comp.informacionEmpresa?.porcentajeInversionNacional ? `${comp.informacionEmpresa.porcentajeInversionNacional}% Nac.` : ''} 
-                    {comp.informacionEmpresa?.porcentajeInversionExtranjero ? ` / ${comp.informacionEmpresa.porcentajeInversionExtranjero}% Ext.` : ''}
-                    {!comp.informacionEmpresa?.porcentajeInversionNacional && !comp.informacionEmpresa?.porcentajeInversionExtranjero ? 'N/A' : ''}
-                  </Text>
-                </View>
                 <View style={styles.col6}>
                   <Text style={styles.label}>Principal Sector al que Atiende:</Text>
                   <Text style={styles.value}>{comp.informacionEmpresa?.principalSectorAtiende || 'N/A'}</Text>
@@ -368,58 +393,62 @@ export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({
                 </View>
 
                 {/* Comercio Exterior */}
-                <View style={styles.col12}>
-                  <Text style={styles.label}>Comercio Exterior / Exportaciones:</Text>
-                  <Text style={styles.value}>
-                    {comp.informacionEmpresa?.porcentajeExportaciones ? `${comp.informacionEmpresa.porcentajeExportaciones}% exportación` : 'No registra exportaciones.'}
-                    {comp.informacionEmpresa?.destinoExportaciones?.length ? ` | Destinos: ${comp.informacionEmpresa.destinoExportaciones.join(', ')}` : ''}
-                  </Text>
-                </View>
+                {full && (
+                  <View style={styles.col12}>
+                    <Text style={styles.label}>Comercio Exterior / Exportaciones:</Text>
+                    <Text style={styles.value}>
+                      {comp.informacionEmpresa?.porcentajeExportaciones ? `${comp.informacionEmpresa.porcentajeExportaciones}% exportación` : 'No registra exportaciones.'}
+                      {comp.informacionEmpresa?.destinoExportaciones?.length ? ` | Destinos: ${comp.informacionEmpresa.destinoExportaciones.join(', ')}` : ''}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
             {/* SECCIÓN 4: SECTORES PARTICULARES, RETOS Y APOYOS */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>4. Sectores Específicos, Retos y Apoyos</Text>
-              
-              {/* Desglose de Sectores */}
-              {listaSectores.length > 0 && (
-                <View style={{ marginBottom: 6 }}>
-                  <Text style={styles.label}>Especialización por Sector:</Text>
-                  {listaSectores.map((sec, i) => (
-                    <Text key={i} style={[styles.value, { fontSize: 7.5 }]}>
-                      • <Text style={{ fontFamily: 'Helvetica-Bold' }}>{sec.nombre}:</Text> {sec.items.join(', ')} {sec.otro ? `(${sec.otro})` : ''}
-                    </Text>
-                  ))}
-                </View>
-              )}
+            {full && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>4. Sectores Específicos, Retos y Apoyos</Text>
 
-              <View style={styles.grid2}>
-                <View style={styles.col6}>
-                  <Text style={styles.label}>Retos Actuales:</Text>
-                  <Text style={styles.value}>{comp.retosActuales || 'Sin especificar'}</Text>
-                </View>
-                <View style={styles.col6}>
-                  <Text style={styles.label}>Apoyos y Necesidades Requeridas:</Text>
-                  <Text style={styles.value}>
-                    {comp.apoyosYNecesidades?.tipos?.join(', ') || 'Sin especificar'}
-                    {comp.apoyosYNecesidades?.otroEspecifique ? ` (${comp.apoyosYNecesidades.otroEspecifique})` : ''}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Etiquetas / Tags */}
-              {comp.etiquetas && comp.etiquetas.length > 0 && (
-                <View style={{ marginTop: 6 }}>
-                  <Text style={styles.label}>Etiquetas / Tags de Clasificación:</Text>
-                  <View style={styles.tagContainer}>
-                    {comp.etiquetas.map((tag, tIdx) => (
-                      <Text key={tIdx} style={styles.tag}>#{tag}</Text>
+                {/* Desglose de Sectores */}
+                {listaSectores.length > 0 && (
+                  <View style={{ marginBottom: 6 }}>
+                    <Text style={styles.label}>Especialización por Sector:</Text>
+                    {listaSectores.map((sec, i) => (
+                      <Text key={i} style={[styles.value, { fontSize: 7.5 }]}>
+                        • <Text style={{ fontFamily: 'Helvetica-Bold' }}>{sec.nombre}:</Text> {sec.items.join(', ')} {sec.otro ? `(${sec.otro})` : ''}
+                      </Text>
                     ))}
                   </View>
+                )}
+
+                <View style={styles.grid2}>
+                  <View style={styles.col6}>
+                    <Text style={styles.label}>Retos Actuales:</Text>
+                    <Text style={styles.value}>{comp.retosActuales || 'Sin especificar'}</Text>
+                  </View>
+                  <View style={styles.col6}>
+                    <Text style={styles.label}>Apoyos y Necesidades Requeridas:</Text>
+                    <Text style={styles.value}>
+                      {comp.apoyosYNecesidades?.tipos?.join(', ') || 'Sin especificar'}
+                      {comp.apoyosYNecesidades?.otroEspecifique ? ` (${comp.apoyosYNecesidades.otroEspecifique})` : ''}
+                    </Text>
+                  </View>
                 </View>
-              )}
-            </View>
+
+                {/* Etiquetas / Tags */}
+                {comp.etiquetas && comp.etiquetas.length > 0 && (
+                  <View style={{ marginTop: 6 }}>
+                    <Text style={styles.label}>Etiquetas / Tags de Clasificación:</Text>
+                    <View style={styles.tagContainer}>
+                      {comp.etiquetas.map((tag, tIdx) => (
+                        <Text key={tIdx} style={styles.tag}>#{tag}</Text>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
 
             {/* SECCIÓN 5: HISTORIAL DE SEGUIMIENTOS (SOLO SI VIENE DESDE SEGUIMIENTOS) */}
             {isFromFollows && (

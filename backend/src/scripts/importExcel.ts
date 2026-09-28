@@ -1,3 +1,4 @@
+// src/scripts/importExcel.ts
 import * as XLSX from 'xlsx';
 import path from 'path';
 import dotenv from 'dotenv';
@@ -6,6 +7,35 @@ import { Company } from '../models/Company';
 
 dotenv.config();
 
+/**
+ * Parsea fechas con formato "DD/MM/YYYY HH:mm:ss" o "DD/MM/YYYY" a un objeto Date.
+ */
+const parseMarcaTemporal = (val: any): Date => {
+  if (!val) return new Date();
+  if (val instanceof Date) return val;
+
+  const strVal = val.toString().trim();
+
+  // Coincide con "23/09/2026 14:17:57" o "23/09/2026"
+  const regex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2}):(\d{1,2}))?$/;
+  const match = strVal.match(regex);
+
+  if (match) {
+    const day = Number(match[1]);
+    const month = Number(match[2]) - 1; // Meses en JS van de 0 a 11
+    const year = Number(match[3]);
+    const hours = match[4] ? Number(match[4]) : 0;
+    const minutes = match[5] ? Number(match[5]) : 0;
+    const seconds = match[6] ? Number(match[6]) : 0;
+
+    const fecha = new Date(year, month, day, hours, minutes, seconds);
+    if (!isNaN(fecha.getTime())) return fecha;
+  }
+
+  const fallbackDate = new Date(strVal);
+  return isNaN(fallbackDate.getTime()) ? new Date() : fallbackDate;
+};
+
 async function importData() {
   try {
     await connectDB();
@@ -13,7 +43,7 @@ async function importData() {
     const filePath = path.join(__dirname, '../assets/directorio.xlsx');
     console.log(`Leyendo archivo desde: ${filePath}`);
 
-    const workbook = XLSX.readFile(filePath);
+    const workbook = XLSX.readFile(filePath, { cellDates: true });
     const sheetName = workbook.SheetNames[0];
     const rawData: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
@@ -25,16 +55,15 @@ async function importData() {
     // Helper para limpiar y normalizar valores de porcentaje entre 0 y 100
     const cleanPercentage = (val: any, defaultVal = 0): number => {
       if (val === undefined || val === null || val === '') return defaultVal;
-      // Eliminar símbolos de moneda, comas y espacios por si ingresaron montos
       const strVal = val.toString().replace(/[\$,]/g, '').trim();
       const num = Number(strVal);
       if (isNaN(num)) return defaultVal;
-      // Si el usuario escribió un monto alto (ej: 1000000) o más de 100, asignamos 100%
       if (num > 100) return 100;
       if (num < 0) return 0;
       return num;
     };
 
+    // Helper para parsear números decimales de coordenadas
     const parseCoordinate = (val: any): number | undefined => {
       if (val === undefined || val === null || val === '') return undefined;
       const strVal = val.toString().trim();
@@ -73,6 +102,13 @@ async function importData() {
 
       const correoEmpresa = (getVal('Dirección de correo electrónico') || getVal('Correo electrónico:')).toLowerCase() || `empresa_${index}@directorio.com`;
 
+      // 🕒 Parsear la "Marca temporal" de la fila del Excel
+      const fechaMarcaTemporal = parseMarcaTemporal(row['Marca temporal'] || row['Marca Temporal'] || row['Timestamp']);
+
+      // 📍 Parsear latitud y longitud escritas manualmente en el Excel[cite: 1, 2]
+      const latitud = parseCoordinate(row['Latitud'] || row['latitud'] || row['Latitud:']);
+      const longitud = parseCoordinate(row['Longitud'] || row['longitud'] || row['Longitud:']);
+
       const companyData = {
         correoElectronico: correoEmpresa,
         nombreComercial: getVal('Nombre Comercial:') || `Empresa ${index + 1}`,
@@ -92,8 +128,8 @@ async function importData() {
           colonia: getVal('Colonia:') || 'Centro',
           codigoPostal: getVal('Código Postal:') || '76000',
           parqueIndustrial: getVal('Parque Industrial:'),
-          latitud: parseCoordinate(row['Latitud'] || row['latitud'] || row['Latitud:']),
-          longitud: parseCoordinate(row['Longitud'] || row['longitud'] || row['Longitud:'])
+          latitud,
+          longitud
         },
 
         contactos: {
@@ -130,7 +166,6 @@ async function importData() {
           productosFabrica: getVal('Productos que Fabrica:') || 'N/A',
           principalesClientes: getVal('Principales clientes:'),
           paisOrigen: getVal('País de Origen:') || 'México',
-          // Aplicar limpieza a porcentajes
           porcentajeInversionNacional: cleanPercentage(row['Porcentaje de inversión nacional: '], 100),
           porcentajeInversionExtranjero: cleanPercentage(row['Porcentaje de inversión extranjero: '], 0),
           certificaciones: {
@@ -158,14 +193,18 @@ async function importData() {
           tipos: toArray('¿Qué tipo de apoyo o necesidades tiene actualmente su empresa?')
         },
         presentacionComercial: getVal('Presentación Comercial:'),
-        activa: true
+        activa: true,
+
+        // 📅 Se asignan explícitamente las fechas parseadas de "Marca temporal"
+        createdAt: fechaMarcaTemporal,
+        updatedAt: fechaMarcaTemporal
       };
 
       try {
         await Company.updateOne(
           { rfc: companyData.rfc },
           { $set: companyData },
-          { upsert: true, runValidators: true }
+          { upsert: true, runValidators: true, timestamps: false }
         );
         guardados++;
       } catch (err: any) {

@@ -2,7 +2,7 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { type CompanyFormData } from '../interfaces/company.interface';
-import { type User } from '../context/AuthContext'; // 👈 Importamos el tipo User
+import { type User } from '../interfaces/user.interface';
 
 const join = (arr?: string[]) => (arr && arr.length > 0 ? arr.join(', ') : '');
 
@@ -16,6 +16,12 @@ const joinConOtro = (grupo?: { lista?: string[]; otroEspecifique?: string }) => 
 const porcentaje = (val?: number | '') => (val === '' || val === undefined || val === null ? '' : val);
 
 const coordenada = (val?: number | string) => (val === undefined || val === null || val === '' ? '' : Number(val));
+
+const formatearFecha = (fecha?: string | Date) => {
+    if (!fecha) return '';
+    const d = new Date(fecha);
+    return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
+};
 
 /**
  * Genera y descarga un reporte de Excel con filtrado de columnas según el rol del usuario.
@@ -38,7 +44,13 @@ export const exportCompaniesToExcel = async (companies: CompanyFormData[], user:
         { header: 'Tamaño', key: 'tamanoEmpresa', width: 14 },
         { header: 'Año de Inicio', key: 'anioInicio', width: 14 },
         { header: 'Sitio Web', key: 'sitioWeb', width: 26 },
-        ...(canSeeStatus ? [{ header: 'Estatus', key: 'estatus', width: 12 }] : []), // ADMIN o EDITOR
+        
+        // 👈 Fecha de Registro y Estatus condicionados por canSeeStatus
+        ...(canSeeStatus ? [
+            { header: 'Fecha de Registro', key: 'createdAt', width: 18 },
+            { header: 'Estatus', key: 'estatus', width: 12 }
+        ] : []),
+
         { header: 'Etiquetas', key: 'etiquetas', width: 26 },
         { header: 'Tipo de Operaciones', key: 'tipoOperaciones', width: 26 },
         { header: 'Tipo de Suministro', key: 'tipoSuministro', width: 22 },
@@ -50,8 +62,12 @@ export const exportCompaniesToExcel = async (companies: CompanyFormData[], user:
         { header: 'Colonia', key: 'colonia', width: 22 },
         { header: 'Código Postal', key: 'codigoPostal', width: 14 },
         { header: 'Parque Industrial', key: 'parqueIndustrial', width: 24 },
-        { header: 'Latitud', key: 'latitud', width: 16 },
-        { header: 'Longitud', key: 'longitud', width: 16 },
+
+        // 👈 Latitud y Longitud únicamente visibles si canSeeStatus es true
+        ...(canSeeStatus ? [
+            { header: 'Latitud', key: 'latitud', width: 16 },
+            { header: 'Longitud', key: 'longitud', width: 16 },
+        ] : []),
 
         // --- Contacto: Director General ---
         { header: 'Director General - Nombre', key: 'dgNombre', width: 26 },
@@ -135,7 +151,10 @@ export const exportCompaniesToExcel = async (companies: CompanyFormData[], user:
             tamanoEmpresa: company.tamanoEmpresa,
             anioInicio: company.anioInicio,
             sitioWeb: company.sitioWeb,
-            ...(canSeeStatus && { estatus: estatusTexto }),
+            ...(canSeeStatus && { 
+                createdAt: formatearFecha(company.createdAt),
+                estatus: estatusTexto 
+            }),
             etiquetas: join(company.etiquetas),
             tipoOperaciones: join(company.tipoOperaciones),
             tipoSuministro: join(company.tipoSuministro),
@@ -146,8 +165,11 @@ export const exportCompaniesToExcel = async (companies: CompanyFormData[], user:
             colonia: company.ubicacion?.colonia || '',
             codigoPostal: company.ubicacion?.codigoPostal || '',
             parqueIndustrial: company.ubicacion?.parqueIndustrial || '',
-            latitud: coordenada(company.ubicacion?.latitud),
-            longitud: coordenada(company.ubicacion?.longitud),
+            
+            ...(canSeeStatus && {
+                latitud: coordenada(company.ubicacion?.latitud),
+                longitud: coordenada(company.ubicacion?.longitud),
+            }),
 
             dgNombre: contactos?.directorGeneral?.nombreCompleto || '',
             dgTelefono: contactos?.directorGeneral?.telefono || '',

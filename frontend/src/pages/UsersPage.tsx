@@ -144,31 +144,48 @@ export const UsersPage = () => {
             ) : (
                 <div className="bg-app-card border border-app-border rounded-xl overflow-hidden shadow-xl">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-app-text">
-                            <thead className="bg-app-bg text-app-muted text-xs uppercase border-b border-app-border">
+                        <table className="w-full text-left text-sm text-app-text border-collapse">
+                            {/* Oculto en móvil (hidden), visible a partir de md (md:table-header-group) */}
+                            <thead className="hidden md:table-header-group bg-app-bg text-app-muted text-xs uppercase border-b border-app-border">
                                 <tr>
                                     <th className="px-6 py-4">Usuario</th>
                                     <th className="px-6 py-4">Correo Electrónico</th>
                                     <th className="px-6 py-4">Rol</th>
                                     <th className="px-6 py-4">Estado</th>
-                                    <th className="px-6 py-4 text-center">Acciones</th>
+                                    <th className="px-6 py-4 text-center whitespace-nowrap">Acciones</th>
                                 </tr>
                             </thead>
+
+                            {/* Celdas convertidas en bloque en móvil */}
                             <tbody className="divide-y divide-app-border/60">
                                 {filteredUsers.map((u) => (
-                                    <tr key={u._id} className="hover:bg-app-button/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-app-text">
-                                            {u.nombre}
+                                    <tr
+                                        key={u._id}
+                                        className="block md:table-row hover:bg-app-button/30 transition-colors p-4 md:p-0 space-y-3 md:space-y-0"
+                                    >
+                                        {/* Usuario */}
+                                        <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 font-medium text-app-text">
+                                            <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Usuario</span>
+                                            <span>{u.nombre}</span>
                                         </td>
-                                        <td className="px-6 py-4 text-app-muted">
-                                            {u.email}
+
+                                        {/* Correo */}
+                                        <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-app-muted">
+                                            <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Correo</span>
+                                            <span className="truncate max-w-[200px] md:max-w-none">{u.email}</span>
                                         </td>
-                                        <td className="px-6 py-4">
+
+                                        {/* Rol */}
+                                        <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4">
+                                            <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Rol</span>
                                             <span className={`px-2.5 py-1 text-xs rounded border capitalize font-medium ${getRoleBadge(u.rol)}`}>
                                                 {u.rol}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
+
+                                        {/* Estado */}
+                                        <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4">
+                                            <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Estado</span>
                                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${u.activo
                                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                                                 : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
@@ -186,21 +203,26 @@ export const UsersPage = () => {
                                                 )}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right space-x-2">
-                                            <button
-                                                onClick={() => openModal(u)}
-                                                className="p-1.5 bg-app-button hover:bg-app-button-hover text-app-text rounded-md transition-colors"
-                                                title="Editar Usuario"
-                                            >
-                                                <Pencil className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(u._id, u.nombre)}
-                                                className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/20 transition-colors"
-                                                title="Eliminar Usuario"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+
+                                        {/* Acciones */}
+                                        <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-2 md:py-4 pt-3 md:pt-4 border-t border-app-border/40 md:border-t-0 text-center whitespace-nowrap">
+                                            <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Acciones</span>
+                                            <div className="flex items-center justify-end md:justify-center gap-2">
+                                                <button
+                                                    onClick={() => openModal(u)}
+                                                    className="p-1.5 bg-app-button hover:bg-app-button-hover text-app-text rounded-md transition-colors"
+                                                    title="Editar Usuario"
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(u._id, u.nombre)}
+                                                    className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/20 transition-colors"
+                                                    title="Eliminar Usuario"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

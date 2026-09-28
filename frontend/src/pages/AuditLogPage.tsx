@@ -522,33 +522,46 @@ export const AuditLogPage = () => {
                 <>
                     <div className="bg-app-card border border-app-border rounded-xl overflow-hidden shadow-xl">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm text-app-text">
-                                <thead className="bg-app-bg text-app-muted text-xs uppercase border-b border-app-border">
+                            <table className="w-full text-left text-sm text-app-text border-collapse">
+                                {/* Oculto en móviles (hidden), visible en escritorio (md:table-header-group) */}
+                                <thead className="hidden md:table-header-group bg-app-bg text-app-muted text-xs uppercase border-b border-app-border">
                                     <tr>
                                         <th className="px-6 py-4">Fecha / Hora</th>
                                         <th className="px-6 py-4">Usuario</th>
                                         <th className="px-6 py-4">Módulo</th>
                                         <th className="px-6 py-4">Acción</th>
                                         <th className="px-6 py-4">IP</th>
-                                        <th className="px-6 py-4">Detalles</th>
+                                        <th className="px-6 py-4 text-center">Detalles</th>
                                     </tr>
                                 </thead>
+
+                                {/* En móvil se comporta como filas en bloque */}
                                 <tbody className="divide-y divide-app-border">
                                     {sortedLogs.map((log) => (
-                                        <tr key={log._id} className="hover:bg-app-button-hover/50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-xs text-app-muted">
-                                                {new Date(log.createdAt).toLocaleString('es-MX', {
-                                                    day: '2-digit',
-                                                    month: '2-digit',
-                                                    year: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                    second: '2-digit'
-                                                })}
+                                        <tr
+                                            key={log._id}
+                                            className="block md:table-row hover:bg-app-button-hover/50 transition-colors p-4 md:p-0 space-y-3 md:space-y-0"
+                                        >
+                                            {/* Fecha / Hora */}
+                                            <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 whitespace-nowrap text-xs text-app-muted">
+                                                <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Fecha / Hora</span>
+                                                <span>
+                                                    {new Date(log.createdAt).toLocaleString('es-MX', {
+                                                        day: '2-digit',
+                                                        month: '2-digit',
+                                                        year: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                        second: '2-digit'
+                                                    })}
+                                                </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+
+                                            {/* Usuario */}
+                                            <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 whitespace-nowrap">
+                                                <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Usuario</span>
                                                 {log.usuario ? (
-                                                    <div>
+                                                    <div className="text-right md:text-left">
                                                         <div className="font-medium text-app-text">{log.usuario.nombre}</div>
                                                         <div className="text-xs text-app-muted">{log.usuario.email}</div>
                                                     </div>
@@ -558,7 +571,10 @@ export const AuditLogPage = () => {
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+
+                                            {/* Módulo */}
+                                            <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 whitespace-nowrap">
+                                                <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Módulo</span>
                                                 <span className={`px-2.5 py-1 text-xs rounded-md border font-semibold inline-block ${log.modulo === 'Empresas'
                                                     ? 'bg-purple-500/10 text-purple-500 dark:text-purple-400 border-purple-500/20'
                                                     : log.modulo === 'Usuarios'
@@ -572,14 +588,23 @@ export const AuditLogPage = () => {
                                                     {log.modulo === 'SeguimientoEmpresas' ? 'Seguimiento' : log.modulo || 'General'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 font-medium text-app-text whitespace-nowrap">
-                                                {log.accion}
+
+                                            {/* Acción */}
+                                            <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 font-medium text-app-text whitespace-nowrap">
+                                                <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Acción</span>
+                                                <span>{log.accion}</span>
                                             </td>
-                                            <td className="px-6 py-4 text-xs text-app-muted whitespace-nowrap">
-                                                {log.ip || 'N/A'}
+
+                                            {/* IP */}
+                                            <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-xs text-app-muted whitespace-nowrap">
+                                                <span className="font-semibold text-xs text-app-muted uppercase md:hidden">IP</span>
+                                                <span>{log.ip || 'N/A'}</span>
                                             </td>
-                                            <td className="px-6 py-4 text-xs text-app-muted max-w-xs xl:max-w-md">
-                                                <div className="flex items-center gap-2">
+
+                                            {/* Detalles */}
+                                            <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-2 md:py-4 pt-3 md:pt-4 border-t border-app-border/40 md:border-t-0 text-xs text-app-muted">
+                                                <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Detalles</span>
+                                                <div className="flex items-center justify-end md:justify-center">
                                                     <button
                                                         onClick={() => setSelectedLogDetails(log)}
                                                         className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-app-button hover:bg-app-button-hover text-app-text text-xs font-medium rounded-lg transition-colors border border-app-border shrink-0"

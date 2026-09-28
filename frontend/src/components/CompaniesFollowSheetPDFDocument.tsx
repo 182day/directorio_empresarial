@@ -128,7 +128,7 @@ export const CompaniesFollowSheetPDFDocument: React.FC<FollowSheetPDFProps> = ({
 
   return (
     <Document>
-      <Page size="A4" orientation="landscape" style={styles.page}>
+      <Page size="LETTER" orientation="landscape" style={styles.page}>
         {/* ENCABEZADO */}
         <View style={styles.header}>
           <View>
