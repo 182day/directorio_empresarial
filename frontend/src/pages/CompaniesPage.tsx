@@ -26,7 +26,8 @@ import { useCompanyStore } from '../stores/useCompanyStore';
 import { useMapCompaniesStore } from '../stores/useMapCompaniesStore';
 import {
     SORT_OPTIONS,
-    OPCIONES_TAMANO
+    OPCIONES_TAMANO,
+    OPCIONES_TIPO_EMPRESA
 } from '../data/companyCatalog';
 
 const SECTOR_PRODUCT_KEYS = [
@@ -68,6 +69,7 @@ export const CompaniesPage = () => {
 
     // Estados para Filtros Múltiples
     const [selectedTamanos, setSelectedTamanos] = useState<string[]>([]);
+    const [selectedTiposEmpresa, setSelectedTiposEmpresa] = useState<string[]>(['Empresa directorio']);
     const [selectedEstados, setSelectedEstados] = useState<string[]>([]);
     const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
     const [selectedEstatus, setSelectedEstatus] = useState<string[]>([]);
@@ -111,6 +113,7 @@ export const CompaniesPage = () => {
                 comp.rfc?.toLowerCase().includes(query);
 
             const matchTamano = selectedTamanos.length === 0 || selectedTamanos.includes(comp.tamanoEmpresa);
+            const matchTipoEmpresa = selectedTiposEmpresa.length === 0 || selectedTiposEmpresa.includes(comp.tipoEmpresa);
             const matchEstado = selectedEstados.length === 0 || selectedEstados.includes(comp.ubicacion?.estado);
             const matchMunicipio = selectedMunicipios.length === 0 || selectedMunicipios.includes(comp.ubicacion?.municipio);
 
@@ -187,17 +190,17 @@ export const CompaniesPage = () => {
                 matchFecha = false;
             }
 
-            return matchSearch && matchTamano && matchEstado && matchMunicipio && matchEstatus &&
+            return matchSearch && matchTamano && matchTipoEmpresa && matchEstado && matchMunicipio && matchEstatus &&
                 matchEtiquetas && matchExporta && matchPaises && matchCert &&
                 matchApoyos && matchTipoOp && matchTipoSum && matchPaisOrigen &&
                 matchSectores && matchProductos && matchFecha;
         });
     }, [
-        companies, search, selectedTamanos, selectedEstados, selectedMunicipios,
+        companies, search, selectedTamanos, selectedTiposEmpresa, selectedEstados, selectedMunicipios, // 👈 Agregar selectedTiposEmpresa en dependencias
         selectedEstatus, selectedEtiquetas, selectedExporta,
         selectedPaisesDestino, selectedCertificaciones, selectedApoyos,
         selectedTipoOperaciones, selectedTipoSuministro, selectedPaisOrigen,
-        selectedSectores, selectedProductos, selectedFechaDesde, selectedFechaHasta // 👈 Agregar dependencias
+        selectedSectores, selectedProductos, selectedFechaDesde, selectedFechaHasta
     ]);
 
     // 2. DESPUÉS: ORDENAMIENTO DE EMPRESAS
@@ -442,6 +445,7 @@ export const CompaniesPage = () => {
     const clearAllFilters = () => {
         setSearch('');
         setSelectedTamanos([]);
+        setSelectedTiposEmpresa(['Empresa directorio']);
         setSelectedEstados([]);
         setSelectedMunicipios([]);
         setSelectedEstatus([]);
@@ -545,6 +549,7 @@ export const CompaniesPage = () => {
     const totalFiltrosActivos =
         (search.trim() ? 1 : 0) +
         selectedTamanos.length +
+        selectedTiposEmpresa.length +
         selectedEstados.length +
         selectedMunicipios.length +
         selectedEstatus.length +
@@ -856,6 +861,15 @@ export const CompaniesPage = () => {
                         </span>
                     ))}
 
+                    {selectedTiposEmpresa.map((tipo) => (
+                        <span key={tipo} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-lg border border-blue-500/20">
+                            Tipo Empresa: {tipo}
+                            <button onClick={() => toggleFilter(tipo, selectedTiposEmpresa, setSelectedTiposEmpresa)} className="hover:text-app-text">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </span>
+                    ))}
+
                     {selectedSectores.map((sec) => (
                         <span key={sec} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 text-indigo-400 text-xs rounded-lg border border-indigo-500/20">
                             Sector: {sec.toLowerCase().includes('otro especif') ? 'Otro' : sec}
@@ -1098,6 +1112,11 @@ export const CompaniesPage = () => {
                                                     <td className="px-6 py-4 font-medium text-app-text">
                                                         <div>{comp.nombreComercial}</div>
                                                         <div className="text-xs text-app-muted">{comp.razonSocial}</div>
+                                                        {(selectedTiposEmpresa.length > 1) && (
+                                                            <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-xs rounded border border-amber-500/20 whitespace-nowrap font-medium">
+                                                                {comp.tipoEmpresa}
+                                                            </span>
+                                                        )}
                                                     </td>
                                                     <td className="px-6 py-4 text-app-muted">{comp.rfc}</td>
                                                     <td className="px-6 py-4 text-app-muted">
@@ -1192,6 +1211,12 @@ export const CompaniesPage = () => {
                                                     <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded border border-blue-500/20 whitespace-nowrap">
                                                         {comp.tamanoEmpresa}
                                                     </span>
+
+                                                    {(selectedTiposEmpresa.length > 1) && (
+                                                        <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-xs rounded border border-amber-500/20 whitespace-nowrap font-medium">
+                                                            {comp.tipoEmpresa}
+                                                        </span>
+                                                    )}
 
                                                     {canEdit && (
                                                         <span
@@ -1349,6 +1374,7 @@ export const CompaniesPage = () => {
                 onClose={() => setIsFilterDrawerOpen(false)}
                 canEdit={canEdit}
                 opcionesTamano={OPCIONES_TAMANO}
+                opcionesTipoEmpresa={OPCIONES_TIPO_EMPRESA}
                 opcionesEstados={opcionesEstados}
                 opcionesMunicipios={opcionesMunicipios}
                 opcionesEtiquetas={opcionesEtiquetas}
@@ -1361,6 +1387,7 @@ export const CompaniesPage = () => {
                 opcionesSectores={opcionesSectores}
                 opcionesProductos={opcionesProductos}
                 selectedTamanos={selectedTamanos}
+                selectedTiposEmpresa={selectedTiposEmpresa}
                 selectedEstados={selectedEstados}
                 selectedMunicipios={selectedMunicipios}
                 selectedEstatus={selectedEstatus}
@@ -1377,6 +1404,7 @@ export const CompaniesPage = () => {
                 selectedFechaDesde={selectedFechaDesde}
                 selectedFechaHasta={selectedFechaHasta}
                 onToggleTamano={(val) => toggleFilter(val, selectedTamanos, setSelectedTamanos)}
+                onToggleTipoEmpresa={(val) => toggleFilter(val, selectedTiposEmpresa, setSelectedTiposEmpresa)}
                 onToggleEstado={(val) => toggleFilter(val, selectedEstados, setSelectedEstados)}
                 onToggleMunicipio={(val) => toggleFilter(val, selectedMunicipios, setSelectedMunicipios)}
                 onToggleEstatus={handleToggleEstatus}

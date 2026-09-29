@@ -1,7 +1,7 @@
 // src/components/CompanyForm.tsx
 import { useState, useEffect, type KeyboardEvent } from 'react';
 import api from '../api/axios';
-import { CheckCircle, X, ChevronDown, Building2, MapPin, Users, Briefcase, HelpCircle, Copy, Check } from 'lucide-react';
+import { CheckCircle, X, ChevronDown, Building2, MapPin, Users, Briefcase, HelpCircle, Copy, Check, ToggleLeft, ToggleRight } from 'lucide-react';
 import { SectorCheckboxGroup } from './SectorCheckboxGroup';
 import {
     OPCIONES_TAMANO,
@@ -30,7 +30,7 @@ import {
     normalizeText,
     sanitizePhoneNumber
 } from '../utils/formUtils';
-import { type CompanyFormData } from '../interfaces/company.interface';
+import { type CompanyFormData, type TipoEmpresa } from '../interfaces/company.interface';
 
 interface CompanyFormProps {
     initialValues?: Partial<CompanyFormData>;
@@ -149,6 +149,7 @@ export const CompanyForm = ({
     });
 
     const [formData, setFormData] = useState<CompanyFormData>({
+        tipoEmpresa: 'Empresa directorio',
         correoElectronico: '',
         nombreComercial: '',
         razonSocial: '',
@@ -221,6 +222,10 @@ export const CompanyForm = ({
             setFormData((prev) => ({
                 ...prev,
                 ...baseData,
+                // Si es registro público fuerza 'Empresa directorio'
+                tipoEmpresa: isPublicRegistration
+                    ? 'Empresa directorio'
+                    : baseData.tipoEmpresa || prev.tipoEmpresa || 'Empresa directorio',
                 ubicacion: {
                     ...prev.ubicacion,
                     ...(baseData.ubicacion || {})
@@ -266,7 +271,7 @@ export const CompanyForm = ({
                 }
             }
         }
-    }, [baseData]);
+    }, [baseData, isPublicRegistration]);
 
     const sectoresSeleccionados = formData.informacionEmpresa?.sectoresPertenece?.lista || [];
     const esSectorPlasticosSeleccionado = sectoresSeleccionados.includes('Plásticos');
@@ -542,9 +547,51 @@ export const CompanyForm = ({
         formData.informacionEmpresa.porcentajeInversionExtranjero !== '' &&
         sumaInversion !== 100;
 
+    const toggleTipoEmpresa = () => {
+        const nuevoTipo: TipoEmpresa =
+            formData.tipoEmpresa === 'Empresa incompleta'
+                ? 'Empresa directorio'
+                : 'Empresa incompleta';
+
+        setFormData((prev) => ({ ...prev, tipoEmpresa: nuevoTipo }));
+        setErrors({});
+    };
+
+    const esEmpresaIncompleta = !isPublicRegistration && formData.tipoEmpresa === 'Empresa incompleta';
+
     const validateForm = (): boolean => {
         const newErrors: Record<string, boolean> = {};
 
+        // --- MODO: EMPRESA INCOMPLETA (Sólo activo en Backoffice/Admin) ---
+        if (esEmpresaIncompleta) {
+            if (!formData.rfc || !formData.rfc.trim()) {
+                newErrors.rfc = true;
+            }
+
+            if (!formData.nombreComercial || !formData.nombreComercial.trim()) {
+                newErrors.nombreComercial = true;
+            }
+
+            setErrors(newErrors);
+
+            if (Object.keys(newErrors).length > 0) {
+                setOpenSections((prev) => ({ ...prev, general: true }));
+                
+                if (newErrors.rfc && newErrors.nombreComercial) {
+                    toast.error('Los campos RFC y Nombre Comercial son obligatorios.');
+                } else if (newErrors.rfc) {
+                    toast.error('El campo RFC es obligatorio para Registrar/Actualizar una Empresa Incompleta.');
+                } else {
+                    toast.error('El campo Nombre Comercial es obligatorio.');
+                }
+
+                return false;
+            }
+
+            return true;
+        }
+
+        // --- MODO: EMPRESA DIRECTORIO (O Registro Público) ---
         if (!formData.correoElectronico.trim() || !EMAIL_REGEX.test(formData.correoElectronico.trim())) {
             newErrors.correoElectronico = true;
         }
@@ -814,6 +861,7 @@ export const CompanyForm = ({
 
         const updatedFormData: CompanyFormData = {
             ...formData,
+            tipoEmpresa: isPublicRegistration ? 'Empresa directorio' : (formData.tipoEmpresa || 'Empresa directorio'),
             etiquetas: finalTags
         };
 
@@ -862,6 +910,47 @@ export const CompanyForm = ({
 
     return (
         <form onSubmit={handleSubmit} noValidate className="space-y-3">
+            {/* SWITCH: EMPRESA DIRECTORIO / EMPRESA INCOMPLETA (SOLO SI NO ES REGISTRO PÚBLICO) */}
+            {!isPublicRegistration && (
+                <div className="bg-app-card border border-app-border rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+                    <div>
+                        <span className="text-xs font-semibold text-app-muted uppercase tracking-wider block">
+                            Modo de Registro
+                        </span>
+                        <span className="text-sm font-medium text-app-text">
+                            {formData.tipoEmpresa || 'Empresa directorio'}
+                        </span>
+                        <p className="text-xs text-app-muted mt-0.5">
+                            {esEmpresaIncompleta
+                                ? 'Solo el campo Nombre Comercial y RFC son obligatorios.'
+                                : 'Todos los campos marcados con (*) son obligatorios con validación completa.'}
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={toggleTipoEmpresa}
+                        className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                            esEmpresaIncompleta
+                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20'
+                                : 'bg-blue-500/10 border-blue-500/30 text-blue-500 hover:bg-blue-500/20'
+                        }`}
+                    >
+                        {esEmpresaIncompleta ? (
+                            <>
+                                <ToggleRight className="w-5 h-5 text-amber-500" />
+                                <span>Empresa incompleta</span>
+                            </>
+                        ) : (
+                            <>
+                                <ToggleLeft className="w-5 h-5 text-blue-500" />
+                                <span>Empresa directorio</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+            )}
+
             {/* 1. SECCIÓN: DATOS GENERALES */}
             <div className="border border-app-border rounded-lg overflow-hidden bg-app-card">
                 <button
@@ -880,7 +969,7 @@ export const CompanyForm = ({
                     <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-app-border">
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Correo Electrónico Institucional <span className="text-red-500">*</span>
+                                Correo Electrónico Institucional {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <input
                                 type="email"
@@ -904,7 +993,7 @@ export const CompanyForm = ({
 
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Razón Social <span className="text-red-500">*</span>
+                                Razón Social {!esEmpresaIncompleta ? <span className="text-red-500">*</span> : "(Sin validación de formato)"}
                             </label>
                             <input
                                 type="text"
@@ -929,7 +1018,7 @@ export const CompanyForm = ({
 
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Tamaño de Empresa <span className="text-red-500">*</span>
+                                Tamaño de Empresa {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <select
                                 value={formData.tamanoEmpresa}
@@ -946,7 +1035,7 @@ export const CompanyForm = ({
 
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Año de Inicio <span className="text-red-500">*</span>
+                                Año de Inicio {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <input
                                 type="number"
@@ -1046,7 +1135,7 @@ export const CompanyForm = ({
                     <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-app-border">
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Estado <span className="text-red-500">*</span>
+                                Estado {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <select value={formData.ubicacion.estado} onChange={handleEstadoChange} className={getInputClass('ubicacion.estado')}>
                                 <option value="" className="bg-app-bg text-app-text">-- Selecciona un Estado --</option>
@@ -1060,7 +1149,7 @@ export const CompanyForm = ({
 
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Municipio <span className="text-red-500">*</span>
+                                Municipio {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <select
                                 disabled={!formData.ubicacion.estado}
@@ -1079,7 +1168,7 @@ export const CompanyForm = ({
 
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Dirección (Calle y Número) <span className="text-red-500">*</span>
+                                Dirección (Calle y Número) {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <input
                                 type="text"
@@ -1091,7 +1180,7 @@ export const CompanyForm = ({
 
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Colonia <span className="text-red-500">*</span>
+                                Colonia {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <input
                                 type="text"
@@ -1103,7 +1192,7 @@ export const CompanyForm = ({
 
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Código Postal <span className="text-red-500">*</span>
+                                Código Postal {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <input
                                 type="text"
@@ -1177,19 +1266,19 @@ export const CompanyForm = ({
                         {/* Director General */}
                         <div className="bg-app-bg/60 p-3.5 border border-app-border rounded-lg space-y-3">
                             <h4 className="text-xs font-semibold text-blue-500 uppercase tracking-wider">
-                                Director General (Obligatorio)
+                                Director General {!esEmpresaIncompleta && '(Obligatorio)'}
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <input
                                     type="text"
-                                    placeholder="Nombre Completo *"
+                                    placeholder={esEmpresaIncompleta ? "Nombre Completo" : "Nombre Completo *"}
                                     value={formData.contactos.directorGeneral.nombreCompleto}
                                     onChange={(e) => handleChange('contactos.directorGeneral.nombreCompleto', e.target.value)}
                                     className={getInputClass('contactos.directorGeneral.nombreCompleto')}
                                 />
                                 <input
                                     type="email"
-                                    placeholder="Correo Electrónico *"
+                                    placeholder={esEmpresaIncompleta ? "Correo Electrónico" : "Correo Electrónico *"}
                                     value={formData.contactos.directorGeneral.correoElectronico}
                                     onChange={(e) => handleChange('contactos.directorGeneral.correoElectronico', e.target.value)}
                                     className={getInputClass('contactos.directorGeneral.correoElectronico')}
@@ -1294,7 +1383,7 @@ export const CompanyForm = ({
                         {/* Tipo de Operaciones */}
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-2">
-                                Tipo de Operaciones <span className="text-red-500">*</span>
+                                Tipo de Operaciones {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <div className={`flex flex-wrap gap-2 p-2 rounded-lg border transition-colors ${errors.tipoOperaciones ? 'border-red-500 bg-red-500/5' : 'border-transparent'}`}>
                                 {OPCIONES_OPERACIONES.map((op) => (
@@ -1318,7 +1407,7 @@ export const CompanyForm = ({
                         {/* Tipo de Suministro */}
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-2">
-                                Tipo de Suministro <span className="text-red-500">*</span>
+                                Tipo de Suministro {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <div className={`flex flex-wrap gap-2 p-2 rounded-lg border transition-colors ${errors.tipoSuministro ? 'border-red-500 bg-red-500/5' : 'border-transparent'}`}>
                                 {OPCIONES_SUMINISTRO.map((op) => (
@@ -1342,7 +1431,7 @@ export const CompanyForm = ({
                         {/* Productos o Servicios */}
                         <div className="md:col-span-2">
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Productos o Servicios que Fabrica / Ofrece <span className="text-red-500">*</span>
+                                Productos o Servicios que Fabrica / Ofrece {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <textarea
                                 rows={2}
@@ -1368,7 +1457,7 @@ export const CompanyForm = ({
                         <div className="md:col-span-2 space-y-3">
                             <div>
                                 <label className="block text-xs font-medium text-app-muted mb-1">
-                                    País de Origen <span className="text-red-500">*</span>
+                                    País de Origen {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                                 </label>
                                 <select
                                     value={formData.informacionEmpresa.paisOrigen}
@@ -1387,7 +1476,7 @@ export const CompanyForm = ({
                             {formData.informacionEmpresa.paisOrigen === 'Otro' && (
                                 <div>
                                     <label className="block text-xs font-medium text-app-muted mb-1">
-                                        Especifique el País de Origen <span className="text-red-500">*</span>
+                                        Especifique el País de Origen {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                                     </label>
                                     <input
                                         type="text"
@@ -1403,7 +1492,7 @@ export const CompanyForm = ({
                         {/* Porcentajes de Inversión */}
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Porcentaje de inversión nacional (%) <span className="text-red-500">*</span>
+                                Porcentaje de inversión nacional (%) {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <input
                                 type="number"
@@ -1417,7 +1506,7 @@ export const CompanyForm = ({
 
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Porcentaje de inversión extranjero (%) <span className="text-red-500">*</span>
+                                Porcentaje de inversión extranjero (%) {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <input
                                 type="number"
@@ -1429,7 +1518,7 @@ export const CompanyForm = ({
                             />
                         </div>
 
-                        {(isSumaInversionInvalida || errors.porcentajeInversionSumaInvalid) && (
+                        {!esEmpresaIncompleta && (isSumaInversionInvalida || errors.porcentajeInversionSumaInvalid) && (
                             <div className="md:col-span-2 bg-red-500/10 border border-red-500/30 rounded-lg p-2.5 text-xs text-red-400 font-medium">
                                 ⚠️ La suma del porcentaje de inversión nacional y extranjero debe ser igual a 100% (Suma actual: {sumaInversion}%).
                             </div>
@@ -1475,7 +1564,7 @@ export const CompanyForm = ({
                         {/* Sector(es) al(los) que pertenece(n) */}
                         <div className="md:col-span-2">
                             <label className="block text-xs font-medium text-app-muted mb-2">
-                                Sector(es) al(los) que pertenece(n): <span className="text-red-500">*</span>
+                                Sector(es) al(los) que pertenece(n): {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <div className={`space-y-2 bg-app-bg/60 p-3 rounded-lg border transition-colors ${errors['informacionEmpresa.sectoresPertenece.lista'] ? 'border-red-500 bg-red-500/5' : 'border-app-border'
                                 }`}>
@@ -1513,7 +1602,7 @@ export const CompanyForm = ({
                         {/* Principal Sector al que Atiende */}
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Principal sector al que atiende <span className="text-red-500">*</span>
+                                Principal sector al que atiende {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <select
                                 value={formData.informacionEmpresa.principalSectorAtiende}
@@ -1536,7 +1625,7 @@ export const CompanyForm = ({
 
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Porcentaje de exportaciones (%) <span className="text-red-500">*</span>
+                                Porcentaje de exportaciones (%) {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <input
                                 type="number"
@@ -1704,7 +1793,7 @@ export const CompanyForm = ({
                     <div className="p-4 space-y-4 border-t border-app-border">
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                Retos Actuales de la Empresa <span className="text-red-500">*</span>
+                                Retos Actuales de la Empresa {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <textarea
                                 rows={2}
@@ -1717,7 +1806,7 @@ export const CompanyForm = ({
 
                         <div>
                             <label className="block text-xs font-medium text-app-muted mb-2">
-                                Apoyos y Necesidades Requeridos <span className="text-red-500">*</span>
+                                Apoyos y Necesidades Requeridos {!esEmpresaIncompleta && <span className="text-red-500">*</span>}
                             </label>
                             <div className={`space-y-2.5 bg-app-bg/60 p-3 rounded-lg border transition-colors ${errors['apoyosYNecesidades.tipos']
                                 ? 'border-red-500 bg-red-500/5'

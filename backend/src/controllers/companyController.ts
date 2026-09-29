@@ -6,20 +6,12 @@ import { Company } from '../models/Company';
 import { AuditLog } from '../models/AuditLog';
 import { CompanyFollowUp } from '../models/CompanyFollowUp';
 import { getClientIp } from '../utils/getClientIp';
-
-// Helper para procesar el string de etiquetas enviado por el frontend
-const processEtiquetas = (etiquetas: any): string[] => {
-  if (Array.isArray(etiquetas)) return etiquetas;
-  if (typeof etiquetas === 'string' && etiquetas.trim() !== '') {
-    return etiquetas.split(',').map((t) => t.trim()).filter((t) => t !== '');
-  }
-  return [];
-};
+import { processEtiquetas } from '../utils/processTags';
 
 // POST: Registrar una empresa desde el formulario público
 export const createPublicCompany = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { rfc, etiquetas } = req.body;
+    const { rfc, tipoEmpresa } = req.body;
 
     // Validación de RFC duplicado
     if (rfc) {
@@ -34,9 +26,9 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
 
     const payload = {
       ...req.body,
-      correoElectronico: req.body.correoElectronico?.trim().toLowerCase(),
+      tipoEmpresa: tipoEmpresa || 'Empresa directorio',
+      correoElectronico: req.body.correoElectronico?.trim().toLowerCase() || '',
       rfc: rfc?.toUpperCase().trim(),
-      //etiquetas: processEtiquetas(etiquetas),
       etiquetas: [],
       activa: false // Inactiva por defecto para revisión administrativa
     };
@@ -49,7 +41,7 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
       accion: 'CREAR',
       modulo: 'Empresas',
       empresaId: savedCompany._id,
-      detalles: { origen: 'Formulario Público', estatusInicial: 'Inactiva' },
+      detalles: { origen: 'Formulario Público', camposRegistrados: payload },
       ip: getClientIp(req)
     });
 
@@ -59,7 +51,6 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
     });
   } catch (error: any) {
     console.error('Error al crear empresa pública:', error);
-    console.error('Error detallado al crear empresa pública:', JSON.stringify(error, null, 2));
 
     if (error?.code === 11000 && error?.keyPattern?.rfc) {
       res.status(400).json({
@@ -87,7 +78,7 @@ export const createPublicCompany = async (req: Request, res: Response): Promise<
 // GET: Obtener empresas con filtros opcionales
 export const getCompanies = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { busqueda, estado, municipio, tipoOperacion, sector } = req.query;
+    const { busqueda, estado, municipio, tipoOperacion, sector, tipoEmpresa } = req.query;
     const query: any = {};
 
     const userRole = req.user?.rol;
@@ -105,6 +96,7 @@ export const getCompanies = async (req: AuthRequest, res: Response): Promise<voi
       ];
     }
 
+    if (tipoEmpresa) query.tipoEmpresa = tipoEmpresa;
     if (estado) query['ubicacion.estado'] = estado;
     if (municipio) query['ubicacion.municipio'] = municipio;
     if (tipoOperacion) query.tipoOperaciones = tipoOperacion;
@@ -134,7 +126,7 @@ export const getCompanyById = async (req: Request, res: Response): Promise<void>
 // POST: Crear una empresa desde el panel de administración
 export const createCompany = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { rfc, activa, etiquetas } = req.body;
+    const { rfc, activa, etiquetas, tipoEmpresa } = req.body;
 
     if (rfc) {
       const rfcExistente = await Company.findOne({ rfc: rfc.toUpperCase().trim() });
@@ -148,6 +140,7 @@ export const createCompany = async (req: AuthRequest, res: Response): Promise<vo
 
     const payload = {
       ...req.body,
+      tipoEmpresa: tipoEmpresa || 'Empresa directorio',
       rfc: rfc?.toUpperCase().trim(),
       etiquetas: processEtiquetas(etiquetas),
       activa: activa !== undefined ? activa : true
@@ -164,7 +157,7 @@ export const createCompany = async (req: AuthRequest, res: Response): Promise<vo
         modulo: 'Empresas',
         empresaId: savedCompany._id,
         usuarioId: new Types.ObjectId(userId as string),
-        detalles: { origen: 'Panel de Administración' },
+        detalles: { origen: 'Panel de Administración', camposRegistrados: payload },
         ip: getClientIp(req)
       });
     }
@@ -293,8 +286,6 @@ export const deleteCompany = async (req: AuthRequest, res: Response): Promise<vo
   }
 };
 
-// src/controllers/companyController.ts (Fragmentos a actualizar)
-
 // POST: Registrar seguimiento
 export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -309,7 +300,7 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       atencionSeguimiento,
       estatus,
       empresasVinculadas,
-      otraEmpresa // 👈 Extraer objeto enviado por frontend
+      otraEmpresa
     } = req.body;
 
     if (!empresaId || !asunto || !descripcion) {
@@ -317,13 +308,11 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
-    // Validar 'otraEmpresa' si se seleccionó la opción manual
     if (empresaId === 'OTRA' && (!otraEmpresa || !otraEmpresa.nombreEmpresa?.trim())) {
       res.status(400).json({ message: 'El nombre de la empresa es obligatorio al seleccionar "Otra".' });
       return;
     }
 
-    // Validar ID solo si NO es la opción 'OTRA'
     if (empresaId !== 'OTRA' && !Types.ObjectId.isValid(empresaId)) {
       res.status(400).json({ message: 'El ID de la empresa no tiene un formato válido.' });
       return;
@@ -352,7 +341,7 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       atencionSeguimiento,
       estatus,
       empresasVinculadas: tipoSeguimiento === 'Vinculación' ? vinculadasArray : [],
-      otraEmpresa: isOtra ? otraEmpresa : undefined // 👈 Guardar datos de otra empresa
+      otraEmpresa: isOtra ? otraEmpresa : undefined
     });
 
     const savedFollowUp = await followUp.save();
@@ -390,7 +379,7 @@ export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       atencionSeguimiento,
       estatus,
       empresasVinculadas,
-      otraEmpresa // 👈 Extraer objeto
+      otraEmpresa
     } = req.body;
 
     if (!id || !Types.ObjectId.isValid(id as string)) {
@@ -425,7 +414,7 @@ export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       updatePayload.otraEmpresa = otraEmpresa;
     } else if (empresaId && Types.ObjectId.isValid(empresaId as string)) {
       updatePayload.empresaId = new Types.ObjectId(empresaId as string);
-      updatePayload.otraEmpresa = undefined; // Limpiar si se reasigna a una existente
+      updatePayload.otraEmpresa = undefined;
     }
 
     const updatedFollowUp = await CompanyFollowUp.findByIdAndUpdate(
@@ -529,7 +518,6 @@ export const getCompanyFollowUps = async (req: AuthRequest, res: Response): Prom
         }
       },
       { $unwind: { path: '$usuarioId', preserveNullAndEmptyArrays: true } },
-      // 👈 Lookup para poblar la información de las Empresas Vinculadas
       {
         $lookup: {
           from: 'companies',
@@ -558,7 +546,7 @@ export const getCompanyFollowUps = async (req: AuthRequest, res: Response): Prom
         { descripcion: regex },
         { asunto: regex },
         { 'empresaId.nombreComercial': regex },
-        { 'otraEmpresa.nombreEmpresa': regex }, // 👈 Incluye búsqueda por nombre de empresa no registrada
+        { 'otraEmpresa.nombreEmpresa': regex },
         { 'usuarioId.nombre': regex },
         { 'empresasVinculadas.nombreComercial': regex }
       ];
@@ -584,7 +572,6 @@ export const deleteCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
   try {
     const { id } = req.params;
 
-    // 💡 Aseguramos el tipado a string (id as string)
     if (!id || !Types.ObjectId.isValid(id as string)) {
       res.status(400).json({ message: 'El ID del seguimiento no es válido.' });
       return;
@@ -604,7 +591,6 @@ export const deleteCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
         accion: 'ELIMINAR',
         modulo: 'SeguimientoEmpresas',
         empresaId: deletedFollowUp.empresaId || undefined,
-        //empresaId: deletedFollowUp.empresaId ? new Types.ObjectId(deletedFollowUp.empresaId as any) : undefined,
         usuarioId: new Types.ObjectId(userId as string),
         detalles: { seguimientoId: id, asunto: deletedFollowUp.asunto },
         ip: getClientIp(req)
@@ -624,7 +610,7 @@ export const getFollowUpCompanies = async (req: AuthRequest, res: Response): Pro
     const companies = await CompanyFollowUp.aggregate([
       {
         $lookup: {
-          from: 'companies', // Nombre de la colección de empresas en MongoDB
+          from: 'companies',
           localField: 'empresaId',
           foreignField: '_id',
           as: 'empresa'
@@ -653,7 +639,7 @@ export const getFollowUpUsers = async (req: AuthRequest, res: Response): Promise
     const users = await CompanyFollowUp.aggregate([
       {
         $lookup: {
-          from: 'users', // Nombre de la colección de usuarios en MongoDB
+          from: 'users',
           localField: 'usuarioId',
           foreignField: '_id',
           as: 'usuario'

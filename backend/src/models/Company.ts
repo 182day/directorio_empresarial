@@ -2,7 +2,7 @@
 import { Schema, model, Document } from 'mongoose';
 
 export interface IContactoConCargo {
-  nombreCompleto: string;
+  nombreCompleto?: string;
   cargo?: string;
   telefono?: string;
   celularWhatsapp?: string;
@@ -10,57 +10,58 @@ export interface IContactoConCargo {
 }
 
 export interface IContactoDirector {
-  nombreCompleto: string;
+  nombreCompleto?: string;
   telefono?: string;
   celularWhatsapp?: string;
-  correoElectronico: string;
+  correoElectronico?: string;
 }
 
 export interface IEspecialidadSector {
-  lista: string[];
+  lista?: string[];
   otroEspecifique?: string;
 }
 
 export interface ICompany extends Document {
-  correoElectronico: string;
-  nombreComercial: string;
-  razonSocial: string;
-  rfc: string;
-  tamanoEmpresa: string;
-  anioInicio: number;
+  tipoEmpresa?: string; // e.g., 'Empresa directorio' o 'Empresa incompleta'
+  correoElectronico?: string;
+  nombreComercial: string; // 👈 OBLIGATORIO
+  razonSocial?: string;
+  rfc: string;             // 👈 OBLIGATORIO
+  tamanoEmpresa?: string;
+  anioInicio?: number;
   sitioWeb?: string;
   etiquetas: string[];
   tipoOperaciones: string[];
   tipoSuministro: string[];
   ubicacion: {
-    estado: string;
-    municipio: string;
-    direccion: string;
-    colonia: string;
-    codigoPostal: string;
+    estado?: string;
+    municipio?: string;
+    direccion?: string;
+    colonia?: string;
+    codigoPostal?: string;
     parqueIndustrial?: string;
     latitud?: number;
-    longitud?: number
+    longitud?: number;
   };
   contactos: {
-    directorGeneral: IContactoDirector;
+    directorGeneral?: IContactoDirector;
     compras?: IContactoConCargo;
     ventas?: IContactoConCargo;
     recursosHumanos?: IContactoConCargo;
   };
   informacionEmpresa: {
-    productosFabrica: string;
+    productosFabrica?: string;
     principalesClientes?: string;
-    paisOrigen: string;
+    paisOrigen?: string;
     paisOrigenOtro?: string;
-    porcentajeInversionNacional: number;
-    porcentajeInversionExtranjero: number;
-    certificaciones: {
-      lista: string[];
+    porcentajeInversionNacional?: number;
+    porcentajeInversionExtranjero?: number;
+    certificaciones?: {
+      lista?: string[];
       otroEspecifique?: string;
     };
-    sectoresPertenece: {
-      lista: string[];
+    sectoresPertenece?: {
+      lista?: string[];
       otroEspecifique?: string;
     };
     sectorPlasticos?: IEspecialidadSector;
@@ -72,13 +73,13 @@ export interface ICompany extends Document {
     sectorServiciosEspecializados?: IEspecialidadSector;
     sectorMros?: IEspecialidadSector;
     sectorMinero?: IEspecialidadSector;
-    principalSectorAtiende: string;
-    porcentajeExportaciones: number;
-    destinoExportaciones: string[];
+    principalSectorAtiende?: string;
+    porcentajeExportaciones?: number;
+    destinoExportaciones?: string[];
   };
-  retosActuales: string;
-  apoyosYNecesidades: {
-    tipos: string[];
+  retosActuales?: string;
+  apoyosYNecesidades?: {
+    tipos?: string[];
     otroEspecifique?: string;
   };
   presentacionComercial?: string;
@@ -100,10 +101,10 @@ const ContactoConCargoSchema = new Schema<IContactoConCargo>(
 
 const ContactoDirectorSchema = new Schema<IContactoDirector>(
   {
-    nombreCompleto: { type: String, required: true, trim: true },
+    nombreCompleto: { type: String, default: '', trim: true },
     telefono: { type: String, default: '', trim: true },
     celularWhatsapp: { type: String, default: '', trim: true },
-    correoElectronico: { type: String, required: true, trim: true, lowercase: true }
+    correoElectronico: { type: String, default: '', trim: true, lowercase: true }
   },
   { _id: false }
 );
@@ -118,39 +119,44 @@ const EspecialidadSectorSchema = new Schema<IEspecialidadSector>(
 
 const CompanySchema = new Schema<ICompany>(
   {
-    correoElectronico: { type: String, required: true, trim: true, lowercase: true },
+    tipoEmpresa: { type: String, default: 'Empresa directorio', trim: true },
+    correoElectronico: { type: String, default: '', trim: true, lowercase: true },
+    
+    // --- CAMPOS OBLIGATORIOS A NIVEL BASE DE DATOS ---
     nombreComercial: { type: String, required: true, trim: true },
-    razonSocial: { type: String, required: true, trim: true },
     rfc: { type: String, required: true, unique: true, uppercase: true, trim: true },
-    tamanoEmpresa: { type: String, required: true, enum: ['Micro', 'Pequeña', 'Mediana', 'Grande'] },
-    anioInicio: { type: Number, required: true },
+
+    // --- CAMPOS OPCIONALES / FLEXIBLES ---
+    razonSocial: { type: String, default: '', trim: true },
+    tamanoEmpresa: { type: String, default: '', enum: ['', 'Micro', 'Pequeña', 'Mediana', 'Grande'] },
+    anioInicio: { type: Number },
     sitioWeb: { type: String, trim: true, default: '' },
     etiquetas: [{ type: String, trim: true }],
-    tipoSuministro: [{ type: String, required: true }],
-    tipoOperaciones: [{ type: String, required: true }],
+    tipoSuministro: [{ type: String }],
+    tipoOperaciones: [{ type: String }],
     ubicacion: {
-      estado: { type: String, required: true },
-      municipio: { type: String, required: true },
-      direccion: { type: String, required: true, trim: true },
-      colonia: { type: String, required: true, trim: true },
-      codigoPostal: { type: String, required: true, trim: true },
+      estado: { type: String, default: '', trim: true },
+      municipio: { type: String, default: '', trim: true },
+      direccion: { type: String, default: '', trim: true },
+      colonia: { type: String, default: '', trim: true },
+      codigoPostal: { type: String, default: '', trim: true },
       parqueIndustrial: { type: String, default: '', trim: true },
-      latitud: { type: Number, min: -90, max: 90 },   // <--- Validación de rango latitud
-      longitud: { type: Number, min: -180, max: 180 }  // <--- Validación de rango longitud
+      latitud: { type: Number, min: -90, max: 90 },
+      longitud: { type: Number, min: -180, max: 180 }
     },
     contactos: {
-      directorGeneral: { type: ContactoDirectorSchema, required: true },
-      compras: { type: ContactoConCargoSchema },
-      ventas: { type: ContactoConCargoSchema },
-      recursosHumanos: { type: ContactoConCargoSchema }
+      directorGeneral: { type: ContactoDirectorSchema, default: {} },
+      compras: { type: ContactoConCargoSchema, default: {} },
+      ventas: { type: ContactoConCargoSchema, default: {} },
+      recursosHumanos: { type: ContactoConCargoSchema, default: {} }
     },
     informacionEmpresa: {
-      productosFabrica: { type: String, required: true, trim: true },
+      productosFabrica: { type: String, default: '', trim: true },
       principalesClientes: { type: String, default: '', trim: true },
-      paisOrigen: { type: String, required: true, trim: true },
+      paisOrigen: { type: String, default: '', trim: true },
       paisOrigenOtro: { type: String, default: '', trim: true },
-      porcentajeInversionNacional: { type: Number, required: true, min: 0, max: 100 },
-      porcentajeInversionExtranjero: { type: Number, required: true, min: 0, max: 100 },
+      porcentajeInversionNacional: { type: Number, default: 0, min: 0, max: 100 },
+      porcentajeInversionExtranjero: { type: Number, default: 0, min: 0, max: 100 },
       certificaciones: {
         lista: [{ type: String, trim: true }],
         otroEspecifique: { type: String, default: '', trim: true }
@@ -168,11 +174,11 @@ const CompanySchema = new Schema<ICompany>(
       sectorServiciosEspecializados: { type: EspecialidadSectorSchema },
       sectorMros: { type: EspecialidadSectorSchema },
       sectorMinero: { type: EspecialidadSectorSchema },
-      principalSectorAtiende: { type: String, required: true, trim: true },
-      porcentajeExportaciones: { type: Number, required: true, min: 0, max: 100 },
+      principalSectorAtiende: { type: String, default: '', trim: true },
+      porcentajeExportaciones: { type: Number, default: 0, min: 0, max: 100 },
       destinoExportaciones: [{ type: String, trim: true }]
     },
-    retosActuales: { type: String, required: true, trim: true },
+    retosActuales: { type: String, default: '', trim: true },
     apoyosYNecesidades: {
       tipos: [{ type: String, trim: true }],
       otroEspecifique: { type: String, default: '', trim: true }

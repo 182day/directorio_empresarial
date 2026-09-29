@@ -8,6 +8,7 @@ interface FilterDrawerProps {
     canEdit?: boolean;
     // Opciones
     opcionesTamano: string[];
+    opcionesTipoEmpresa: string[];
     opcionesEstados: string[];
     opcionesMunicipios: string[];
     opcionesEtiquetas: string[];
@@ -21,6 +22,7 @@ interface FilterDrawerProps {
     opcionesProductos: string[];
     // Selecciones
     selectedTamanos: string[];
+    selectedTiposEmpresa: string[];
     selectedEstados: string[];
     selectedMunicipios: string[];
     selectedEstatus?: string[];
@@ -38,6 +40,7 @@ interface FilterDrawerProps {
     selectedFechaHasta: string;
     // Handlers
     onToggleTamano: (val: string) => void;
+    onToggleTipoEmpresa: (val: string) => void;
     onToggleEstado: (val: string) => void;
     onToggleMunicipio: (val: string) => void;
     onToggleEstatus?: (val: string) => void;
@@ -62,6 +65,7 @@ export const CompaniesFilterDrawer = ({
     onClose,
     canEdit = false,
     opcionesTamano,
+    opcionesTipoEmpresa = ['Empresa directorio', 'Empresa incompleta'],
     opcionesEstados,
     opcionesMunicipios,
     opcionesEtiquetas,
@@ -74,6 +78,7 @@ export const CompaniesFilterDrawer = ({
     opcionesSectores,
     opcionesProductos,
     selectedTamanos,
+    selectedTiposEmpresa = [],
     selectedEstados,
     selectedMunicipios,
     selectedEstatus = [],
@@ -90,6 +95,7 @@ export const CompaniesFilterDrawer = ({
     selectedFechaDesde,
     selectedFechaHasta,
     onToggleTamano,
+    onToggleTipoEmpresa,
     onToggleEstado,
     onToggleMunicipio,
     onToggleEstatus,
@@ -112,6 +118,7 @@ export const CompaniesFilterDrawer = ({
 
     // Búsquedas internas
     const [searchTamano, setSearchTamano] = useState('');
+    const [searchTipoEmpresa, setSearchTipoEmpresa] = useState('');
     const [searchEstado, setSearchEstado] = useState('');
     const [searchMunicipio, setSearchMunicipio] = useState('');
     const [searchEtiqueta, setSearchEtiqueta] = useState('');
@@ -224,6 +231,59 @@ export const CompaniesFilterDrawer = ({
                                 )}
                             </div>
                         )}
+
+                        {/* Filtro: Tipo de Empresa */}
+                        <div className="relative w-full text-left">
+                            <button
+                                type="button"
+                                onClick={() => setOpenFilterMenu(openFilterMenu === 'tipoEmpresa' ? null : 'tipoEmpresa')}
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedTiposEmpresa.length > 0
+                                    ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                    : 'bg-app-card border-app-border text-app-text hover:bg-app-border/30'
+                                    }`}
+                            >
+                                <span>
+                                    Tipo de Empresa
+                                    {selectedTiposEmpresa.length > 0 && (
+                                        <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-600 text-white rounded-full font-bold">
+                                            {selectedTiposEmpresa.length}
+                                        </span>
+                                    )}
+                                </span>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${openFilterMenu === 'tipoEmpresa' ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {openFilterMenu === 'tipoEmpresa' && (
+                                <div className="mt-2 w-full bg-app-card border border-app-border rounded-xl shadow-2xl z-40 p-3 space-y-3">
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar tipo de empresa..."
+                                        value={searchTipoEmpresa}
+                                        onChange={(e) => setSearchTipoEmpresa(e.target.value)}
+                                        className="w-full bg-app-bg border border-app-border rounded-md py-1.5 px-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
+                                    />
+                                    <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
+                                        {opcionesTipoEmpresa
+                                            .filter((tipo) => tipo.toLowerCase().includes(searchTipoEmpresa.toLowerCase()))
+                                            .map((tipo) => {
+                                                const isSelected = selectedTiposEmpresa.includes(tipo);
+                                                return (
+                                                    <button
+                                                        key={tipo}
+                                                        type="button"
+                                                        onClick={() => onToggleTipoEmpresa(tipo)}
+                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors ${isSelected ? 'bg-blue-600/20 text-blue-400 font-semibold' : 'text-app-text hover:bg-app-border/50'
+                                                            }`}
+                                                    >
+                                                        <span>{tipo}</span>
+                                                        {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}
+                                                    </button>
+                                                );
+                                            })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         {/* Filtro: Tamaño */}
                         <div className="relative w-full text-left">

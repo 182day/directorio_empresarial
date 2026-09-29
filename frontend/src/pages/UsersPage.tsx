@@ -172,7 +172,7 @@ export const UsersPage = () => {
                                         {/* Correo */}
                                         <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-app-muted">
                                             <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Correo</span>
-                                            <span className="truncate max-w-[200px] md:max-w-none">{u.email}</span>
+                                            <span className="truncate max-w-50 md:max-w-none">{u.email}</span>
                                         </td>
 
                                         {/* Rol */}

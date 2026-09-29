@@ -1,10 +1,12 @@
 // src/interfaces/company.interface.ts
 export type TamanoEmpresa = 'Micro' | 'Pequeña' | 'Mediana' | 'Grande';
+export type TipoEmpresa = 'Empresa directorio' | 'Empresa incompleta';
 
 // 1. Interfaz Completa (Usada principalmente en CompanyForm)
 export interface CompanyFormData {
   _id?: string;
   createdAt?: string | Date;
+  tipoEmpresa?: TipoEmpresa;
   correoElectronico: string;
   nombreComercial: string;
   razonSocial: string;
@@ -121,6 +123,7 @@ export interface CompanyFormData {
 // 2. Interfaz Reducida (Usada en Directory.tsx y listados simples)
 export interface DirectoryCompany {
   _id: string;
+  tipoEmpresa?: TipoEmpresa;
   tamanoEmpresa?: string;
   tamanio?: string; // Para compatibilidad si el backend devuelve tamanio
   tipoOperaciones: string[];
@@ -151,6 +154,7 @@ export type CompanySortField =
   | 'razonSocial'
   | 'rfc'
   | 'tamanoEmpresa'
+  | 'tipoEmpresa'
   | 'anioInicio'
   | 'estado'
   | 'municipio'

@@ -47,6 +47,7 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
         rfc,
         sitioWeb,
         tamanoEmpresa,
+        tipoEmpresa,
         activa,
         ubicacion,
         contactos,
@@ -157,7 +158,7 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                 <div className="max-h-[80vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none p-6 space-y-6">
 
                     {/* Fila 1: Resumen e Identificación */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-app-bg rounded-xl border border-app-border">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-app-bg rounded-xl border border-app-border">
                         {isAdmin && _id && (
                             <div>
                                 <span className="text-xs font-semibold text-app-muted uppercase tracking-wider block mb-1">ID (Sistema)</span>
@@ -174,6 +175,14 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                 <ShieldCheck className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                                 <span>{rfc || 'N/A'}</span>
                             </div>
+                        </div>
+
+                        {/* 👈 NUEVO: Tipo de Empresa */}
+                        <div>
+                            <span className="text-xs font-semibold text-app-muted uppercase tracking-wider block mb-1">Tipo de Empresa</span>
+                            <span className="inline-block px-2.5 py-0.5 bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20 text-xs font-semibold rounded-full">
+                                {tipoEmpresa || 'No definido'}
+                            </span>
                         </div>
 
                         <div>

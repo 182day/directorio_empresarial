@@ -30,10 +30,12 @@ export const Directory = () => {
   // Extraemos las empresas y el estado de carga desde el Store de Zustand
   const { companies, loading } = useCompanyStore() as { companies: Company[]; loading: boolean };
 
-  // 0. Filtrado de empresas activas
+  // 0. Filtrado de empresas activas y que sean de tipo 'Empresa directorio'
   const empresasActivas = useMemo(() => {
     if (!Array.isArray(companies)) return [];
-    return companies.filter(p => p.activa === true);
+    return companies.filter(
+      p => p.activa === true && p.tipoEmpresa === 'Empresa directorio'
+    );
   }, [companies]);
 
   // 1. Conteo por Tamaño
