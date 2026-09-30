@@ -148,6 +148,7 @@ export const UsersPage = () => {
                             {/* Oculto en móvil (hidden), visible a partir de md (md:table-header-group) */}
                             <thead className="hidden md:table-header-group bg-app-bg text-app-muted text-xs uppercase border-b border-app-border">
                                 <tr>
+                                    <th className="px-6 py-4">#</th>
                                     <th className="px-6 py-4">Usuario</th>
                                     <th className="px-6 py-4">Correo Electrónico</th>
                                     <th className="px-6 py-4">Rol</th>
@@ -158,11 +159,15 @@ export const UsersPage = () => {
 
                             {/* Celdas convertidas en bloque en móvil */}
                             <tbody className="divide-y divide-app-border/60">
-                                {filteredUsers.map((u) => (
+                                {filteredUsers.map((u, i) => (
                                     <tr
                                         key={u._id}
                                         className="block md:table-row hover:bg-app-button/30 transition-colors p-4 md:p-0 space-y-3 md:space-y-0"
                                     >
+                                        <td className="px-6 py-4 font-semibold text-app-muted text-xs">
+                                            {i + 1}
+                                        </td>
+
                                         {/* Usuario */}
                                         <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 font-medium text-app-text">
                                             <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Usuario</span>

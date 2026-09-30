@@ -51,7 +51,7 @@ export const CompaniesPage = () => {
     const { setMapCompanies } = useMapCompaniesStore();
 
     const [search, setSearch] = useState('');
-    const [tipoVista, setTipoVista] = useState<'tabla' | 'cards'>('cards');
+    const [tipoVista, setTipoVista] = useState<'tabla' | 'cards'>('tabla');
 
     // Estados para Paginación
     const [currentPage, setCurrentPage] = useState<number>(1);
@@ -585,6 +585,17 @@ export const CompaniesPage = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Extrae las empresas que tienen coordenadas válidas
+    const mapableCompanies = useMemo(() => {
+        return displayedCompanies.filter(
+            emp =>
+                typeof emp.ubicacion?.latitud === 'number' &&
+                typeof emp.ubicacion?.longitud === 'number' &&
+                !isNaN(emp.ubicacion?.latitud) &&
+                !isNaN(emp.ubicacion?.longitud)
+        );
+    }, [displayedCompanies]);
+
     return (
         <>
             {/* BARRA SUPERIOR DE ACCIONES */}
@@ -732,7 +743,7 @@ export const CompaniesPage = () => {
                                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left"
                                         >
                                             <FileText className="w-4 h-4 text-amber-400 shrink-0" />
-                                            <span>PDF Fichas Técnica</span>
+                                            <span>PDF Fichas Técnicas</span>
                                         </button>
 
                                         {/* 📇 3. Descargar PDF Fichas (FULL) */}
@@ -752,21 +763,21 @@ export const CompaniesPage = () => {
                                             <span>PDF Fichas Completas</span>
                                         </button>
 
-                                        {/* Enviar al Mapa (si hay empresas filtradas) */}
-                                        {displayedCompanies.length > 0 && companies.length > displayedCompanies.length && (
+                                        {/* Enviar al Mapa (si hay empresas filtradas y representan un subconjunto) */}
+                                        {mapableCompanies.length > 0 && companies.length > mapableCompanies.length && (
                                             <>
                                                 <div className="my-1 border-t border-app-border" />
                                                 <button
                                                     type="button"
                                                     onClick={() => {
                                                         setIsReportsMenuOpen(false);
-                                                        setMapCompanies(displayedCompanies);
-                                                        toast.success(`${displayedCompanies.length} empresas enviadas al mapa correctamente`);
+                                                        setMapCompanies(mapableCompanies);
+                                                        toast.success(`${mapableCompanies.length} empresas enviadas al mapa correctamente`);
                                                     }}
                                                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-app-text hover:bg-app-border/40 transition-colors text-left"
                                                 >
                                                     <Map className="w-4 h-4 text-teal-400 shrink-0" />
-                                                    <span>Enviar al Mapa ({displayedCompanies.length})</span>
+                                                    <span>Enviar al Mapa ({mapableCompanies.length})</span>
                                                 </button>
                                             </>
                                         )}
@@ -1077,6 +1088,7 @@ export const CompaniesPage = () => {
                                     <thead className="bg-app-bg text-app-muted text-xs uppercase border-b border-app-border">
                                         <tr>
                                             <th className="px-4 py-4 w-10"></th>
+                                            <th className="px-6 py-4">#</th>
                                             <th className="px-6 py-4">Empresa</th>
                                             <th className="px-6 py-4">RFC</th>
                                             <th className="px-6 py-4">Ubicación</th>
@@ -1086,8 +1098,9 @@ export const CompaniesPage = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-app-border">
-                                        {paginatedCompanies.map((comp) => {
+                                        {paginatedCompanies.map((comp, index) => {
                                             const isSelected = Boolean(comp._id && selectedCompanyIds.has(comp._id));
+                                            const globalIndex = pageSize === 'all' ? index + 1 : (currentPage - 1) * pageSize + index + 1;
                                             return (
                                                 <tr
                                                     key={comp._id}
@@ -1109,11 +1122,19 @@ export const CompaniesPage = () => {
                                                             {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                                                         </button>
                                                     </td>
+                                                    <td className="px-6 py-4 font-semibold text-app-muted text-xs">
+                                                        {globalIndex}
+                                                    </td>
                                                     <td className="px-6 py-4 font-medium text-app-text">
                                                         <div>{comp.nombreComercial}</div>
                                                         <div className="text-xs text-app-muted">{comp.razonSocial}</div>
-                                                        {(selectedTiposEmpresa.length > 1) && (
-                                                            <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-xs rounded border border-amber-500/20 whitespace-nowrap font-medium">
+                                                        {selectedTiposEmpresa.length > 1 && (
+                                                            <span
+                                                                className={`px-2 py-0.5 text-xs rounded border whitespace-nowrap font-medium ${comp.tipoEmpresa === 'Empresa incompleta'
+                                                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                                                    : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+                                                                    }`}
+                                                            >
                                                                 {comp.tipoEmpresa}
                                                             </span>
                                                         )}
@@ -1191,8 +1212,9 @@ export const CompaniesPage = () => {
 
                     {tipoVista === 'cards' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {paginatedCompanies.map((comp) => {
+                            {paginatedCompanies.map((comp, index) => {
                                 const isSelected = Boolean(comp._id && selectedCompanyIds.has(comp._id));
+                                const globalIndex = pageSize === 'all' ? index + 1 : (currentPage - 1) * pageSize + index + 1;
                                 return (
                                     <div
                                         key={comp._id}
@@ -1203,17 +1225,28 @@ export const CompaniesPage = () => {
                                     >
                                         <div>
                                             <div className="flex items-start justify-between gap-3 mb-3">
-                                                <div>
-                                                    <h3 className="font-bold text-app-text text-base leading-snug">{comp.nombreComercial}</h3>
-                                                    <p className="text-xs text-app-muted line-clamp-1">{comp.razonSocial}</p>
+                                                <div className="flex items-start gap-2">
+                                                    {/* 👈 Numerador en Card */}
+                                                    <span className="px-2 py-0.5 bg-app-border/60 text-app-muted text-xs rounded font-bold shrink-0 mt-0.5">
+                                                        #{globalIndex}
+                                                    </span>
+                                                    <div>
+                                                        <h3 className="font-bold text-app-text text-base leading-snug">{comp.nombreComercial}</h3>
+                                                        <p className="text-xs text-app-muted line-clamp-1">{comp.razonSocial}</p>
+                                                    </div>
                                                 </div>
                                                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                                                     <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded border border-blue-500/20 whitespace-nowrap">
                                                         {comp.tamanoEmpresa}
                                                     </span>
 
-                                                    {(selectedTiposEmpresa.length > 1) && (
-                                                        <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-xs rounded border border-amber-500/20 whitespace-nowrap font-medium">
+                                                    {selectedTiposEmpresa.length > 1 && (
+                                                        <span
+                                                            className={`px-2 py-0.5 text-xs rounded border whitespace-nowrap font-medium ${comp.tipoEmpresa === 'Empresa incompleta'
+                                                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                                                : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+                                                                }`}
+                                                        >
                                                             {comp.tipoEmpresa}
                                                         </span>
                                                     )}

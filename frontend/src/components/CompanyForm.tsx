@@ -37,6 +37,7 @@ interface CompanyFormProps {
     initialData?: Partial<CompanyFormData>;
     isEditing?: boolean;
     isPublicRegistration?: boolean;
+    defaultTipoEmpresa?: 'Empresa directorio' | 'Empresa incompleta';
     onSubmit?: (data: CompanyFormData) => Promise<void> | void;
     onCancel?: () => void;
     submitButtonText?: string;
@@ -133,6 +134,7 @@ export const CompanyForm = ({
     initialData,
     isEditing = false,
     isPublicRegistration = false,
+    defaultTipoEmpresa,
     onSubmit,
     onCancel,
     submitButtonText
@@ -149,13 +151,13 @@ export const CompanyForm = ({
     });
 
     const [formData, setFormData] = useState<CompanyFormData>({
-        tipoEmpresa: 'Empresa directorio',
+        tipoEmpresa: initialValues?.tipoEmpresa || defaultTipoEmpresa || 'Empresa directorio',
         correoElectronico: '',
         nombreComercial: '',
         razonSocial: '',
         rfc: '',
-        tamanoEmpresa: 'Micro',
-        anioInicio: new Date().getFullYear(),
+        tamanoEmpresa: '',
+        anioInicio: 0,
         sitioWeb: '',
         etiquetas: [],
         tipoOperaciones: [],

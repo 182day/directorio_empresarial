@@ -41,11 +41,12 @@ export const exportCompaniesToExcel = async (companies: CompanyFormData[], user:
         { header: 'Razón Social', key: 'razonSocial', width: 28 },
         { header: 'RFC', key: 'rfc', width: 16 },
         { header: 'Correo Electrónico', key: 'correoElectronico', width: 28 },
+        { header: 'Tipo de Empresa', key: 'tipoEmpresa', width: 22 }, // 👈 Nuevo campo añadido
         { header: 'Tamaño', key: 'tamanoEmpresa', width: 14 },
         { header: 'Año de Inicio', key: 'anioInicio', width: 14 },
         { header: 'Sitio Web', key: 'sitioWeb', width: 26 },
         
-        // 👈 Fecha de Registro y Estatus condicionados por canSeeStatus
+        // Fecha de Registro y Estatus condicionados por canSeeStatus
         ...(canSeeStatus ? [
             { header: 'Fecha de Registro', key: 'createdAt', width: 18 },
             { header: 'Estatus', key: 'estatus', width: 12 }
@@ -63,7 +64,7 @@ export const exportCompaniesToExcel = async (companies: CompanyFormData[], user:
         { header: 'Código Postal', key: 'codigoPostal', width: 14 },
         { header: 'Parque Industrial', key: 'parqueIndustrial', width: 24 },
 
-        // 👈 Latitud y Longitud únicamente visibles si canSeeStatus es true
+        // Latitud y Longitud únicamente visibles si canSeeStatus es true
         ...(canSeeStatus ? [
             { header: 'Latitud', key: 'latitud', width: 16 },
             { header: 'Longitud', key: 'longitud', width: 16 },
@@ -141,6 +142,7 @@ export const exportCompaniesToExcel = async (companies: CompanyFormData[], user:
         const estatusTexto = company.activa ? 'Activo' : 'Inactivo';
         const info = company.informacionEmpresa;
         const contactos = company.contactos;
+        const tipoEmpresaValor = company.tipoEmpresa || 'Empresa directorio';
 
         const rowData: Record<string, any> = {
             ...(isAdmin && { id: company._id }),
@@ -148,6 +150,7 @@ export const exportCompaniesToExcel = async (companies: CompanyFormData[], user:
             razonSocial: company.razonSocial,
             rfc: company.rfc,
             correoElectronico: company.correoElectronico,
+            tipoEmpresa: tipoEmpresaValor, // Valor asignado
             tamanoEmpresa: company.tamanoEmpresa,
             anioInicio: company.anioInicio,
             sitioWeb: company.sitioWeb,
@@ -227,6 +230,27 @@ export const exportCompaniesToExcel = async (companies: CompanyFormData[], user:
         const row = worksheet.addRow(rowData);
         row.alignment = { vertical: 'middle', wrapText: false };
 
+        // 👈 Formato condicional para la celda de Tipo de Empresa
+        const tipoEmpresaCell = row.getCell('tipoEmpresa');
+        tipoEmpresaCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        if (tipoEmpresaValor === 'Empresa incompleta') {
+            tipoEmpresaCell.font = { color: { argb: 'D97706' }, bold: true }; // Texto ámbar
+            tipoEmpresaCell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FEF3C7' }, // Fondo ámbar claro
+            };
+        } else {
+            tipoEmpresaCell.font = { color: { argb: '2563EB' }, bold: true }; // Texto azul
+            tipoEmpresaCell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'DBEAFE' }, // Fondo azul claro
+            };
+        }
+
+        // Formato condicional para la celda de Estatus
         if (canSeeStatus) {
             const statusCell = row.getCell('estatus');
             statusCell.alignment = { vertical: 'middle', horizontal: 'center' };

@@ -18,7 +18,6 @@ export const OPCIONES_TIPO_SEGUIMIENTO: FollowUpType[] = [
   'Asesoría',
   'Capacitación',
   'Evento',
-  'Vinculación',
   'Otro'
 ];
 

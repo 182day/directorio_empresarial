@@ -526,6 +526,7 @@ export const AuditLogPage = () => {
                                 {/* Oculto en móviles (hidden), visible en escritorio (md:table-header-group) */}
                                 <thead className="hidden md:table-header-group bg-app-bg text-app-muted text-xs uppercase border-b border-app-border">
                                     <tr>
+                                        <th className="px-6 py-4">#</th>
                                         <th className="px-6 py-4">Fecha / Hora</th>
                                         <th className="px-6 py-4">Usuario</th>
                                         <th className="px-6 py-4">Módulo</th>
@@ -537,85 +538,91 @@ export const AuditLogPage = () => {
 
                                 {/* En móvil se comporta como filas en bloque */}
                                 <tbody className="divide-y divide-app-border">
-                                    {sortedLogs.map((log) => (
-                                        <tr
-                                            key={log._id}
-                                            className="block md:table-row hover:bg-app-button-hover/50 transition-colors p-4 md:p-0 space-y-3 md:space-y-0"
-                                        >
-                                            {/* Fecha / Hora */}
-                                            <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 whitespace-nowrap text-xs text-app-muted">
-                                                <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Fecha / Hora</span>
-                                                <span>
-                                                    {new Date(log.createdAt).toLocaleString('es-MX', {
-                                                        day: '2-digit',
-                                                        month: '2-digit',
-                                                        year: 'numeric',
-                                                        hour: '2-digit',
-                                                        minute: '2-digit',
-                                                        second: '2-digit'
-                                                    })}
-                                                </span>
-                                            </td>
-
-                                            {/* Usuario */}
-                                            <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 whitespace-nowrap">
-                                                <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Usuario</span>
-                                                {log.usuario ? (
-                                                    <div className="text-right md:text-left">
-                                                        <div className="font-medium text-app-text">{log.usuario.nombre}</div>
-                                                        <div className="text-xs text-app-muted">{log.usuario.email}</div>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-xs text-app-muted italic">
-                                                        Sistema / Desconocido
+                                    {sortedLogs.map((log, index) => {
+                                        const globalIndex = pageSize === 'all' ? index + 1 : (currentPage - 1) * pageSize + index + 1;
+                                        return (
+                                            <tr
+                                                key={log._id}
+                                                className="block md:table-row hover:bg-app-button-hover/50 transition-colors p-4 md:p-0 space-y-3 md:space-y-0"
+                                            >
+                                                <td className="px-6 py-4 font-semibold text-app-muted text-xs">
+                                                    {globalIndex}
+                                                </td>
+                                                {/* Fecha / Hora */}
+                                                <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 whitespace-nowrap text-xs text-app-muted">
+                                                    <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Fecha / Hora</span>
+                                                    <span>
+                                                        {new Date(log.createdAt).toLocaleString('es-MX', {
+                                                            day: '2-digit',
+                                                            month: '2-digit',
+                                                            year: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                            second: '2-digit'
+                                                        })}
                                                     </span>
-                                                )}
-                                            </td>
+                                                </td>
 
-                                            {/* Módulo */}
-                                            <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 whitespace-nowrap">
-                                                <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Módulo</span>
-                                                <span className={`px-2.5 py-1 text-xs rounded-md border font-semibold inline-block ${log.modulo === 'Empresas'
-                                                    ? 'bg-purple-500/10 text-purple-500 dark:text-purple-400 border-purple-500/20'
-                                                    : log.modulo === 'Usuarios'
-                                                        ? 'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border-emerald-500/20'
-                                                        : log.modulo === 'SeguimientoEmpresas'
-                                                            ? 'bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border-indigo-500/20'
-                                                            : log.modulo === 'Auth'
-                                                                ? 'bg-amber-500/10 text-amber-500 dark:text-amber-400 border-amber-500/20'
-                                                                : 'bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/20'
-                                                    }`}>
-                                                    {log.modulo === 'SeguimientoEmpresas' ? 'Seguimiento' : log.modulo || 'General'}
-                                                </span>
-                                            </td>
+                                                {/* Usuario */}
+                                                <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 whitespace-nowrap">
+                                                    <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Usuario</span>
+                                                    {log.usuario ? (
+                                                        <div className="text-right md:text-left">
+                                                            <div className="font-medium text-app-text">{log.usuario.nombre}</div>
+                                                            <div className="text-xs text-app-muted">{log.usuario.email}</div>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-xs text-app-muted italic">
+                                                            Sistema / Desconocido
+                                                        </span>
+                                                    )}
+                                                </td>
 
-                                            {/* Acción */}
-                                            <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 font-medium text-app-text whitespace-nowrap">
-                                                <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Acción</span>
-                                                <span>{log.accion}</span>
-                                            </td>
+                                                {/* Módulo */}
+                                                <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 whitespace-nowrap">
+                                                    <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Módulo</span>
+                                                    <span className={`px-2.5 py-1 text-xs rounded-md border font-semibold inline-block ${log.modulo === 'Empresas'
+                                                        ? 'bg-purple-500/10 text-purple-500 dark:text-purple-400 border-purple-500/20'
+                                                        : log.modulo === 'Usuarios'
+                                                            ? 'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border-emerald-500/20'
+                                                            : log.modulo === 'SeguimientoEmpresas'
+                                                                ? 'bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border-indigo-500/20'
+                                                                : log.modulo === 'Auth'
+                                                                    ? 'bg-amber-500/10 text-amber-500 dark:text-amber-400 border-amber-500/20'
+                                                                    : 'bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/20'
+                                                        }`}>
+                                                        {log.modulo === 'SeguimientoEmpresas' ? 'Seguimiento' : log.modulo || 'General'}
+                                                    </span>
+                                                </td>
 
-                                            {/* IP */}
-                                            <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-xs text-app-muted whitespace-nowrap">
-                                                <span className="font-semibold text-xs text-app-muted uppercase md:hidden">IP</span>
-                                                <span>{log.ip || 'N/A'}</span>
-                                            </td>
+                                                {/* Acción */}
+                                                <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 font-medium text-app-text whitespace-nowrap">
+                                                    <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Acción</span>
+                                                    <span>{log.accion}</span>
+                                                </td>
 
-                                            {/* Detalles */}
-                                            <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-2 md:py-4 pt-3 md:pt-4 border-t border-app-border/40 md:border-t-0 text-xs text-app-muted">
-                                                <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Detalles</span>
-                                                <div className="flex items-center justify-end md:justify-center">
-                                                    <button
-                                                        onClick={() => setSelectedLogDetails(log)}
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-app-button hover:bg-app-button-hover text-app-text text-xs font-medium rounded-lg transition-colors border border-app-border shrink-0"
-                                                    >
-                                                        <Eye className="w-3.5 h-3.5" />
-                                                        Ver detalles
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                {/* IP */}
+                                                <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-xs text-app-muted whitespace-nowrap">
+                                                    <span className="font-semibold text-xs text-app-muted uppercase md:hidden">IP</span>
+                                                    <span>{log.ip || 'N/A'}</span>
+                                                </td>
+
+                                                {/* Detalles */}
+                                                <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-2 md:py-4 pt-3 md:pt-4 border-t border-app-border/40 md:border-t-0 text-xs text-app-muted">
+                                                    <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Detalles</span>
+                                                    <div className="flex items-center justify-end md:justify-center">
+                                                        <button
+                                                            onClick={() => setSelectedLogDetails(log)}
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-app-button hover:bg-app-button-hover text-app-text text-xs font-medium rounded-lg transition-colors border border-app-border shrink-0"
+                                                            title='Ver detalles'
+                                                        >
+                                                            <Eye className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
                                 </tbody>
                             </table>
                         </div>

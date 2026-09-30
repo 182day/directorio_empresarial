@@ -3,7 +3,7 @@ import { type CompanySortField } from '../interfaces/company.interface';
 
 export const OPCIONES_TIPO_EMPRESA = ['Empresa directorio', 'Empresa incompleta'];
 
-export const OPCIONES_TAMANO = ['Micro', 'Pequeña', 'Mediana', 'Grande'];
+export const OPCIONES_TAMANO = ['', 'Micro', 'Pequeña', 'Mediana', 'Grande'];
 
 // Opciones de ordenamiento centralizadas
 export const SORT_OPTIONS: { label: string; value: CompanySortField }[] = [

@@ -8,26 +8,11 @@ export const validateCompanyFollowUp = [
     .notEmpty()
     .withMessage('El ID de la empresa es obligatorio.')
     .custom((value) => {
-      // 👈 Permite el valor 'OTRA' o un ObjectId válido
-      if (value === 'OTRA' || Types.ObjectId.isValid(value)) {
+      if (Types.ObjectId.isValid(value)) {
         return true;
       }
-      throw new Error('El ID de la empresa no tiene un formato válido de MongoDB ni es "OTRA".');
+      throw new Error('El ID de la empresa no tiene un formato válido de MongoDB.');
     }),
-
-  // 👈 Validar los datos de otraEmpresa únicamente si empresaId === 'OTRA'
-  body('otraEmpresa.nombreEmpresa')
-    .if(body('empresaId').equals('OTRA'))
-    .trim()
-    .notEmpty()
-    .withMessage('El nombre de la empresa es obligatorio cuando la empresa no está registrada.'),
-
-  body('otraEmpresa.correoElectronico')
-    .if(body('empresaId').equals('OTRA'))
-    .optional({ checkFalsy: true })
-    .trim()
-    .isEmail()
-    .withMessage('El correo electrónico no tiene un formato válido.'),
 
   body('fechaSeguimiento')
     .notEmpty()
@@ -45,6 +30,27 @@ export const validateCompanyFollowUp = [
     .trim()
     .notEmpty()
     .withMessage('El tipo de seguimiento es obligatorio.'),
+
+  body('esVinculacion')
+    .optional()
+    .isBoolean()
+    .withMessage('El campo esVinculacion debe ser un valor booleano.'),
+
+  // 👈 Validar que empresasVinculadas sea obligatorio y no esté vacío si esVinculacion es true
+  body('empresasVinculadas')
+    .if((value, { req }) => req.body.esVinculacion === true || req.body.esVinculacion === 'true')
+    .custom((value) => {
+      if (!Array.isArray(value) || value.length === 0) {
+        throw new Error('Debe seleccionar al menos una empresa para vincular cuando esVinculacion es verdadero.');
+      }
+      
+      const idsInvalidos = value.filter((id) => !Types.ObjectId.isValid(id));
+      if (idsInvalidos.length > 0) {
+        throw new Error('Uno o más IDs de las empresas vinculadas no tienen un formato válido.');
+      }
+
+      return true;
+    }),
 
   body('medioAtencion')
     .trim()

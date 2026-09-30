@@ -8,10 +8,14 @@ export const validatePublicCompany = [
         .trim()
         .notEmpty().withMessage('El nombre comercial es obligatorio.')
         .isLength({ min: 2, max: 100 }).withMessage('El nombre comercial debe tener entre 2 y 100 caracteres.'),
-
+    
     body('rfc')
         .trim()
-        .notEmpty().withMessage('El RFC es obligatorio.')
+        .notEmpty().withMessage('El RFC es obligatorio.'),
+
+    body('rfc')
+        .if((value, { req }) => req.body.tipoEmpresa === 'Empresa directorio')
+        .trim()
         .matches(/^([A-ZÑ&]{3,4}) ?(?:- ?)?(\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])) ?(?:- ?)?([A-Z\d]{2}[A\d])$/i)
         .withMessage('El formato de RFC no es válido para México.'),
 

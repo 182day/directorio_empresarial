@@ -26,7 +26,7 @@ interface CompaniesFollowGraphicsProps {
 
 type ChartDatum = { name: string; total: number };
 
-// Helper para contar ocurrencias
+// Helper para contar ocurrencias de un valor string individual
 const countBy = (follows: FollowRecord[], getValue: (f: FollowRecord) => string | undefined | null): ChartDatum[] => {
     const conteo: Record<string, number> = {};
     follows.forEach((f) => {
@@ -35,6 +35,40 @@ const countBy = (follows: FollowRecord[], getValue: (f: FollowRecord) => string 
         conteo[val] = (conteo[val] || 0) + 1;
     });
     return Object.keys(conteo).map((key) => ({ name: key, total: conteo[key] }));
+};
+
+// Helper para contar ocurrencias en arreglos (soporta strings u objetos)
+const countByArray = (
+    follows: FollowRecord[],
+    getArray: (f: FollowRecord) => any[] | undefined | null
+): ChartDatum[] => {
+    const conteo: Record<string, number> = {};
+
+    follows.forEach((f) => {
+        const arr = getArray(f);
+        if (!arr || !Array.isArray(arr)) return;
+
+        arr.forEach((item) => {
+            if (!item) return;
+
+            // Extrae el nombre si es un objeto o toma el valor si es string
+            let name = '';
+            if (typeof item === 'string') {
+                name = item;
+            } else if (typeof item === 'object') {
+                name = item.nombreComercial || item.nombre || item.label || item.value || '';
+            }
+
+            const cleanName = name.trim();
+            if (!cleanName) return;
+
+            conteo[cleanName] = (conteo[cleanName] || 0) + 1;
+        });
+    });
+
+    return Object.keys(conteo)
+        .map((key) => ({ name: key, total: conteo[key] }))
+        .sort((a, b) => b.total - a.total);
 };
 
 // Sub-componentes
@@ -163,6 +197,18 @@ export const CompaniesFollowGraphics = ({ isOpen, onClose, follows }: CompaniesF
         [follows]
     );
 
+    // 🥧 Pastel: Es Vinculación (Sí / No)
+    const dataEsVinculacionGrafica = useMemo(
+        () => countBy(follows, (f) => (f.esVinculacion ? 'Sí' : 'No')),
+        [follows]
+    );
+
+    // 📊 Barras: Empresas Vinculadas
+    const dataEmpresasVinculadasGrafica = useMemo(
+        () => countByArray(follows, (f) => f.empresasVinculadas),
+        [follows]
+    );
+
     if (!isOpen) return null;
 
     return (
@@ -207,6 +253,21 @@ export const CompaniesFollowGraphics = ({ isOpen, onClose, follows }: CompaniesF
                     {/* 4. Estatus del Seguimiento (Pastel) */}
                     {dataEstatusGrafica.length > 0 && (
                         <PieChartCard title="Estatus del Seguimiento" data={dataEstatusGrafica} colorOffset={3} />
+                    )}
+
+                    {/* 5. Es Vinculación (Pastel) */}
+                    {dataEsVinculacionGrafica.length > 0 && (
+                        <PieChartCard title="¿Es Vinculación?" data={dataEsVinculacionGrafica} colorOffset={4} />
+                    )}
+
+                    {/* 6. Empresas Vinculadas (Barras) - Solo si hay datos */}
+                    {dataEmpresasVinculadasGrafica.length > 0 && (
+                        <BarChartCard
+                            title="Empresas Vinculadas"
+                            subtitle="Frecuencia de empresas involucradas en las vinculaciones"
+                            data={dataEmpresasVinculadasGrafica}
+                            colorOffset={5}
+                        />
                     )}
 
                 </div>

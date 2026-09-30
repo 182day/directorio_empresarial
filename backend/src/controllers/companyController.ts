@@ -294,13 +294,13 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       fechaSeguimiento,
       horaSeguimiento,
       tipoSeguimiento,
+      esVinculacion,
       medioAtencion,
       asunto,
       descripcion,
       atencionSeguimiento,
       estatus,
-      empresasVinculadas,
-      otraEmpresa
+      empresasVinculadas
     } = req.body;
 
     if (!empresaId || !asunto || !descripcion) {
@@ -308,12 +308,7 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
-    if (empresaId === 'OTRA' && (!otraEmpresa || !otraEmpresa.nombreEmpresa?.trim())) {
-      res.status(400).json({ message: 'El nombre de la empresa es obligatorio al seleccionar "Otra".' });
-      return;
-    }
-
-    if (empresaId !== 'OTRA' && !Types.ObjectId.isValid(empresaId)) {
+    if (!Types.ObjectId.isValid(empresaId)) {
       res.status(400).json({ message: 'El ID de la empresa no tiene un formato válido.' });
       return;
     }
@@ -327,21 +322,19 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
           .map((id: string) => new Types.ObjectId(id))
       : [];
 
-    const isOtra = empresaId === 'OTRA';
-
     const followUp = new CompanyFollowUp({
-      empresaId: isOtra ? null : new Types.ObjectId(empresaId as string),
+      empresaId: new Types.ObjectId(empresaId as string),
       usuarioId: userId && Types.ObjectId.isValid(userId as string) ? new Types.ObjectId(userId as string) : undefined,
       fechaSeguimiento: parsedDate,
       horaSeguimiento,
       tipoSeguimiento,
+      esVinculacion: Boolean(esVinculacion),
       medioAtencion,
       asunto,
       descripcion,
       atencionSeguimiento,
       estatus,
-      empresasVinculadas: tipoSeguimiento === 'Vinculación' ? vinculadasArray : [],
-      otraEmpresa: isOtra ? otraEmpresa : undefined
+      empresasVinculadas: esVinculacion ? vinculadasArray : []
     });
 
     const savedFollowUp = await followUp.save();
@@ -350,9 +343,9 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       await AuditLog.create({
         accion: 'CREAR',
         modulo: 'SeguimientoEmpresas',
-        empresaId: isOtra ? undefined : new Types.ObjectId(empresaId as string),
+        empresaId: new Types.ObjectId(empresaId as string),
         usuarioId: new Types.ObjectId(userId as string),
-        detalles: { asunto, tipoSeguimiento, esOtraEmpresa: isOtra },
+        detalles: { asunto, tipoSeguimiento, esVinculacion },
         ip: getClientIp(req)
       });
     }
@@ -373,13 +366,13 @@ export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
       fechaSeguimiento,
       horaSeguimiento,
       tipoSeguimiento,
+      esVinculacion,
       medioAtencion,
       asunto,
       descripcion,
       atencionSeguimiento,
       estatus,
-      empresasVinculadas,
-      otraEmpresa
+      empresasVinculadas
     } = req.body;
 
     if (!id || !Types.ObjectId.isValid(id as string)) {
@@ -395,26 +388,21 @@ export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
           .map((vId: string) => new Types.ObjectId(vId))
       : [];
 
-    const isOtra = empresaId === 'OTRA';
-
     const updatePayload: any = {
       fechaSeguimiento: parsedDate,
       horaSeguimiento,
       tipoSeguimiento,
+      esVinculacion: Boolean(esVinculacion),
       medioAtencion,
       asunto,
       descripcion,
       atencionSeguimiento,
       estatus,
-      empresasVinculadas: tipoSeguimiento === 'Vinculación' ? vinculadasArray : []
+      empresasVinculadas: esVinculacion ? vinculadasArray : []
     };
 
-    if (isOtra) {
-      updatePayload.empresaId = null;
-      updatePayload.otraEmpresa = otraEmpresa;
-    } else if (empresaId && Types.ObjectId.isValid(empresaId as string)) {
+    if (empresaId && Types.ObjectId.isValid(empresaId as string)) {
       updatePayload.empresaId = new Types.ObjectId(empresaId as string);
-      updatePayload.otraEmpresa = undefined;
     }
 
     const updatedFollowUp = await CompanyFollowUp.findByIdAndUpdate(
@@ -458,6 +446,7 @@ export const getCompanyFollowUps = async (req: AuthRequest, res: Response): Prom
       estatus,
       empresa,
       usuario,
+      esVinculacion,
       fechaDesde,
       fechaHasta
     } = req.query;
@@ -481,6 +470,27 @@ export const getCompanyFollowUps = async (req: AuthRequest, res: Response): Prom
     if (estatus) {
       const estatusArray = Array.isArray(estatus) ? estatus : (estatus as string).split(',');
       matchStage.estatus = { $in: estatusArray };
+    }
+
+    if (esVinculacion !== undefined && esVinculacion !== '') {
+      const vincArray = Array.isArray(esVinculacion)
+        ? esVinculacion
+        : (esVinculacion as string).split(',');
+
+      const booleanConditions: boolean[] = [];
+
+      vincArray.forEach((val) => {
+        const normalized = String(val).trim().toLowerCase();
+        if (normalized === 'sí' || normalized === 'si' || normalized === 'true') {
+          booleanConditions.push(true);
+        } else if (normalized === 'no' || normalized === 'false') {
+          booleanConditions.push(false);
+        }
+      });
+
+      if (booleanConditions.length > 0) {
+        matchStage.esVinculacion = { $in: booleanConditions };
+      }
     }
 
     if (fechaDesde || fechaHasta) {
@@ -546,7 +556,6 @@ export const getCompanyFollowUps = async (req: AuthRequest, res: Response): Prom
         { descripcion: regex },
         { asunto: regex },
         { 'empresaId.nombreComercial': regex },
-        { 'otraEmpresa.nombreEmpresa': regex },
         { 'usuarioId.nombre': regex },
         { 'empresasVinculadas.nombreComercial': regex }
       ];

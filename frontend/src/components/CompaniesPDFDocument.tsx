@@ -13,6 +13,8 @@ export interface FollowRecord {
   asunto?: string;
   estatus?: string;
   observaciones?: string;
+  esVinculacion?: boolean;
+  empresasVinculadas?: string[];
 }
 
 interface CompaniesPDFProps {
@@ -162,11 +164,12 @@ const styles = StyleSheet.create({
     fontSize: 7,
     color: '#334155',
   },
-  colFecha: { width: '15%' },
-  colTipo: { width: '15%' },
-  colMedio: { width: '15%' },
-  colAsunto: { width: '40%' },
-  colEstatus: { width: '15%' },
+  colFecha: { width: '12%' },
+  colTipo: { width: '13%' },
+  colMedio: { width: '12%' },
+  colVinc: { width: '13%' },
+  colAsunto: { width: '28%' },
+  colEmpresasVinc: { width: '22%' },
   footer: {
     position: 'absolute',
     bottom: 20,
@@ -349,11 +352,11 @@ export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({
                   <Text style={styles.label}>Productos / Servicios que Fabrica:</Text>
                   <Text style={styles.value}>{comp.informacionEmpresa?.productosFabrica || 'N/A'}</Text>
                 </View>
+                <View style={styles.col6}>
+                  <Text style={styles.label}>Principales Clientes:</Text>
+                  <Text style={styles.value}>{comp.informacionEmpresa?.principalesClientes || 'N/A'}</Text>
+                </View>
                 {full && (<>
-                  <View style={styles.col6}>
-                    <Text style={styles.label}>Principales Clientes:</Text>
-                    <Text style={styles.value}>{comp.informacionEmpresa?.principalesClientes || 'N/A'}</Text>
-                  </View>
                   <View style={styles.col3}>
                     <Text style={styles.label}>País de Origen:</Text>
                     <Text style={styles.value}>{comp.informacionEmpresa?.paisOrigen || 'N/A'}</Text>
@@ -463,8 +466,9 @@ export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({
                       <Text style={[styles.th, styles.colFecha]}>Fecha</Text>
                       <Text style={[styles.th, styles.colTipo]}>Tipo</Text>
                       <Text style={[styles.th, styles.colMedio]}>Medio</Text>
+                      <Text style={[styles.th, styles.colVinc]}>¿Vinculación?</Text>
                       <Text style={[styles.th, styles.colAsunto]}>Asunto</Text>
-                      <Text style={[styles.th, styles.colEstatus]}>Estatus</Text>
+                      <Text style={[styles.th, styles.colEmpresasVinc]}>Empresas Vinculadas</Text>
                     </View>
 
                     {follows.map((item, fIdx) => (
@@ -474,8 +478,19 @@ export const CompaniesPDFDocument: React.FC<CompaniesPDFProps> = ({
                         </Text>
                         <Text style={[styles.td, styles.colTipo]}>{item.tipoSeguimiento || 'N/A'}</Text>
                         <Text style={[styles.td, styles.colMedio]}>{item.medioAtencion || 'N/A'}</Text>
+                        <Text style={[styles.td, styles.colVinc]}>{item.esVinculacion ? 'Sí' : 'No'}</Text>
                         <Text style={[styles.td, styles.colAsunto]}>{item.asunto || 'N/A'}</Text>
-                        <Text style={[styles.td, styles.colEstatus]}>{item.estatus || 'N/A'}</Text>
+                        <Text style={[styles.td, styles.colEmpresasVinc]}>
+                          {item.empresasVinculadas && item.empresasVinculadas.length > 0
+                            ? item.empresasVinculadas
+                              .map((emp) =>
+                                typeof emp === 'object' && emp !== null
+                                  ? (emp as any).nombreComercial || (emp as any).razonSocial || (emp as any).nombre || 'Empresa'
+                                  : emp
+                              )
+                              .join(', ')
+                            : 'N/A'}
+                        </Text>
                       </View>
                     ))}
                   </View>

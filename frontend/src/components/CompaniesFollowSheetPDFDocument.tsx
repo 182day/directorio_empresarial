@@ -2,11 +2,13 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { type FollowRecord } from '../interfaces/follow.interface';
+import { type User } from '../interfaces/user.interface';
 import { formatFechaLarga } from '../utils/formUtils';
 
 interface FollowSheetPDFProps {
   follows: FollowRecord[];
   companyName?: string;
+  user?: User | null;
 }
 
 const styles = StyleSheet.create({
@@ -57,10 +59,10 @@ const styles = StyleSheet.create({
     fontSize: 7.5,
   },
   colCompany: { width: '20%', padding: 4 },
-  colType: { width: '15%', padding: 4 },
-  colSubject: { width: '35%', padding: 4 },
-  colDate: { width: '15%', padding: 4 },
-  colStatus: { width: '15%', padding: 4, textAlign: 'center' },
+  colType: { width: '18%', padding: 4 },
+  colSubject: { width: '32%', padding: 4 },
+  colDate: { width: '18%', padding: 4 },
+  colStatus: { width: '12%', padding: 4, textAlign: 'center' },
   badgeConcluido: {
     backgroundColor: '#dcfce7',
     color: '#15803d',
@@ -105,7 +107,16 @@ const styles = StyleSheet.create({
   },
 });
 
-export const CompaniesFollowSheetPDFDocument: React.FC<FollowSheetPDFProps> = ({ follows, companyName }) => {
+export const CompaniesFollowSheetPDFDocument: React.FC<FollowSheetPDFProps> = ({
+  follows,
+  companyName,
+  user,
+}) => {
+  // Validación de roles de usuario
+  // @ts-ignore
+  const isAdmin = user?.rol === 'admin';
+  const canSeeStatus = user?.rol === 'admin' || user?.rol === 'editor';
+
   const fechaImpresion = new Date().toLocaleDateString('es-MX', {
     year: 'numeric',
     month: 'long',
@@ -116,8 +127,11 @@ export const CompaniesFollowSheetPDFDocument: React.FC<FollowSheetPDFProps> = ({
     switch (estatus) {
       case 'Concluido':
       case 'Atendido':
+      case 'Completado':
         return styles.badgeConcluido;
       case 'Pendiente':
+      case 'En Proceso':
+      case 'Nuevo':
         return styles.badgePendiente;
       case 'Cancelado':
         return styles.badgeCancelado;
@@ -135,7 +149,9 @@ export const CompaniesFollowSheetPDFDocument: React.FC<FollowSheetPDFProps> = ({
             <Text style={styles.title}>
               Reporte de Seguimientos {companyName ? `— ${companyName}` : ''}
             </Text>
-            <Text style={styles.subtitle}>Bitácora de Atenciones — Emitido el {fechaImpresion}</Text>
+            <Text style={styles.subtitle}>
+              Bitácora de Atenciones — Emitido el {fechaImpresion}
+            </Text>
           </View>
           <Text style={{ fontSize: 8, color: '#64748b' }}>
             Total de registros: {follows.length}
@@ -149,13 +165,15 @@ export const CompaniesFollowSheetPDFDocument: React.FC<FollowSheetPDFProps> = ({
               <Text style={styles.headerText}>EMPRESA / ATENCIÓN</Text>
             </View>
             <View style={styles.colType}>
-              <Text style={styles.headerText}>TIPO / MEDIO</Text>
+              <Text style={styles.headerText}>TIPO / VINCULACIÓN</Text>
             </View>
             <View style={styles.colSubject}>
               <Text style={styles.headerText}>ASUNTO / DESCRIPCIÓN</Text>
             </View>
             <View style={styles.colDate}>
-              <Text style={styles.headerText}>FECHA / REGISTRADO POR</Text>
+              <Text style={styles.headerText}>
+                FECHA {canSeeStatus ? '/ REGISTRADO POR' : ''}
+              </Text>
             </View>
             <View style={styles.colStatus}>
               <Text style={styles.headerText}>ESTATUS</Text>
@@ -180,18 +198,38 @@ export const CompaniesFollowSheetPDFDocument: React.FC<FollowSheetPDFProps> = ({
               </View>
 
               <View style={styles.colType}>
-                <Text style={{ fontFamily: 'Helvetica-Bold' }}>{item.tipoSeguimiento || 'N/A'}</Text>
-                <Text style={{ fontSize: 7, color: '#64748b' }}>{item.medioAtencion || 'N/A'}</Text>
+                <Text style={{ fontFamily: 'Helvetica-Bold' }}>
+                  {item.tipoSeguimiento || 'N/A'}
+                </Text>
+                <Text style={{ fontSize: 7, color: '#64748b' }}>
+                  Medio: {item.medioAtencion || 'N/A'}
+                </Text>
+                <Text style={{ fontSize: 6.5, color: item.esVinculacion ? '#2563eb' : '#64748b' }}>
+                  Vinculación: {item.esVinculacion ? 'Sí' : 'No'}
+                </Text>
               </View>
 
               <View style={styles.colSubject}>
-                <Text style={{ fontFamily: 'Helvetica-Bold' }}>{item.asunto || 'Sin asunto'}</Text>
-                <Text style={{ fontSize: 7, color: '#64748b' }}>{item.descripcion || ''}</Text>
+                <Text style={{ fontFamily: 'Helvetica-Bold' }}>
+                  {item.asunto || 'Sin asunto'}
+                </Text>
+                <Text style={{ fontSize: 7, color: '#64748b' }}>
+                  {item.descripcion || ''}
+                </Text>
               </View>
 
               <View style={styles.colDate}>
-                <Text>{item.fechaSeguimiento ? formatFechaLarga(item.fechaSeguimiento) : 'N/A'}</Text>
-                <Text style={{ fontSize: 7, color: '#64748b' }}>Por: {item.usuario || 'N/A'}</Text>
+                <Text>
+                  {item.fechaSeguimiento
+                    ? formatFechaLarga(item.fechaSeguimiento)
+                    : 'N/A'}
+                </Text>
+                {/* 👈 Solo visible si canSeeStatus es true */}
+                {canSeeStatus && (
+                  <Text style={{ fontSize: 7, color: '#64748b' }}>
+                    Por: {item.usuario || 'N/A'}
+                  </Text>
+                )}
               </View>
 
               <View style={styles.colStatus}>
@@ -205,10 +243,14 @@ export const CompaniesFollowSheetPDFDocument: React.FC<FollowSheetPDFProps> = ({
 
         {/* PIE DE PÁGINA */}
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>Reporte generado desde el Sistema de Directorio Empresarial</Text>
+          <Text style={styles.footerText}>
+            Reporte generado desde el Sistema de Directorio Empresarial
+          </Text>
           <Text
             style={styles.footerText}
-            render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`}
+            render={({ pageNumber, totalPages }) =>
+              `Página ${pageNumber} de ${totalPages}`
+            }
           />
         </View>
       </Page>

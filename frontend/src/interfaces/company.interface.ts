@@ -1,5 +1,5 @@
 // src/interfaces/company.interface.ts
-export type TamanoEmpresa = 'Micro' | 'Pequeña' | 'Mediana' | 'Grande';
+export type TamanoEmpresa = '' | 'Micro' | 'Pequeña' | 'Mediana' | 'Grande';
 export type TipoEmpresa = 'Empresa directorio' | 'Empresa incompleta';
 
 // 1. Interfaz Completa (Usada principalmente en CompanyForm)

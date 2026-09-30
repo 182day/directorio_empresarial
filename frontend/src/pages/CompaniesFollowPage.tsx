@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import api from '../api/axios';
 import { saveAs } from 'file-saver';
 import {
-    ArrowUp, ArrowDown, BarChart3, Plus, X, History, Search, Table, LayoutGrid, Calendar, Building2, Eye, Pencil, Trash2, SlidersHorizontal, ChevronDown, Check, User, Tag, CheckCircle2, PhoneCall, ChartGantt, FileText, FileSpreadsheet
+    ArrowUp, ArrowDown, BarChart3, Plus, X, History, Search, Table, LayoutGrid, Calendar, Building2, Eye, Pencil, Trash2, SlidersHorizontal, ChevronDown, Check, User, Tag, CheckCircle2, PhoneCall, ChartGantt, FileText, FileSpreadsheet, Waypoints
 } from 'lucide-react';
 import {
     OPCIONES_TIPO_SEGUIMIENTO,
@@ -69,6 +69,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
     const [searchEstatus, setSearchEstatus] = useState('');
     const [searchEmpresa, setSearchEmpresa] = useState('');
     const [searchUsuario, setSearchUsuario] = useState('');
+    const [searchVinculacion, setSearchVinculacion] = useState('');
 
     // Filtros Seleccionados (Soporte Múltiple)
     const [selectedTipo, setSelectedTipo] = useState<string[]>([]);
@@ -76,6 +77,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
     const [selectedEstatus, setSelectedEstatus] = useState<string[]>([]);
     const [selectedEmpresa, setSelectedEmpresa] = useState<string[]>([]);
     const [selectedUsuario, setSelectedUsuario] = useState<string[]>([]);
+    const [selectedVinculacion, setSelectedVinculacion] = useState<string[]>([]);
     const [fechaDesde, setFechaDesde] = useState<string>('');
     const [fechaHasta, setFechaHasta] = useState<string>('');
 
@@ -124,7 +126,10 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
             if (selectedEstatus.length > 0 && !selectedEstatus.includes(item.estatus ?? '')) return false;
             if (selectedEmpresa.length > 0 && !selectedEmpresa.includes(item.companyName ?? '')) return false;
             if (selectedUsuario.length > 0 && !selectedUsuario.includes(item.usuario ?? '')) return false;
-
+            if (selectedVinculacion.length > 0) {
+                const esVincLabel = item.esVinculacion ? 'Sí' : 'No';
+                if (!selectedVinculacion.includes(esVincLabel)) return false;
+            }
             if (fechaDesde || fechaHasta) {
                 const itemDate = new Date(item.fechaSeguimiento).getTime();
                 if (fechaDesde && itemDate < new Date(`${fechaDesde}T00:00:00.000Z`).getTime()) return false;
@@ -205,6 +210,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         selectedEstatus.length +
         selectedEmpresa.length +
         selectedUsuario.length +
+        selectedVinculacion.length +
         (fechaDesde ? 1 : 0) +
         (fechaHasta ? 1 : 0) +
         (search.trim() ? 1 : 0);
@@ -216,6 +222,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         setSelectedEstatus([]);
         setSelectedEmpresa([]);
         setSelectedUsuario([]);
+        setSelectedVinculacion([]);
         setFechaDesde('');
         setFechaHasta('');
         setSearchTipo('');
@@ -231,21 +238,23 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
         }
     }, [company]);
 
+    // 1. Define la función para consultar los catálogos de filtros
+    const fetchFilterCatalogs = async () => {
+        try {
+            const [resEmpresas, resUsuarios] = await Promise.all([
+                api.get('/companies/follows/filter-companies'),
+                api.get('/companies/follows/filter-users')
+            ]);
+
+            setEmpresasFiltro(resEmpresas.data.map((e: any) => e.nombreComercial));
+            setUsuariosFiltro(resUsuarios.data.map((u: any) => u.nombre));
+        } catch (error) {
+            console.error('Error cargando filtros iniciales:', error);
+        }
+    };
+
+    // 2. Ejecútala en el useEffect inicial
     useEffect(() => {
-        const fetchFilterCatalogs = async () => {
-            try {
-                const [resEmpresas, resUsuarios] = await Promise.all([
-                    api.get('/companies/follows/filter-companies'),
-                    api.get('/companies/follows/filter-users')
-                ]);
-
-                setEmpresasFiltro(resEmpresas.data.map((e: any) => e.nombreComercial));
-                setUsuariosFiltro(resUsuarios.data.map((u: any) => u.nombre));
-            } catch (error) {
-                console.error('Error cargando filtros iniciales:', error);
-            }
-        };
-
         fetchFilterCatalogs();
     }, []);
 
@@ -267,6 +276,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                 if (selectedEstatus.length > 0) params.estatus = selectedEstatus.join(',');
                 if (selectedEmpresa.length > 0) params.empresa = selectedEmpresa.join(',');
                 if (selectedUsuario.length > 0) params.usuario = selectedUsuario.join(',');
+                if (selectedVinculacion.length > 0) params.esVinculacion = selectedVinculacion.join(',');
                 if (fechaDesde) params.fechaDesde = fechaDesde;
                 if (fechaHasta) params.fechaHasta = fechaHasta;
             }
@@ -278,7 +288,8 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                 empresaId: item.empresaId?._id || item.empresaId || '',
                 companyName: item.empresaId?.nombreComercial || item.otraEmpresa?.nombreEmpresa || 'Empresa No Registrada',
                 otraEmpresa: item.otraEmpresa,
-                tipoSeguimiento: item.tipoSeguimiento || 'General',
+                tipoSeguimiento: item.tipoSeguimiento || 'Otro',
+                esVinculacion: item.esVinculacion ?? false,
                 medioAtencion: item.medioAtencion || 'Llamada telefónica',
                 asunto: item.asunto || '',
                 descripcion: item.descripcion || item.comentarios || '',
@@ -335,7 +346,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
     };
 
     const handleExportExcel = async () => {
-        await exportFollowsToExcel(sortedFollows, company?.nombreComercial);
+        await exportFollowsToExcel(sortedFollows, company?.nombreComercial, user);
     };
 
     const paginatedFollows = useMemo(() => {
@@ -496,6 +507,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                     <CompaniesFollowSheetPDFDocument
                                                         follows={filteredFollows}
                                                         companyName={company?.nombreComercial}
+                                                        user={user}
                                                     />
                                                 );
                                                 const blob = await pdf(doc).toBlob();
@@ -628,6 +640,72 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                         className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between ${isSelected ? 'bg-blue-500/10 text-blue-500 font-semibold' : 'text-app-text hover:bg-app-button'}`}
                                                     >
                                                         <span className="truncate">{tipo}</span>
+                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-app-border'}`}>
+                                                            {isSelected && <Check className="w-3 h-3" />}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Filtro por Es Vinculación */}
+                        <div className="relative">
+                            <label className="flex items-center gap-1.5 text-xs font-medium text-app-text mb-1">
+                                <Waypoints className="w-3.5 h-3.5 text-app-muted" />
+                                <span>Filtrar por Vinculación</span>
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => setOpenFilterMenu(openFilterMenu === 'vinculacion' ? null : 'vinculacion')}
+                                className={`flex items-center justify-between gap-2 w-full px-3.5 py-2 rounded-lg text-sm font-medium border text-left transition-colors ${selectedVinculacion.length > 0
+                                    ? 'bg-blue-500/10 border-blue-500/50 text-blue-500'
+                                    : 'bg-app-button border-app-border text-app-text hover:bg-app-button-hover'
+                                    }`}
+                            >
+                                <span className="truncate">
+                                    {selectedVinculacion.length === 0
+                                        ? 'Todos'
+                                        : `${selectedVinculacion.length} seleccionado(s)`}
+                                </span>
+                                <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${openFilterMenu === 'vinculacion' ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {openFilterMenu === 'vinculacion' && (
+                                <div className="absolute z-50 mt-1 w-full bg-app-card border border-app-border rounded-xl shadow-2xl p-2 space-y-2">
+                                    <div className="relative">
+                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-app-muted" />
+                                        <input
+                                            type="text"
+                                            placeholder="Buscar opción..."
+                                            value={searchVinculacion}
+                                            onChange={(e) => setSearchVinculacion(e.target.value)}
+                                            className="w-full bg-app-button border border-app-border rounded-lg py-1.5 pl-8 pr-3 text-xs text-app-text placeholder-app-muted focus:outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div className="max-h-48 overflow-y-auto space-y-1 scrollbar-thin">
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedVinculacion([])}
+                                            className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-app-button text-app-muted flex items-center justify-between border-b border-app-border mb-1"
+                                        >
+                                            <span>Limpiar selección</span>
+                                            {selectedVinculacion.length === 0 && <Check className="w-3.5 h-3.5 text-blue-500" />}
+                                        </button>
+                                        {['Sí', 'No']
+                                            .filter(item => item.toLowerCase().includes(searchVinculacion.toLowerCase()))
+                                            .map((opcion) => {
+                                                const isSelected = selectedVinculacion.includes(opcion);
+                                                return (
+                                                    <button
+                                                        key={opcion}
+                                                        type="button"
+                                                        onClick={() => toggleMultiSelect(opcion, selectedVinculacion, setSelectedVinculacion)}
+                                                        className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center justify-between ${isSelected ? 'bg-blue-500/10 text-blue-500 font-semibold' : 'text-app-text hover:bg-app-button'}`}
+                                                    >
+                                                        <span className="truncate">{opcion === 'Sí' ? 'Sí (Es Vinculación)' : 'No (Sin Vinculación)'}</span>
                                                         <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-500 text-white' : 'border-app-border'}`}>
                                                             {isSelected && <Check className="w-3 h-3" />}
                                                         </div>
@@ -966,6 +1044,15 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                             </span>
                         ))}
 
+                        {selectedVinculacion.map((vinc) => (
+                            <span key={vinc} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 text-purple-500 text-xs rounded-lg border border-purple-500/20">
+                                Vinculación: {vinc}
+                                <button onClick={() => toggleMultiSelect(vinc, selectedVinculacion, setSelectedVinculacion)} className="hover:text-red-500 transition-colors">
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </span>
+                        ))}
+
                         {selectedMedio.map((medio) => (
                             <span key={medio} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-xs rounded-lg border border-emerald-500/20">
                                 Medio: {medio}
@@ -1121,6 +1208,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                 <table className="w-full text-left text-sm text-app-text">
                                     <thead className="bg-app-bg text-app-muted text-xs uppercase border-b border-app-border">
                                         <tr>
+                                            <th className="px-4 py-4 text-center font-bold w-12">#</th>
                                             {!company && <th className="px-6 py-4">Empresa</th>}
                                             <th className="px-6 py-4">Fecha</th>
                                             <th className="px-6 py-4">Tipo</th>
@@ -1131,89 +1219,104 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-app-border">
-                                        {paginatedFollows.map((item, index) => (
-                                            <tr key={item._id || index} className="hover:bg-app-button/40 transition-colors">
-                                                {!company && (
-                                                    <td className="px-6 py-4 font-medium text-app-text">
-                                                        {item.companyName}
+                                        {paginatedFollows.map((item, index) => {
+                                            const itemIndex = pageSize === 'all' ? index + 1 : (currentPage - 1) * pageSize + index + 1;
+                                            return (
+                                                <tr key={item._id || index} className="hover:bg-app-button/40 transition-colors">
+                                                    <td className="px-4 py-4 text-center font-semibold text-app-muted text-xs">
+                                                        {itemIndex}
                                                     </td>
-                                                )}
-                                                <td className="px-6 py-4 whitespace-nowrap text-app-text">
-                                                    {formatFechaLarga(item.fechaSeguimiento)}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="px-2.5 py-0.5 bg-blue-500/10 text-blue-500 text-xs rounded border border-blue-500/20 font-medium">
-                                                        {item.tipoSeguimiento}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 max-w-xs truncate text-app-text">
-                                                    {item.asunto}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`px-2.5 py-0.5 text-xs rounded border font-medium ${item.estatus === 'Completado'
-                                                        ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                                                        : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                                                        }`}>
-                                                        {item.estatus}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-app-muted">
-                                                    {item.usuario}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                    <div className="flex items-center justify-center gap-1.5">
-                                                        {item.empresaId && (
+                                                    {!company && (
+                                                        <td className="px-6 py-4 font-medium text-app-text">
+                                                            {item.companyName}
+                                                        </td>
+                                                    )}
+                                                    <td className="px-6 py-4 whitespace-nowrap text-app-text">
+                                                        {formatFechaLarga(item.fechaSeguimiento)}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <span className="px-2.5 py-0.5 bg-blue-500/10 text-blue-500 text-xs rounded border border-blue-500/20 font-medium">
+                                                                {item.tipoSeguimiento}
+                                                            </span>
+
+                                                            {/* Mostrar solo si esVinculacion es true */}
+                                                            {item.esVinculacion && (
+                                                                <span className="px-2 py-0.5 bg-purple-500/10 text-purple-500 text-xs rounded border border-purple-500/20 font-semibold">
+                                                                    Vinculación
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 max-w-xs truncate text-app-text">
+                                                        {item.asunto}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className={`px-2.5 py-0.5 text-xs rounded border font-medium ${item.estatus === 'Completado'
+                                                            ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                                            : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                            }`}>
+                                                            {item.estatus}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-app-muted">
+                                                        {item.usuario}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                        <div className="flex items-center justify-center gap-1.5">
+                                                            {item.empresaId && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const companyData = companies.find((c) => c._id === item.empresaId);
+                                                                        if (companyData) {
+                                                                            handleOpenDetails(companyData);
+                                                                        }
+                                                                    }}
+                                                                    className="p-1.5 text-app-muted hover:text-blue-500 hover:bg-app-button rounded-lg transition-colors"
+                                                                    title="Ver detalles de la empresa"
+                                                                >
+                                                                    <Building2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
                                                             <button
-                                                                type="button"
                                                                 onClick={() => {
-                                                                    const companyData = companies.find((c) => c._id === item.empresaId);
-                                                                    if (companyData) {
-                                                                        handleOpenDetails(companyData);
-                                                                    }
+                                                                    setSelectedFollow(item);
+                                                                    setViewMode('details');
+                                                                    setShowModal(true);
                                                                 }}
                                                                 className="p-1.5 text-app-muted hover:text-blue-500 hover:bg-app-button rounded-lg transition-colors"
-                                                                title="Ver detalles de la empresa"
+                                                                title="Ver detalles"
                                                             >
-                                                                <Building2 className="w-4 h-4" />
+                                                                <Eye className="w-4 h-4" />
                                                             </button>
-                                                        )}
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedFollow(item);
-                                                                setViewMode('details');
-                                                                setShowModal(true);
-                                                            }}
-                                                            className="p-1.5 text-app-muted hover:text-blue-500 hover:bg-app-button rounded-lg transition-colors"
-                                                            title="Ver detalles"
-                                                        >
-                                                            <Eye className="w-4 h-4" />
-                                                        </button>
-                                                        {canEdit && (
-                                                            <>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setSelectedFollow(item);
-                                                                        setViewMode('edit');
-                                                                        setShowModal(true);
-                                                                    }}
-                                                                    className="p-1.5 text-app-muted hover:text-amber-500 hover:bg-app-button rounded-lg transition-colors"
-                                                                    title="Editar"
-                                                                >
-                                                                    <Pencil className="w-4 h-4" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleDelete(item._id)}
-                                                                    className="p-1.5 text-app-muted hover:text-red-500 hover:bg-app-button rounded-lg transition-colors"
-                                                                    title="Eliminar"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                            {canEdit && (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setSelectedFollow(item);
+                                                                            setViewMode('edit');
+                                                                            setShowModal(true);
+                                                                        }}
+                                                                        className="p-1.5 text-app-muted hover:text-amber-500 hover:bg-app-button rounded-lg transition-colors"
+                                                                        title="Editar"
+                                                                    >
+                                                                        <Pencil className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDelete(item._id)}
+                                                                        className="p-1.5 text-app-muted hover:text-red-500 hover:bg-app-button rounded-lg transition-colors"
+                                                                        title="Eliminar"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -1222,101 +1325,118 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
 
                     {tipoVista === 'cards' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {paginatedFollows.map((item, index) => (
-                                <div
-                                    key={item._id || index}
-                                    className="bg-app-card border border-app-border rounded-xl p-5 shadow-md flex flex-col justify-between transition-all hover:border-app-muted/50"
-                                >
-                                    <div>
-                                        <div className="flex items-start justify-between gap-2 mb-3">
-                                            <span className="px-2.5 py-1 bg-blue-500/10 text-blue-500 text-xs rounded-lg border border-blue-500/20 font-medium">
-                                                {item.tipoSeguimiento}
-                                            </span>
-                                            <span className={`px-2 py-0.5 text-xs rounded border font-medium ${item.estatus === 'Completado'
-                                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                                                : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                                                }`}>
-                                                {item.estatus}
-                                            </span>
-                                        </div>
+                            {paginatedFollows.map((item, index) => {
+                                const itemIndex = pageSize === 'all' ? index + 1 : (currentPage - 1) * pageSize + index + 1;
+                                return (
+                                    <div
+                                        key={item._id || index}
+                                        className="bg-app-card border border-app-border rounded-xl p-5 shadow-md flex flex-col justify-between transition-all hover:border-app-muted/50"
+                                    >
+                                        <div>
+                                            <div className="flex items-start justify-between gap-2 mb-3">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="px-2 py-0.5 bg-app-bg text-app-muted text-xs rounded border border-app-border font-bold">
+                                                        #{itemIndex}
+                                                    </span>
 
-                                        {!company && item.companyName && (
-                                            <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-app-text">
-                                                <Building2 className="w-4 h-4 text-app-muted shrink-0" />
-                                                <span className="truncate">{item.companyName}</span>
+                                                    <span className="px-2.5 py-1 bg-blue-500/10 text-blue-500 text-xs rounded-lg border border-blue-500/20 font-medium">
+                                                        {item.tipoSeguimiento}
+                                                    </span>
+
+                                                    {/* Mostrar solo si esVinculacion es true */}
+                                                    {item.esVinculacion && (
+                                                        <span className="px-2.5 py-1 bg-purple-500/10 text-purple-500 text-xs rounded-lg border border-purple-500/20 font-semibold">
+                                                            Vinculación
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <span className={`px-2 py-0.5 text-xs rounded border font-medium ${item.estatus === 'Completado'
+                                                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                                    : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                    }`}>
+                                                    {item.estatus}
+                                                </span>
                                             </div>
-                                        )}
 
-                                        {item.asunto && (
-                                            <p className="text-xs font-semibold text-blue-500 mb-1">
-                                                {item.asunto}
+                                            {!company && item.companyName && (
+                                                <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-app-text">
+                                                    <Building2 className="w-4 h-4 text-app-muted shrink-0" />
+                                                    <span className="truncate">{item.companyName}</span>
+                                                </div>
+                                            )}
+
+                                            {item.asunto && (
+                                                <p className="text-xs font-semibold text-blue-500 mb-1">
+                                                    {item.asunto}
+                                                </p>
+                                            )}
+
+                                            <p className="text-sm text-app-text my-2 line-clamp-3 bg-app-button/40 p-3 rounded-lg border border-app-border">
+                                                {item.descripcion}
                                             </p>
-                                        )}
-
-                                        <p className="text-sm text-app-text my-2 line-clamp-3 bg-app-button/40 p-3 rounded-lg border border-app-border">
-                                            {item.descripcion}
-                                        </p>
-                                    </div>
-
-                                    <div className="pt-3 border-t border-app-border flex items-center justify-between text-xs text-app-muted">
-                                        <div className="flex items-center gap-1.5">
-                                            <Calendar className="w-3.5 h-3.5" />
-                                            <span>{formatFechaLarga(item.fechaSeguimiento)}</span>
                                         </div>
 
-                                        <div className="flex items-center gap-1">
-                                            {item.empresaId && (
+                                        <div className="pt-3 border-t border-app-border flex items-center justify-between text-xs text-app-muted">
+                                            <div className="flex items-center gap-1.5">
+                                                <Calendar className="w-3.5 h-3.5" />
+                                                <span>{formatFechaLarga(item.fechaSeguimiento)}</span>
+                                            </div>
+
+                                            <div className="flex items-center gap-1">
+                                                {item.empresaId && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const companyData = companies.find((c) => c._id === item.empresaId);
+                                                            if (companyData) {
+                                                                handleOpenDetails(companyData);
+                                                            }
+                                                        }}
+                                                        className="p-1 text-app-muted hover:text-blue-500 hover:bg-app-button rounded transition-colors"
+                                                        title="Ver detalles de la empresa"
+                                                    >
+                                                        <Building2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                                 <button
-                                                    type="button"
                                                     onClick={() => {
-                                                        const companyData = companies.find((c) => c._id === item.empresaId);
-                                                        if (companyData) {
-                                                            handleOpenDetails(companyData);
-                                                        }
+                                                        setSelectedFollow(item);
+                                                        setViewMode('details');
+                                                        setShowModal(true);
                                                     }}
                                                     className="p-1 text-app-muted hover:text-blue-500 hover:bg-app-button rounded transition-colors"
-                                                    title="Ver detalles de la empresa"
+                                                    title="Ver detalles"
                                                 >
-                                                    <Building2 className="w-4 h-4" />
+                                                    <Eye className="w-4 h-4" />
                                                 </button>
-                                            )}
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedFollow(item);
-                                                    setViewMode('details');
-                                                    setShowModal(true);
-                                                }}
-                                                className="p-1 text-app-muted hover:text-blue-500 hover:bg-app-button rounded transition-colors"
-                                                title="Ver detalles"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
-                                            {canEdit && (
-                                                <>
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedFollow(item);
-                                                            setViewMode('edit');
-                                                            setShowModal(true);
-                                                        }}
-                                                        className="p-1 text-app-muted hover:text-amber-500 hover:bg-app-button rounded transition-colors"
-                                                        title="Editar"
-                                                    >
-                                                        <Pencil className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(item._id, item.companyName)}
-                                                        className="p-1 text-app-muted hover:text-red-500 hover:bg-app-button rounded transition-colors"
-                                                        title="Eliminar"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </>
-                                            )}
+                                                {canEdit && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedFollow(item);
+                                                                setViewMode('edit');
+                                                                setShowModal(true);
+                                                            }}
+                                                            className="p-1 text-app-muted hover:text-amber-500 hover:bg-app-button rounded transition-colors"
+                                                            title="Editar"
+                                                        >
+                                                            <Pencil className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(item._id, item.companyName)}
+                                                            className="p-1 text-app-muted hover:text-red-500 hover:bg-app-button rounded transition-colors"
+                                                            title="Eliminar"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
                     )}
 
@@ -1364,15 +1484,12 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                     <div className="bg-app-button/40 border border-app-border p-4 rounded-xl space-y-3">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className={`p-2.5 rounded-xl shrink-0 border ${selectedFollow.otraEmpresa
-                                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-500'
-                                                    : 'bg-blue-500/10 border-blue-500/20 text-blue-500'
-                                                    }`}>
+                                                <div className="p-2.5 rounded-xl shrink-0 border bg-blue-500/10 border-blue-500/20 text-blue-500">
                                                     <Building2 className="w-6 h-6" />
                                                 </div>
                                                 <div>
                                                     <span className="text-[11px] font-semibold text-app-muted uppercase tracking-wider block">
-                                                        {selectedFollow.otraEmpresa ? 'Empresa No Registrada (Manual)' : 'Empresa Registrada'}
+                                                        Empresa Registrada
                                                     </span>
                                                     <p className="text-base text-app-text font-bold tracking-wide">
                                                         {selectedFollow.companyName}
@@ -1389,28 +1506,6 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                                 {selectedFollow.estatus}
                                             </span>
                                         </div>
-
-                                        {selectedFollow.otraEmpresa && (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-app-border text-xs text-app-muted">
-                                                {selectedFollow.otraEmpresa.rfc && (
-                                                    <div><span className="text-app-muted">RFC:</span> <span className="text-app-text">{selectedFollow.otraEmpresa.rfc}</span></div>
-                                                )}
-                                                {selectedFollow.otraEmpresa.nombreContacto && (
-                                                    <div><span className="text-app-muted">Contacto:</span> <span className="text-app-text">{selectedFollow.otraEmpresa.nombreContacto}</span></div>
-                                                )}
-                                                {selectedFollow.otraEmpresa.telefonoContacto && (
-                                                    <div><span className="text-app-muted">Teléfono:</span> <span className="text-app-text">{selectedFollow.otraEmpresa.telefonoContacto}</span></div>
-                                                )}
-                                                {selectedFollow.otraEmpresa.correoElectronico && (
-                                                    <div><span className="text-app-muted">Correo:</span> <span className="text-app-text">{selectedFollow.otraEmpresa.correoElectronico}</span></div>
-                                                )}
-                                                {(selectedFollow.otraEmpresa.estado || selectedFollow.otraEmpresa.municipio) && (
-                                                    <div>
-                                                        <span className="text-app-muted">Ubicación:</span> <span className="text-app-text">{[selectedFollow.otraEmpresa.municipio, selectedFollow.otraEmpresa.estado].filter(Boolean).join(', ')}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
                                     </div>
 
                                     {/* Metadatos en Grilla */}
@@ -1469,16 +1564,15 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                     {selectedFollow.empresasVinculadas && selectedFollow.empresasVinculadas.length > 0 && (
                                         <div className="bg-app-button/30 border border-app-border rounded-xl p-4 space-y-2">
                                             <span className="text-[11px] font-bold text-app-muted uppercase tracking-wider flex items-center gap-1.5">
-                                                <Building2 className="w-3.5 h-3.5 text-blue-500" />
+                                                <Waypoints className="w-3.5 h-3.5 text-blue-500" />
                                                 Empresas Vinculadas ({selectedFollow.empresasVinculadas.length})
                                             </span>
                                             <div className="flex flex-wrap gap-2 pt-1">
                                                 {selectedFollow.empresasVinculadas.map((emp: any, idx: number) => (
                                                     <span
                                                         key={emp._id || idx}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 text-blue-500 text-xs font-medium rounded-lg border border-blue-500/20 shadow-sm"
+                                                        className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-lg border shadow-sm transition-colors ${emp.tipoEmpresa === 'Empresa incompleta' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'}`}
                                                     >
-                                                        <Building2 className="w-3 h-3 text-blue-500" />
                                                         {emp.nombreComercial || emp.razonSocial || 'Empresa Vinculada'}
                                                     </span>
                                                 ))}
@@ -1522,12 +1616,13 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                 </div>
                             ) : (
                                 <CompanyFollowForm
-                                    companyId={company?._id || (selectedFollow?.otraEmpresa ? 'OTRA' : selectedFollow?.empresaId)}
+                                    companyId={company?._id || selectedFollow?.empresaId}
                                     initialData={selectedFollow}
                                     onClose={() => setShowModal(false)}
                                     onSuccess={() => {
                                         setShowModal(false);
                                         fetchFollows();
+                                        fetchFilterCatalogs();
                                     }}
                                 />
                             )}
