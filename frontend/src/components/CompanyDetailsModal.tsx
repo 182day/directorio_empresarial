@@ -1,12 +1,15 @@
 // src/components/CompanyDetailsModal.tsx
 import React, { useState, useContext } from 'react';
-import { X, Building2, MapPin, Phone, Mail, ShieldCheck, Tag, Users, Award, FileText, Calendar, Hash, Pencil, Trash2, Globe, Briefcase, ExternalLink, ChevronUp } from 'lucide-react';
+import { viewCompanyDocument } from '../helpers/documentHelper';
+import { X, Building2, MapPin, Phone, Mail, ShieldCheck, Tag, Users, Award, FileText, Calendar, Hash, Pencil, Trash2, Globe, Briefcase, ExternalLink, ChevronUp, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { type CompanyFormData } from '../interfaces/company.interface';
 import { AuthContext } from '../context/AuthContext';
 import { CompaniesPDFDocument } from './CompaniesPDFDocument';
 import { SECTORES_CONFIG, type ColorTheme } from './CompanyForm';
 import { formatUrl, formatFechaLarga } from '../utils/formUtils';
+import { ProtectedImage } from './ProtectedImage';
+import { formatFileSize } from '../utils/formUtils';
 
 interface CompanyDetailsModalProps {
     company: CompanyFormData | null;
@@ -33,6 +36,8 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
 
     // 👈 Estado para controlar el desplegable de opciones de PDF
     const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+    // Estado para el índice del slider de fotos
+    const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number>(0);
 
     if (!isOpen || !company) return null;
 
@@ -131,6 +136,27 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
         }
     };
 
+    // Filtrar todos los documentos de tipo 'Fotografía' o 'Fotografia'
+    const fotografias = company.documentos?.filter((doc) => {
+        const tipo = (doc.tipoDocumento || '').trim().toLowerCase();
+        return tipo === 'fotografía' || tipo === 'fotografia';
+    }) || [];
+
+    // Handlers para navegar el slider
+    const handlePrevPhoto = () => {
+        setCurrentPhotoIndex((prev) => (prev === 0 ? fotografias.length - 1 : prev - 1));
+    };
+
+    const handleNextPhoto = () => {
+        setCurrentPhotoIndex((prev) => (prev === fotografias.length - 1 ? 0 : prev + 1));
+    };
+
+    // Buscar únicamente el primer documento tipo 'Logotipo'
+    const primerLogotipo = company.documentos?.find((doc) => {
+        const tipo = (doc.tipoDocumento || '').trim().toLowerCase();
+        return tipo === 'logotipo';
+    });
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none">
             <div className="bg-app-card border border-app-border rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col my-8 transition-colors duration-200">
@@ -156,6 +182,16 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
 
                 {/* Cuerpo con Scroll */}
                 <div className="max-h-[80vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [ms-overflow-style:none] scrollbar-none p-6 space-y-6">
+                    {/* Visualización del Primer Logotipo Protegido */}
+                    {primerLogotipo && primerLogotipo.nombreArchivo && (
+                        <div className="flex justify-center items-center p-4 rounded-xl border border-app-border">
+                            <ProtectedImage
+                                filename={primerLogotipo.nombreArchivo}
+                                alt={`Logotipo de ${nombreComercial}`}
+                                className="max-h-28 w-auto object-contain rounded-lg"
+                            />
+                        </div>
+                    )}
 
                     {/* Fila 1: Resumen e Identificación */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-app-bg rounded-xl border border-app-border">
@@ -478,6 +514,146 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                             </div>
                         </div>
                     )}
+
+                    {/* Slider de Fotografías */}
+                    {fotografias.length > 0 && (
+                        <div className="space-y-3 border-t border-app-border pt-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-base font-bold text-app-text flex items-center gap-2">
+                                    <Camera className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                                    <span>Fotografías de la Empresa</span>
+                                </h3>
+                                {fotografias.length > 1 && (
+                                    <span className="text-xs text-app-muted font-medium bg-app-bg px-2.5 py-1 rounded-full border border-app-border">
+                                        {currentPhotoIndex + 1} / {fotografias.length}
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="relative bg-app-bg rounded-xl border border-app-border overflow-hidden p-2 sm:p-4 flex flex-col items-center justify-center min-h-55 sm:min-h-70 max-h-100">
+                                {/* Contenedor relativo para acotar las flechas dentro de la foto */}
+                                <div className="relative flex items-center justify-center w-full max-h-85">
+                                    {/* Imagen Principal */}
+                                    {fotografias[currentPhotoIndex]?.nombreArchivo && (
+                                        <ProtectedImage
+                                            filename={fotografias[currentPhotoIndex].nombreArchivo!}
+                                            alt={fotografias[currentPhotoIndex].titulo || `Fotografía ${currentPhotoIndex + 1}`}
+                                            className="max-h-65 sm:max-h-85 w-auto max-w-full object-contain rounded-lg shadow-sm"
+                                        />
+                                    )}
+
+                                    {/* Botones de Navegación Lateral (ChevronLeft y ChevronRight) */}
+                                    {fotografias.length > 1 && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={handlePrevPhoto}
+                                                className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-all cursor-pointer shadow-md z-10"
+                                                title="Anterior"
+                                            >
+                                                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={handleNextPhoto}
+                                                className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-all cursor-pointer shadow-md z-10"
+                                                title="Siguiente"
+                                            >
+                                                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Título / Descripción opcional */}
+                                {fotografias[currentPhotoIndex]?.titulo && (
+                                    <p className="mt-2 text-xs text-app-muted text-center font-medium truncate max-w-full px-2">
+                                        {fotografias[currentPhotoIndex].titulo}
+                                    </p>
+                                )}
+
+                                {/* Indicadores / Puntos inferiores */}
+                                {fotografias.length > 1 && (
+                                    <div className="flex items-center gap-1.5 mt-3 bg-app-card/80 px-3 py-1 rounded-full border border-app-border backdrop-blur-xs">
+                                        {fotografias.map((_, idx) => (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => setCurrentPhotoIndex(idx)}
+                                                className={`h-1.5 rounded-full transition-all cursor-pointer ${idx === currentPhotoIndex
+                                                        ? 'w-4 bg-blue-500'
+                                                        : 'w-1.5 bg-app-muted/40 hover:bg-app-muted'
+                                                    }`}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Documentos */}
+                    {company.documentos && company.documentos.filter((doc) => {
+                        const tipo = (doc.tipoDocumento || '').trim().toLowerCase();
+                        return tipo !== 'logotipo' && tipo !== 'fotografía' && tipo !== 'fotografia';
+                    }).length > 0 && (
+                            <div className="space-y-3 border-t border-app-border pt-4">
+                                <h3 className="text-base font-bold text-app-text flex items-center gap-2">
+                                    <FileText className="w-5 h-5 text-blue-500 dark:text-blue-400" /> Documentos Adjuntos
+                                </h3>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {company.documentos
+                                        .filter((doc) => {
+                                            const tipo = (doc.tipoDocumento || '').trim().toLowerCase();
+                                            return tipo !== 'logotipo' && tipo !== 'fotografía' && tipo !== 'fotografia';
+                                        })
+                                        .map((doc, idx) => (
+                                            <div
+                                                key={doc._id || idx}
+                                                className="bg-app-bg p-3 rounded-xl border border-app-border flex items-center justify-between gap-3 text-sm hover:border-app-border/80 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <div className="p-2 bg-blue-500/10 text-blue-500 dark:text-blue-400 rounded-lg shrink-0">
+                                                        <FileText className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-semibold text-app-text truncate text-xs sm:text-sm">
+                                                            {doc.titulo || doc.nombreArchivo || 'Documento sin título'}
+                                                        </p>
+                                                        <div className="flex items-center gap-2 text-[11px] text-app-muted">
+                                                            {doc.tipoDocumento && (
+                                                                <span className="font-medium text-blue-500 dark:text-blue-400">
+                                                                    {doc.tipoDocumento}
+                                                                </span>
+                                                            )}
+                                                            {doc.tamano && (
+                                                                <span>
+                                                                    {formatFileSize((doc as any).tamano || (doc as any).size || (doc as any).bytes)}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Botón Ver Documento */}
+                                                {doc.nombreArchivo && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => viewCompanyDocument(doc.nombreArchivo)}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 dark:text-blue-400 border border-blue-500/20 rounded-lg font-medium text-xs transition-colors shrink-0 cursor-pointer"
+                                                        title="Ver documento"
+                                                    >
+                                                        <ExternalLink className="w-3.5 h-3.5" />
+                                                        <span>Ver</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                </div>
+                            </div>
+                        )}
 
                     {/* Etiquetas */}
                     {isAuthenticated && etiquetas && etiquetas.length > 0 && (

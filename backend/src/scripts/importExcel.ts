@@ -105,11 +105,12 @@ async function importData() {
       // 🕒 Parsear la "Marca temporal" de la fila del Excel
       const fechaMarcaTemporal = parseMarcaTemporal(row['Marca temporal'] || row['Marca Temporal'] || row['Timestamp']);
 
-      // 📍 Parsear latitud y longitud escritas manualmente en el Excel[cite: 1, 2]
+      // 📍 Parsear latitud y longitud escritas manualmente en el Excel
       const latitud = parseCoordinate(row['Latitud'] || row['latitud'] || row['Latitud:']);
       const longitud = parseCoordinate(row['Longitud'] || row['longitud'] || row['Longitud:']);
 
       const companyData = {
+        tipoEmpresa: 'Empresa directorio', // 👈 Asignado explícitamente
         correoElectronico: correoEmpresa,
         nombreComercial: getVal('Nombre Comercial:') || `Empresa ${index + 1}`,
         razonSocial: getVal('Nombre o Razón Social:') || getVal('Nombre Comercial:') || `Razón Social ${index + 1}`,
@@ -195,18 +196,33 @@ async function importData() {
         presentacionComercial: getVal('Presentación Comercial:'),
         activa: true,
 
-        // 📅 Se asignan explícitamente las fechas parseadas de "Marca temporal"
+        // 📅 Fechas explícitas basadas en la "Marca temporal"
         createdAt: fechaMarcaTemporal,
         updatedAt: fechaMarcaTemporal
       };
 
       try {
+        /*
+        // Opción 1: Sobrescribir registros existentes
         await Company.updateOne(
           { rfc: companyData.rfc },
           { $set: companyData },
           { upsert: true, runValidators: true, timestamps: false }
         );
-        guardados++;
+        */
+
+        // Opción 2: Insertar SOLO registros NUEVOS sin modificar existentes
+        const result = await Company.updateOne(
+          { rfc: companyData.rfc },
+          { $setOnInsert: companyData },
+          { upsert: true, runValidators: true, timestamps: false } // 👈 Se agrega timestamps: false para evitar el conflicto
+        );
+
+        if (result.upsertedCount > 0) {
+          guardados++;
+        } else {
+          omitidos++;
+        }
       } catch (err: any) {
         console.error(`Error guardando fila ${index + 1} (${companyData.nombreComercial}):`, err.message);
         omitidos++;
@@ -214,8 +230,8 @@ async function importData() {
     }
 
     console.log(`\n¡Importación finalizada!`);
-    console.log(`Guardados/Actualizados con éxito: ${guardados}`);
-    console.log(`Omitidos o con error: ${omitidos}`);
+    console.log(`Nuevos registros insertados: ${guardados}`);
+    console.log(`Existentes omitidos o con error: ${omitidos}`);
 
     process.exit(0);
   } catch (error) {

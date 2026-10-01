@@ -2,12 +2,11 @@
 import { Router } from 'express';
 //import { chatConIA } from '../controllers/aiControllerGemini';
 import { chatConIA } from '../controllers/aiControllerGroq';
-import { protect } from '../middlewares/authMiddleware';
+import { protect, checkRole } from '../middlewares/authMiddleware';
 
 const router = Router();
 
-// Protegido: solo usuarios autenticados pueden usar el asistente de IA.
-// Si quieres restringirlo solo a admin/editor, valida req.user.rol dentro del controller.
-router.post('/chat', protect, chatConIA);
+// Protegido: solo usuarios autenticados con rol admin o editor
+router.post('/chat', protect, checkRole(['admin', 'editor', 'lector']), chatConIA);
 
 export default router;

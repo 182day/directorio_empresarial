@@ -2,14 +2,14 @@
 import { Router } from 'express';
 import { register, login } from '../controllers/authController';
 import { protect, AuthRequest } from '../middlewares/authMiddleware';
-import { User } from '../models/User'; // 👈 Importas el modelo
+import { User } from '../models/User';
 
 const router = Router();
 
 router.post('/register', register);
 router.post('/login', login);
 
-// Ruta protegida para verificar token y consultar usuario completo
+// Ruta protegida para verificar token
 router.get('/verify', protect, async (req: AuthRequest, res) => {
   try {
     // req.user contiene { id, rol } extraído del JWT
@@ -19,16 +19,13 @@ router.get('/verify', protect, async (req: AuthRequest, res) => {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
 
-    if (!user.activo) {
-      return res.status(403).json({ mensaje: 'Cuenta desactivada' });
-    }
-
     res.json({
       user: {
         id: user._id,
         nombre: user.nombre,
         email: user.email,
-        rol: user.rol
+        rol: user.rol,
+        activo: user.activo
       }
     });
   } catch (error) {

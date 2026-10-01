@@ -21,6 +21,17 @@ export interface IEspecialidadSector {
   otroEspecifique?: string;
 }
 
+// 👈 Interfaz para los documentos adjuntos
+export interface IDocumentoEmpresa {
+  titulo?: string;
+  tipoDocumento?: string;
+  descripcion?: string;
+  nombreArchivo?: string;
+  mimeType?: string;
+  tamano?: number;
+  fechaSubida?: Date;
+}
+
 export interface ICompany extends Document {
   tipoEmpresa?: string; // e.g., 'Empresa directorio' o 'Empresa incompleta'
   correoElectronico?: string;
@@ -83,6 +94,7 @@ export interface ICompany extends Document {
     otroEspecifique?: string;
   };
   presentacionComercial?: string;
+  documentos?: IDocumentoEmpresa[]; // 👈 Arreglo opcional de documentos
   activa: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -115,6 +127,20 @@ const EspecialidadSectorSchema = new Schema<IEspecialidadSector>(
     otroEspecifique: { type: String, default: '', trim: true }
   },
   { _id: false }
+);
+
+// 👈 Sub-esquema para Mongoose
+const DocumentoEmpresaSchema = new Schema<IDocumentoEmpresa>(
+  {
+    titulo: { type: String, default: '', trim: true },
+    tipoDocumento: { type: String, default: '', trim: true },
+    descripcion: { type: String, default: '', trim: true },
+    nombreArchivo: { type: String, default: '', trim: true },
+    mimeType: { type: String, default: '', trim: true },
+    tamano: { type: Number, default: 0 },
+    fechaSubida: { type: Date, default: Date.now }
+  },
+  { _id: true }
 );
 
 const CompanySchema = new Schema<ICompany>(
@@ -184,6 +210,7 @@ const CompanySchema = new Schema<ICompany>(
       otroEspecifique: { type: String, default: '', trim: true }
     },
     presentacionComercial: { type: String, default: '', trim: true },
+    documentos: [DocumentoEmpresaSchema], // 👈 Campo opcional para almacenar el historial de documentos
     activa: { type: Boolean, default: false }
   },
   {

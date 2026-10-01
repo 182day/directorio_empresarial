@@ -1,23 +1,16 @@
 // src/pages/MyAccountPage.tsx
-import { useContext, useState, useEffect } from 'react';
+import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { UserForm } from '../components/UserForm';
-import { type User, type UserFormData } from '../interfaces/user.interface';
+import { type UserFormData } from '../interfaces/user.interface';
 import { User as UserIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../api/axios';
 
 export const MyAccountPage = () => {
-    const { user: authUser } = useContext(AuthContext);
-    const [currentUser, setCurrentUser] = useState<User | null>(authUser as unknown as User);
-
-    useEffect(() => {
-        if (authUser) {
-            setCurrentUser(authUser as unknown as User);
-        }
-    }, [authUser]);
-
-    if (!currentUser) {
+    const { user, updateUser } = useContext(AuthContext);
+    
+    if (!user) {
         return (
             <div className="bg-app-card border border-app-border rounded-xl p-8 text-center text-app-muted">
                 Cargando información del usuario...
@@ -26,21 +19,22 @@ export const MyAccountPage = () => {
     }
 
     const initialFormData: UserFormData = {
-        nombre: currentUser.nombre,
-        email: currentUser.email,
-        rol: currentUser.rol,
-        activo: currentUser.activo ?? true,
+        nombre: user.nombre,
+        email: user.email,
+        rol: user.rol,
+        activo: user.activo ?? true,
     };
 
     const handleSubmit = async (formData: UserFormData) => {
         try {
-            const userId = currentUser._id || (currentUser as any).id;
+            const userId = user._id || (user as any).id;
             const res = await api.put(`/users/${userId}`, formData);
-            
+
             const updatedUser = res.data.user || res.data;
-            setCurrentUser(updatedUser);
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            
+
+            // 👈 2. Actualiza AuthContext. Esto actualizará instantáneamente el header en AdminLayout.tsx
+            updateUser(updatedUser);
+
             toast.success('Información de la cuenta actualizada correctamente');
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Error al actualizar el perfil');

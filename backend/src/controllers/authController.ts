@@ -48,28 +48,53 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
+    const clientIp = getClientIp(req);
 
+    // 1. Verificar si el usuario existe
     const user = await User.findOne({ email });
     if (!user) {
+      await AuditLog.create({
+        accion: 'LOGIN_FALLIDO',
+        modulo: 'Auth',
+        usuarioId: null,
+        detalles: { emailIntento: email, motivo: 'Usuario no encontrado' },
+        ip: clientIp
+      });
+
       res.status(401).json({ mensaje: 'Credenciales inválidas' });
       return;
     }
 
+    // 2. Verificar contraseña
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      await AuditLog.create({
+        accion: 'LOGIN_FALLIDO',
+        modulo: 'Auth',
+        usuarioId: user._id,
+        detalles: { email: user.email, motivo: 'Contraseña incorrecta' },
+        ip: clientIp
+      });
+
       res.status(401).json({ mensaje: 'Credenciales inválidas' });
       return;
     }
 
+    // 3. Verificar si el usuario está activo
     if (!user.activo) {
+      await AuditLog.create({
+        accion: 'LOGIN_BLOQUEADO',
+        modulo: 'Auth',
+        usuarioId: user._id,
+        detalles: { email: user.email, motivo: 'Cuenta inactiva o desactivada' },
+        ip: clientIp
+      });
+
       res.status(403).json({ message: 'Tu cuenta ha sido desactivada. Contacta al administrador.' });
       return;
     }
 
-    // Dentro de tu función login:
-    const clientIp = getClientIp(req);
-
-    // 👇 2. Registrar el evento en la bitácora
+    // 4. Login Exitoso
     await AuditLog.create({
       accion: 'INICIO DE SESIÓN',
       modulo: 'Auth',

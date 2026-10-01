@@ -47,7 +47,14 @@ export const CompaniesPage = () => {
     const canEdit = user?.rol === 'admin' || user?.rol === 'editor';
 
     // Consumir el estado y las acciones globales de Zustand
-    const { companies, loading, fetchCompanies } = useCompanyStore();
+    const {
+        companies,
+        loading,
+        fetchCompanies,
+        addCompanyToStore,
+        updateCompanyInStore,
+        removeCompanyFromStore
+    } = useCompanyStore();
     const { setMapCompanies } = useMapCompaniesStore();
 
     const [search, setSearch] = useState('');
@@ -274,9 +281,9 @@ export const CompaniesPage = () => {
 
     // Al montar la vista, se llama a fetchCompanies() sin parámetros.
     // Zustand sabrá si ya las tiene cargadas o si necesita traerlas.
-    useEffect(() => {
-        fetchCompanies();
-    }, [fetchCompanies]);
+    // useEffect(() => {
+    //     fetchCompanies();
+    // }, [fetchCompanies]);
 
     // Reseteamos a la primera página cuando cambie la búsqueda en el input
     useEffect(() => {
@@ -536,8 +543,9 @@ export const CompaniesPage = () => {
                 try {
                     await api.delete(`/companies/${id}`);
                     toast.success(`La empresa ${nombre} ha sido eliminada correctamente.`);
-                    // Pasamos true para forzar la actualización de datos globales en Zustand
-                    fetchCompanies(true);
+
+                    // Actualización local en el store sin hacer petición HTTP adicional
+                    removeCompanyFromStore(id); // O la función que definiste en tu Zustand
                 } catch (err: any) {
                     const mensajeError = err.response?.data?.message || 'Error al eliminar la empresa.';
                     toast.error(mensajeError);
@@ -1483,15 +1491,19 @@ export const CompaniesPage = () => {
                                 onSubmit={async (data) => {
                                     try {
                                         if (editingCompany) {
-                                            await api.put(`/companies/${editingCompany._id}`, data);
+                                            const res = await api.put(`/companies/${editingCompany._id}`, data);
                                             toast.success('Empresa actualizada correctamente');
+
+                                            // Actualización local
+                                            updateCompanyInStore(res.data.company || res.data);
                                         } else {
-                                            await api.post('/companies', data);
+                                            const res = await api.post('/companies', data);
                                             toast.success('Empresa registrada correctamente');
+
+                                            // Inserción local
+                                            addCompanyToStore(res.data.company || res.data);
                                         }
                                         closeModal();
-                                        // Forzamos actualización de la lista global tras crear/editar
-                                        fetchCompanies(true);
                                     } catch (error: any) {
                                         toast.error(error.response?.data?.message || 'Error al guardar');
                                     }

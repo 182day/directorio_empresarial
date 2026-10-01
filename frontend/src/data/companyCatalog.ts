@@ -5,6 +5,9 @@ export const OPCIONES_TIPO_EMPRESA = ['Empresa directorio', 'Empresa incompleta'
 
 export const OPCIONES_TAMANO = ['', 'Micro', 'Pequeña', 'Mediana', 'Grande'];
 
+// Catálogo de tipos de documento
+export const TIPOS_DOCUMENTO = ['Logotipo', 'Fotografía', 'Presentación', 'Documento', 'Otro'];
+
 // Opciones de ordenamiento centralizadas
 export const SORT_OPTIONS: { label: string; value: CompanySortField }[] = [
   { label: 'Fecha de Registro', value: 'createdAt' },

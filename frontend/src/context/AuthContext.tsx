@@ -1,20 +1,14 @@
 // src/context/AuthContext.tsx
 import { createContext, useState, useEffect, type ReactNode } from 'react';
-import api from '../api/axios'; // Importa tu instancia configurada de Axios
+import api from '../api/axios'; 
 import { type User } from '../interfaces/user.interface';
-
-// export interface User {
-//   id: string;
-//   nombre: string;
-//   email: string;
-//   rol: 'admin' | 'editor' | 'lector'; // 👈 Cambiado de role?: string a rol explícito
-// }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (userData: User, token: string) => void;
   logout: () => void;
+  updateUser: (updatedData: Partial<User>) => void; // 👈 1. Firma del método
 }
 
 export const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -34,19 +28,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
-        // Carga previa inmediata desde localStorage para velocidad visual
         if (storedUser) {
           setUser(JSON.parse(storedUser));
         }
 
-        // Validación real contra la API para asegurar que el token sea legítimo
         const response = await api.get('/auth/verify');
-        setUser(response.data.user || response.data);
-        //console.log(response.data);
+        const verifiedUser = response.data.user || response.data;
         
+        const normalizedUser = {
+          ...verifiedUser,
+          _id: verifiedUser._id || verifiedUser.id
+        };
+
+        setUser(normalizedUser);
+        localStorage.setItem('user', JSON.stringify(normalizedUser));
       } catch (error) {
         console.error('Sesión inválida o expirada:', error);
-        logout(); // Si el token falló, limpiamos almacenamiento
+        logout();
       } finally {
         setLoading(false);
       }
@@ -65,10 +63,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    window.location.href = '/login'; // 👈 Obligar la salida visual en pantalla
+  };
+
+  // 👈 2. Implementación para notificar a toda la App de cambios en el usuario
+  const updateUser = (updatedData: Partial<User>) => {
+    setUser((prevUser) => {
+      if (!prevUser) return null;
+      const newUser = { ...prevUser, ...updatedData };
+      localStorage.setItem('user', JSON.stringify(newUser));
+      return newUser;
+    });
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

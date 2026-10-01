@@ -7,6 +7,8 @@ import { AuditLog } from '../models/AuditLog';
 import { CompanyFollowUp } from '../models/CompanyFollowUp';
 import { getClientIp } from '../utils/getClientIp';
 import { processEtiquetas } from '../utils/processTags';
+import path from 'path';
+import fs from 'fs';
 
 // POST: Registrar una empresa desde el formulario público
 export const createPublicCompany = async (req: Request, res: Response): Promise<void> => {
@@ -668,5 +670,183 @@ export const getFollowUpUsers = async (req: AuthRequest, res: Response): Promise
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener usuarios de seguimientos', error });
+  }
+};
+
+// POST: Adjuntar documento a una empresa
+export const uploadCompanyDocument = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { titulo, tipoDocumento, descripcion } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      res.status(400).json({ message: 'No se ha adjuntado ningún archivo.' });
+      return;
+    }
+
+    // 1. Buscar la empresa para obtener el RFC y el número de documentos actuales
+    const company = await Company.findById(id);
+    if (!company) {
+      res.status(404).json({ message: 'Empresa no encontrada.' });
+      return;
+    }
+
+    // 2. Generar el nombre estandarizado: RFC_TipoDocumento_Contador
+    const rfcLimpio = (company.rfc || 'SIN_RFC').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const tipoLimpio = (tipoDocumento || 'DOC').toUpperCase().replace(/\s+/g, '_');
+    const contador = (company.documentos?.length || 0) + 1;
+    const extension = path.extname(file.originalname);
+
+    const nuevoNombreArchivo = `${rfcLimpio}_${tipoLimpio}_${contador}${extension}`;
+
+    // 3. Renombrar físicamente el archivo guardado por Multer
+    const antiguaRuta = file.path;
+    const nuevaRuta = path.join(file.destination, nuevoNombreArchivo);
+    fs.renameSync(antiguaRuta, nuevaRuta);
+
+    // 4. Estructurar el documento (guardando solo el nombre del archivo)
+    const docData = {
+      titulo,
+      tipoDocumento,
+      descripcion,
+      nombreArchivo: nuevoNombreArchivo, // 👈 Solo guardamos el nombre del archivo
+      mimeType: file.mimetype,
+      tamano: file.size,
+      fechaSubida: new Date()
+    };
+
+    // 5. Actualizar la empresa
+    company.documentos = company.documentos || [];
+    company.documentos.push(docData as any);
+    await company.save();
+
+    // 6. Registro en la bitácora de auditoría
+    const userId = req.user?.id || req.user?._id;
+    if (userId) {
+      await AuditLog.create({
+        accion: 'EDITAR',
+        modulo: 'Empresas',
+        empresaId: new Types.ObjectId(id as string),
+        usuarioId: new Types.ObjectId(userId as string),
+        detalles: { accion: 'Adjuntar Documento', documento: docData },
+        ip: getClientIp(req)
+      });
+    }
+
+    res.status(200).json({
+      message: 'Documento adjuntado exitosamente.',
+      documento: docData,
+      company
+    });
+  } catch (error: any) {
+    console.error('Error al adjuntar documento:', error);
+    res.status(500).json({
+      message: 'Error interno del servidor al guardar el documento.',
+      error: error?.message || error
+    });
+  }
+};
+
+// GET: Servir / Visualizar documento protegido por nombre de archivo
+export const getCompanyDocument = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const filename = req.params.filename as string; // 👈 Aseguramos que sea string
+
+    if (!filename || typeof filename !== 'string') {
+      res.status(400).json({ message: 'El nombre del archivo es requerido y debe ser válido.' });
+      return;
+    }
+
+    // Construir la ruta absoluta
+    const filePath = path.resolve(process.cwd(), 'src', 'assets', 'empresas', filename);
+
+    // Verificar si el archivo existe físicamente
+    if (!fs.existsSync(filePath)) {
+      res.status(404).json({ message: 'El documento solicitado no existe o fue removido.' });
+      return;
+    }
+
+    // Configurar Content-Type si es PDF
+    const ext = path.extname(filename).toLowerCase();
+    if (ext === '.pdf') {
+      res.setHeader('Content-Type', 'application/pdf');
+    }
+
+    // Enviar archivo
+    res.sendFile(filePath);
+  } catch (error: any) {
+    console.error('Error al obtener el documento:', error);
+    res.status(500).json({
+      message: 'Error interno del servidor al obtener el documento.',
+      error: error?.message || error
+    });
+  }
+};
+
+// DELETE: Eliminar documento de una empresa y borrar el archivo físico
+export const deleteCompanyDocument = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id, docId } = req.params;
+
+    if (!Types.ObjectId.isValid(id as string) || !Types.ObjectId.isValid(docId as string)) {
+      res.status(400).json({ message: 'Los identificadores de la empresa o del documento no son válidos.' });
+      return;
+    }
+
+    // 1. Buscar la empresa para obtener la referencia del documento
+    const company = await Company.findById(id);
+    if (!company) {
+      res.status(404).json({ message: 'Empresa no encontrada.' });
+      return;
+    }
+
+    // 2. Localizar el documento en el subdocumento
+    const docAEliminar = company.documentos?.find(
+      (doc: any) => doc._id.toString() === docId
+    );
+
+    if (!docAEliminar) {
+      res.status(404).json({ message: 'El documento no existe en la empresa.' });
+      return;
+    }
+
+    // 3. Eliminar el archivo físico de la carpeta src/assets/empresas si existe
+    if (docAEliminar.nombreArchivo) {
+      const filePath = path.resolve(process.cwd(), 'src', 'assets', 'empresas', docAEliminar.nombreArchivo);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    // 4. Remover el documento del arreglo subdocumental y guardar la empresa
+    company.documentos = company.documentos?.filter(
+      (doc: any) => doc._id.toString() !== docId
+    );
+    await company.save();
+
+    // 5. Registro en la bitácora de auditoría
+    const userId = req.user?.id || req.user?._id;
+    if (userId) {
+      await AuditLog.create({
+        accion: 'EDITAR',
+        modulo: 'Empresas',
+        empresaId: new Types.ObjectId(id as string),
+        usuarioId: new Types.ObjectId(userId as string),
+        detalles: { accion: 'Eliminar Documento', documentoEliminado: docAEliminar },
+        ip: getClientIp(req)
+      });
+    }
+
+    res.status(200).json({
+      message: 'Documento eliminado con éxito.',
+      company
+    });
+  } catch (error: any) {
+    console.error('Error al eliminar el documento:', error);
+    res.status(500).json({
+      message: 'Error interno del servidor al eliminar el documento.',
+      error: error?.message || error
+    });
   }
 };

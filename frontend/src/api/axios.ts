@@ -5,7 +5,6 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
 });
 
-// 1. Adjuntar Token en cada petición
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -14,18 +13,24 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// 2. Interceptor de respuestas con manejo de errores
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Si la respuesta es 401 pero NO proviene del intento de login
     const isLoginRoute = error.config?.url?.includes('/auth/login');
+    const isVerifyRoute = error.config?.url?.includes('/auth/verify');
+    const status = error.response?.status;
 
-    if (error.response && error.response.status === 401 && !isLoginRoute) {
-      // Solo limpiar y redirigir si el token expiró/falló en peticiones protegidas
+    if (error.response && (status === 401 || status === 403) && !isLoginRoute && !isVerifyRoute) {
+      const mensaje =
+        error.response.data?.message ||
+        error.response.data?.mensaje ||
+        'Tu sesión ha expirado o tu cuenta ha sido desactivada.';
+
       localStorage.removeItem('user');
       localStorage.removeItem('token');
-      window.location.href = '/login';
+
+      // Redirigir al login pasando el mensaje en los parámetros de la URL
+      window.location.href = `/login?expired=true&reason=${encodeURIComponent(mensaje)}`;
     }
 
     return Promise.reject(error);

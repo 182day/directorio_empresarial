@@ -1,10 +1,11 @@
 // src/routes/auditLogRoutes.ts
 import { Router } from 'express';
 import { getAuditLogs } from '../controllers/auditLogController';
-import { protect, optionalAuth } from '../middlewares/authMiddleware';
+import { protect, checkRole } from '../middlewares/authMiddleware';
+
 const router = Router();
 
-// Endpoint protegido: Solo administradores pueden consultar la bitácora
-router.get('/', [protect, optionalAuth], getAuditLogs);
+// Solo el rol admin puede consultar la bitácora
+router.get('/', protect, checkRole(['admin']), getAuditLogs);
 
 export default router;

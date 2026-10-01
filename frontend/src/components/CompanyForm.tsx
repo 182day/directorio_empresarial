@@ -1,7 +1,8 @@
 // src/components/CompanyForm.tsx
 import { useState, useEffect, type KeyboardEvent } from 'react';
+import Swal from 'sweetalert2';
 import api from '../api/axios';
-import { CheckCircle, X, ChevronDown, Building2, MapPin, Users, Briefcase, HelpCircle, Copy, Check, ToggleLeft, ToggleRight } from 'lucide-react';
+import { CheckCircle, X, ChevronDown, Building2, MapPin, Users, Briefcase, HelpCircle, Copy, Check, ToggleLeft, ToggleRight, FileText, Plus, Minus, Trash2 } from 'lucide-react';
 import { SectorCheckboxGroup } from './SectorCheckboxGroup';
 import {
     OPCIONES_TAMANO,
@@ -19,6 +20,7 @@ import {
     OPCIONES_SECTOR_MROS,
     OPCIONES_SECTOR_MINERO,
     OPCIONES_APOYOS,
+    TIPOS_DOCUMENTO
 } from '../data/companyCatalog';
 import { toast } from 'sonner';
 import { OPCIONES_PAISES } from '../data/countryCatalog';
@@ -28,9 +30,12 @@ import {
     EMAIL_REGEX,
     PHONE_REGEX,
     normalizeText,
-    sanitizePhoneNumber
+    sanitizePhoneNumber,
+    formatFileSize
 } from '../utils/formUtils';
 import { type CompanyFormData, type TipoEmpresa } from '../interfaces/company.interface';
+import { useCompanyStore } from '../stores/useCompanyStore';
+import { viewCompanyDocument } from '../helpers/documentHelper';
 
 interface CompanyFormProps {
     initialValues?: Partial<CompanyFormData>;
@@ -139,6 +144,7 @@ export const CompanyForm = ({
     onCancel,
     submitButtonText
 }: CompanyFormProps) => {
+    const fetchCompanies = useCompanyStore((state) => state.fetchCompanies);
     const baseData = initialValues || initialData;
 
     const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -147,8 +153,27 @@ export const CompanyForm = ({
         contactos: false,
         operacion: false,
         retos: false,
-        productos: false
+        productos: false,
+        documentacion: false
     });
+
+    // Estado para controlar la visibilidad del formulario de agregar documento
+    const [showDocForm, setShowDocForm] = useState(false);
+
+    // Estado del formulario de nuevo documento
+    const [docFormData, setDocFormData] = useState<{
+        titulo: string;
+        descripcion: string;
+        archivo: File | null;
+        tipoDocumento: string;
+    }>({
+        titulo: '',
+        descripcion: '',
+        archivo: null,
+        tipoDocumento: ''
+    });
+
+    const [docErrors, setDocErrors] = useState<Record<string, boolean>>({});
 
     const [formData, setFormData] = useState<CompanyFormData>({
         tipoEmpresa: initialValues?.tipoEmpresa || defaultTipoEmpresa || 'Empresa directorio',
@@ -224,6 +249,7 @@ export const CompanyForm = ({
             setFormData((prev) => ({
                 ...prev,
                 ...baseData,
+                documentos: baseData.documentos || prev.documentos || [],
                 // Si es registro público fuerza 'Empresa directorio'
                 tipoEmpresa: isPublicRegistration
                     ? 'Empresa directorio'
@@ -541,6 +567,138 @@ export const CompanyForm = ({
         setTagList((prev) => prev.filter((_, idx) => idx !== indexToRemove));
     };
 
+    // Manejadores para el formulario de documento
+    const handleDocChange = (field: keyof typeof docFormData, value: any) => {
+        setDocFormData((prev) => ({ ...prev, [field]: value }));
+        if (value) {
+            setDocErrors((prev) => ({ ...prev, [field]: false }));
+        }
+    };
+
+    const handleDocSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const errors: Record<string, boolean> = {};
+
+        if (!docFormData.titulo.trim()) errors.titulo = true;
+        if (!docFormData.archivo) errors.archivo = true;
+        if (!docFormData.tipoDocumento) errors.tipoDocumento = true;
+
+        if (Object.keys(errors).length > 0) {
+            setDocErrors(errors);
+            toast.error('Por favor complete todos los campos obligatorios del documento.');
+            return;
+        }
+
+        const companyId = (baseData as any)?._id;
+        if (!companyId) {
+            toast.error('Primero debes guardar la empresa antes de adjuntar documentos.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const data = new FormData();
+            data.append('titulo', docFormData.titulo);
+            data.append('tipoDocumento', docFormData.tipoDocumento);
+            data.append('descripcion', docFormData.descripcion);
+            data.append('archivo', docFormData.archivo!);
+
+            // 1. Guardamos la respuesta de la petición HTTP
+            const response = await api.post(`/companies/${companyId}/documents`, data, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            // 2. Actualizamos el estado local del formulario inmediatamente
+            // Si tu backend retorna la empresa completa en response.data:
+            if (response.data?.documentos) {
+                setFormData((prev) => ({
+                    ...prev,
+                    documentos: response.data.documentos
+                }));
+            } else if (response.data?.company?.documentos) {
+                setFormData((prev) => ({
+                    ...prev,
+                    documentos: response.data.company.documentos
+                }));
+            }
+
+            // 3. Recargamos la lista global del store
+            await fetchCompanies(true);
+
+            // 4. Notificamos y limpiamos el formulario de documento
+            toast.success('Documento subido correctamente.');
+            setShowDocForm(false);
+            setDocFormData({ titulo: '', descripcion: '', archivo: null, tipoDocumento: '' });
+            setDocErrors({});
+        } catch (error: any) {
+            console.error('Error al subir el documento:', error);
+            toast.error(error.response?.data?.message || 'Error al subir el documento.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDocDelete = (docId?: string, tituloDoc?: string) => {
+        if (!docId) return;
+
+        const companyId = (baseData as any)?._id;
+        if (!companyId) return;
+
+        const nombreMostrar = tituloDoc ? `"${tituloDoc}"` : 'este documento';
+
+        Swal.fire({
+            title: '¿Eliminar documento?',
+            html: `Está a punto de eliminar el documento <strong style="color: inherit;">${nombreMostrar}</strong>. Esta acción no se puede deshacer.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            customClass: {
+                popup: '!bg-app-card !text-app-text !border !border-app-border'
+            },
+            allowOutsideClick: true,
+            allowEscapeKey: true
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    setLoading(true);
+                    const response = await api.delete(`/companies/${companyId}/documents/${docId}`);
+
+                    // Actualizamos el estado local inmediatamente
+                    if (response.data?.documentos) {
+                        setFormData((prev) => ({
+                            ...prev,
+                            documentos: response.data.documentos
+                        }));
+                    } else if (response.data?.company?.documentos) {
+                        setFormData((prev) => ({
+                            ...prev,
+                            documentos: response.data.company.documentos
+                        }));
+                    } else {
+                        // Filtrado manual en caso de que el backend devuelva sólo un mensaje de éxito
+                        setFormData((prev) => ({
+                            ...prev,
+                            documentos: (prev.documentos || []).filter((d) => d._id !== docId)
+                        }));
+                    }
+
+                    await fetchCompanies(true);
+                    toast.success('Documento eliminado correctamente.');
+                } catch (error: any) {
+                    console.error('Error al eliminar el documento:', error);
+                    toast.error(error.response?.data?.message || 'Error al eliminar el documento.');
+                } finally {
+                    setLoading(false);
+                }
+            }
+        });
+    };
+
     const pNacional = Number(formData.informacionEmpresa.porcentajeInversionNacional ?? 0);
     const pExtranjero = Number(formData.informacionEmpresa.porcentajeInversionExtranjero ?? 0);
     const sumaInversion = pNacional + pExtranjero;
@@ -578,7 +736,7 @@ export const CompanyForm = ({
 
             if (Object.keys(newErrors).length > 0) {
                 setOpenSections((prev) => ({ ...prev, general: true }));
-                
+
                 if (newErrors.rfc && newErrors.nombreComercial) {
                     toast.error('Los campos RFC y Nombre Comercial son obligatorios.');
                 } else if (newErrors.rfc) {
@@ -832,7 +990,8 @@ export const CompanyForm = ({
                 productos: Object.keys(newErrors).some((key) =>
                     key.startsWith('informacionEmpresa.sector') && key !== 'informacionEmpresa.sectoresPertenece.lista' && key !== 'informacionEmpresa.sectoresPertenece.otroEspecifique'
                 ),
-                retos: !!(newErrors.retosActuales || newErrors['apoyosYNecesidades.tipos'] || newErrors['apoyosYNecesidades.otroEspecifique'])
+                retos: !!(newErrors.retosActuales || newErrors['apoyosYNecesidades.tipos'] || newErrors['apoyosYNecesidades.otroEspecifique']),
+                documentacion: false
             });
 
             if (newErrors.porcentajeInversionSumaInvalid) {
@@ -910,6 +1069,14 @@ export const CompanyForm = ({
         }
 `;
 
+    const getDocInputClass = (fieldName: string) => `
+    w-full bg-app-bg border rounded-lg p-2.5 text-sm text-app-text placeholder:text-app-muted focus:outline-none transition-colors
+    ${docErrors[fieldName]
+            ? 'border-red-500 focus:border-red-500 bg-red-500/5'
+            : 'border-app-border focus:border-blue-500'
+        }
+`;
+
     return (
         <form onSubmit={handleSubmit} noValidate className="space-y-3">
             {/* SWITCH: EMPRESA DIRECTORIO / EMPRESA INCOMPLETA (SOLO SI NO ES REGISTRO PÚBLICO) */}
@@ -932,11 +1099,10 @@ export const CompanyForm = ({
                     <button
                         type="button"
                         onClick={toggleTipoEmpresa}
-                        className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                            esEmpresaIncompleta
-                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20'
-                                : 'bg-blue-500/10 border-blue-500/30 text-blue-500 hover:bg-blue-500/20'
-                        }`}
+                        className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${esEmpresaIncompleta
+                            ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20'
+                            : 'bg-blue-500/10 border-blue-500/30 text-blue-500 hover:bg-blue-500/20'
+                            }`}
                     >
                         {esEmpresaIncompleta ? (
                             <>
@@ -1847,6 +2013,195 @@ export const CompanyForm = ({
                     </div>
                 )}
             </div>
+
+            {/* 7. SECCIÓN: DOCUMENTACIÓN (Solo en edición y cuando NO es registro público) */}
+            {isEditing && !isPublicRegistration && (
+                <div className="border border-app-border rounded-lg overflow-hidden bg-app-card">
+                    <button
+                        type="button"
+                        onClick={() => toggleSection('documentacion')}
+                        className="w-full flex items-center justify-between p-3.5 bg-app-border/40 hover:bg-app-border/80 transition-colors text-left"
+                    >
+                        <div className="flex items-center gap-2 text-sm font-semibold text-app-text">
+                            <FileText className="w-4 h-4 text-blue-500" />
+                            <span>Documentación</span>
+                        </div>
+                        <ChevronDown className={`w-4 h-4 text-app-muted transition-transform ${openSections.documentacion ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {openSections.documentacion && (
+                        <div className="p-4 space-y-4 border-t border-app-border">
+                            <div className="flex items-center justify-between">
+                                <p className="text-xs text-app-muted">
+                                    Administra y adjunta la documentación relacionada con la empresa.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDocForm(!showDocForm)}
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors cursor-pointer"
+                                >
+                                    {showDocForm ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                    <span>{showDocForm ? 'Cancelar' : 'Agregar documento'}</span>
+                                </button>
+                            </div>
+
+                            {/* FORMULARIO DE AGREGAR DOCUMENTO */}
+                            {showDocForm && (
+                                <div className="p-4 bg-app-bg/60 border border-app-border rounded-lg space-y-4">
+                                    <h4 className="text-xs font-semibold text-blue-500 uppercase tracking-wider">
+                                        Nuevo Documento
+                                    </h4>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                                Título del documento <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="Ej. Acta Constitutiva, Logotipo HD..."
+                                                value={docFormData.titulo}
+                                                onChange={(e) => handleDocChange('titulo', e.target.value)}
+                                                className={getDocInputClass('titulo')}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                                Tipo de documento <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                value={docFormData.tipoDocumento}
+                                                onChange={(e) => handleDocChange('tipoDocumento', e.target.value)}
+                                                className={getDocInputClass('tipoDocumento')}
+                                            >
+                                                <option value="" className="bg-app-bg text-app-text">-- Selecciona un tipo --</option>
+                                                {TIPOS_DOCUMENTO.map((tipo) => (
+                                                    <option key={tipo} value={tipo} className="bg-app-bg text-app-text">
+                                                        {tipo}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div className="md:col-span-2">
+                                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                                Descripción del documento <span className="text-app-muted">(Opcional)</span>
+                                            </label>
+                                            <textarea
+                                                rows={2}
+                                                placeholder="Detalles o notas adicionales sobre el archivo..."
+                                                value={docFormData.descripcion}
+                                                onChange={(e) => handleDocChange('descripcion', e.target.value)}
+                                                className={getDocInputClass('descripcion')}
+                                            />
+                                        </div>
+
+                                        <div className="md:col-span-2">
+                                            <label className="block text-xs font-medium text-app-muted mb-1">
+                                                Archivo <span className="text-red-500">*</span> (Formatos permitidos: .pdf, .jpg, .png, .xlsx, .xls, .csv)
+                                            </label>
+                                            <input
+                                                type="file"
+                                                accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.csv"
+                                                onChange={(e) => handleDocChange('archivo', e.target.files?.[0] || null)}
+                                                className={`w-full bg-app-bg border rounded-lg p-2 text-xs text-app-text file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-500/10 file:text-blue-500 hover:file:bg-blue-500/20 cursor-pointer ${docErrors.archivo ? 'border-red-500 bg-red-500/5' : 'border-app-border'
+                                                    }`}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* AQUÍ SE ENCUENTRAN TUS BOTONES DE ACCIÓN DEL FORMULARIO */}
+                                    <div className="flex justify-end gap-2 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowDocForm(false);
+                                                setDocErrors({});
+                                            }}
+                                            className="px-3 py-1.5 bg-app-border/40 hover:bg-app-border text-app-muted text-xs rounded-lg transition-colors"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleDocSubmit}
+                                            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+                                        >
+                                            Guardar Documento
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TABLA DE DOCUMENTOS ATADOS A LA EMPRESA */}
+                            <div className="overflow-x-auto border border-app-border rounded-lg bg-app-bg/40">
+                                <table className="w-full text-left text-xs text-app-text">
+                                    <thead className="bg-app-border/30 text-app-muted uppercase font-semibold text-[10px] tracking-wider border-b border-app-border">
+                                        <tr>
+                                            <th className="p-2.5">Título</th>
+                                            <th className="p-2.5">Tipo</th>
+                                            <th className="p-2.5">Tamaño</th>
+                                            <th className="p-2.5">Descripción</th>
+                                            <th className="p-2.5 text-center">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-app-border">
+                                        {formData.documentos && formData.documentos.length > 0 ? (
+                                            formData.documentos.map((doc, index) => (
+                                                <tr key={doc._id || index} className="hover:bg-app-border/20 transition-colors">
+                                                    <td className="p-2.5 font-medium">{doc.titulo}</td>
+                                                    <td className="p-2.5">
+                                                        <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                                            {doc.tipoDocumento}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-2.5 text-app-muted font-mono text-[11px]">
+                                                        {/* Reemplaza doc.tamano por la propiedad exacta de tu backend (ej. doc.size o doc.bytes) */}
+                                                        {formatFileSize((doc as any).tamano || (doc as any).size || (doc as any).bytes)}
+                                                    </td>
+                                                    <td className="p-2.5 text-app-muted max-w-xs truncate">
+                                                        {doc.descripcion || 'Sin descripción'}
+                                                    </td>
+                                                    <td className="p-2.5 text-center">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            {doc.nombreArchivo && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => viewCompanyDocument(doc.nombreArchivo)}
+                                                                    title="Ver documento"
+                                                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 transition-colors font-medium cursor-pointer"
+                                                                >
+                                                                    <FileText className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDocDelete(doc._id, doc.titulo || doc.nombreArchivo)}
+                                                                title="Eliminar documento"
+                                                                className="p-1 rounded text-red-500 bg-red-600/10 hover:bg-red-600/20 transition-colors cursor-pointer"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={5} className="p-4 text-center text-app-muted italic">
+                                                    No hay documentos adjuntos guardados para esta empresa.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* BOTONES DE ACCIÓN */}
             <div className="flex justify-end gap-3 pt-4 border-t border-app-border">

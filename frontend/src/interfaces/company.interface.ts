@@ -1,6 +1,18 @@
 // src/interfaces/company.interface.ts
+
 export type TamanoEmpresa = '' | 'Micro' | 'Pequeña' | 'Mediana' | 'Grande';
 export type TipoEmpresa = 'Empresa directorio' | 'Empresa incompleta';
+
+// Interfaz para los documentos adjuntos
+export interface CompanyDocument {
+  _id?: string;
+  titulo: string;
+  tipoDocumento: string;
+  descripcion?: string;
+  nombreArchivo?: string;
+  tamano?: number;
+  fechaSubida?: string | Date;
+}
 
 // 1. Interfaz Completa (Usada principalmente en CompanyForm)
 export interface CompanyFormData {
@@ -17,6 +29,7 @@ export interface CompanyFormData {
   etiquetas: string[];
   tipoOperaciones: string[];
   tipoSuministro: string[];
+  documentos?: CompanyDocument[];
   ubicacion: {
     estado: string;
     municipio: string;
@@ -125,7 +138,7 @@ export interface DirectoryCompany {
   _id: string;
   tipoEmpresa?: TipoEmpresa;
   tamanoEmpresa?: string;
-  tamanio?: string; // Para compatibilidad si el backend devuelve tamanio
+  tamanio?: string;
   tipoOperaciones: string[];
   ubicacion: {
     estado: string;
@@ -147,7 +160,6 @@ export interface DirectoryCompany {
   };
 }
 
-// Tipo estricto para los campos de ordenamiento válidos
 export type CompanySortField = 
   | 'createdAt'
   | 'nombreComercial'

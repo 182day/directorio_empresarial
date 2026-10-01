@@ -27,6 +27,10 @@ export const AI_TOOLS = [
           type: 'string',
           description: 'Texto libre a buscar en nombre comercial, razón social o RFC.'
         },
+        tipoEmpresa: {
+          type: 'string',
+          description: 'Filtra por el tipo de registro (ej. "Empresa directorio" o "Empresa incompleta").'
+        },
         estado: { type: 'string', description: 'Estado de la República donde se ubica la empresa.' },
         municipio: { type: 'string', description: 'Municipio donde se ubica la empresa.' },
         sector: {
@@ -101,6 +105,7 @@ export const AI_TOOLS = [
         empresaNombre: { type: 'string', description: 'Nombre comercial de la empresa a filtrar.' },
         estatus: { type: 'string', description: 'Estatus del seguimiento (ej. "En Proceso", "Cerrado").' },
         tipoSeguimiento: { type: 'string', description: 'Tipo de seguimiento.' },
+        esVinculacion: { type: 'boolean', description: 'Si es true, filtra solo los seguimientos que son vinculación.' },
         fechaDesde: { type: 'string', description: 'Fecha inicial (YYYY-MM-DD) del rango a buscar.' },
         fechaHasta: { type: 'string', description: 'Fecha final (YYYY-MM-DD) del rango a buscar.' },
         limite: { type: 'integer', description: 'Número máximo de resultados (por defecto 15, máximo 50).' }
@@ -115,7 +120,6 @@ export const AI_TOOLS = [
       'Úsala para preguntas generales tipo "dame un resumen" o "¿cómo va todo?".',
     input_schema: { type: 'object', properties: {} }
   },
-  // 👇 NUEVAS HERRAMIENTAS 👇
   {
     name: 'buscar_usuarios',
     description:
@@ -170,6 +174,7 @@ async function buscarEmpresas(args: any) {
       { rfc: { $regex: args.texto, $options: 'i' } }
     ];
   }
+  if (args.tipoEmpresa) query.tipoEmpresa = { $regex: args.tipoEmpresa, $options: 'i' };
   if (args.estado) query['ubicacion.estado'] = { $regex: `^${args.estado}$`, $options: 'i' };
   if (args.municipio) query['ubicacion.municipio'] = { $regex: `^${args.municipio}$`, $options: 'i' };
   if (args.tamanoEmpresa) query.tamanoEmpresa = args.tamanoEmpresa;
@@ -182,7 +187,7 @@ async function buscarEmpresas(args: any) {
 
   const empresas = await Company.find(query)
     .select(
-      'nombreComercial razonSocial rfc tamanoEmpresa ubicacion.estado ubicacion.municipio ' +
+      'nombreComercial razonSocial rfc tipoEmpresa tamanoEmpresa ubicacion.estado ubicacion.municipio ' +
       'informacionEmpresa.sectoresPertenece.lista tipoOperaciones activa'
     )
     .limit(limite)
@@ -198,8 +203,8 @@ async function obtenerDetalleEmpresa(args: any) {
 
   const empresa = await Company.findOne({
     $or: [
-      { nombreComercial: { $regex: termino, $options: 'i' } },
-      { razonSocial: { $regex: termino, $options: 'i' } },
+      { nombreComercial: { $regex: termino,$options: 'i' } },
+      { razonSocial: { $regex: termino,$options: 'i' } },
       { rfc: { $regex: `^${termino}$`, $options: 'i' } }
     ]
   }).lean();
@@ -225,15 +230,13 @@ async function estadisticasEmpresas(args: any) {
 
   const pipeline: any[] = [{ $match: match }];
 
-  // "sector" es un arreglo, hay que desenrollarlo antes de agrupar
   if (args.agrupadoPor === 'sector') {
     pipeline.push({ $unwind: { path: campo, preserveNullAndEmptyArrays: false } });
   }
 
   pipeline.push(
-    { $group: { _id: campo, total: { $sum: 1 } } },
-    { $sort: { total: -1 } },
-    { $limit: 25 }
+    { $group: { _id: campo, total: {$sum: 1 } } },
+    { $sort: { total: -1 } },     {$limit: 25 }
   );
 
   const resultados = await Company.aggregate(pipeline);
@@ -249,29 +252,37 @@ async function buscarSeguimientos(args: any) {
 
   if (args.estatus) match.estatus = { $regex: `^${args.estatus}$`, $options: 'i' };
   if (args.tipoSeguimiento) match.tipoSeguimiento = { $regex: args.tipoSeguimiento, $options: 'i' };
+  if (typeof args.esVinculacion === 'boolean') match.esVinculacion = args.esVinculacion;
 
   if (args.fechaDesde || args.fechaHasta) {
-    match.$expr = { $and: [] as any[] };
+    match.$expr = {$and: [] as any[] };
     if (args.fechaDesde) {
-      match.$expr.$and.push({ $gte: [{ $substr: ['$fechaSeguimiento', 0, 10] }, args.fechaDesde] });
+      match.$expr.$and.push({$gte: [{ $substr: ['$fechaSeguimiento', 0, 10] }, args.fechaDesde] });
     }
     if (args.fechaHasta) {
-      match.$expr.$and.push({ $lte: [{ $substr: ['$fechaSeguimiento', 0, 10] }, args.fechaHasta] });
+      match.$expr.$and.push({$lte: [{ $substr: ['$fechaSeguimiento', 0, 10] }, args.fechaHasta] });
     }
   }
 
   pipeline.push({ $match: match });
+  
+  // JOIN con empresa principal
   pipeline.push({
     $lookup: { from: 'companies', localField: 'empresaId', foreignField: '_id', as: 'empresaId' }
   });
   pipeline.push({ $unwind: { path: '$empresaId', preserveNullAndEmptyArrays: true } });
 
+  // JOIN con empresas vinculadas
+  pipeline.push({
+    $lookup: { from: 'companies', localField: 'empresasVinculadas', foreignField: '_id', as: 'empresasVinculadasData' }
+  });
+
+  // Filtro post-join para permitir buscar en empresa principal o en sus vinculadas
   if (args.empresaNombre) {
     pipeline.push({
-      $match: {
-        $or: [
+      $match: {$or: [
           { 'empresaId.nombreComercial': { $regex: args.empresaNombre, $options: 'i' } },
-          { 'otraEmpresa.nombreEmpresa': { $regex: args.empresaNombre, $options: 'i' } }
+          { 'empresasVinculadasData.nombreComercial': { $regex: args.empresaNombre, $options: 'i' } }
         ]
       }
     });
@@ -279,16 +290,18 @@ async function buscarSeguimientos(args: any) {
 
   pipeline.push({ $sort: { createdAt: -1 } });
   pipeline.push({ $limit: clamp(args.limite, 15, 50) });
+  
   pipeline.push({
     $project: {
       fechaSeguimiento: 1,
       horaSeguimiento: 1,
       tipoSeguimiento: 1,
+      esVinculacion: 1,
       medioAtencion: 1,
       asunto: 1,
       estatus: 1,
       'empresaId.nombreComercial': 1,
-      'otraEmpresa.nombreEmpresa': 1
+      'empresasVinculadasData.nombreComercial': 1
     }
   });
 
@@ -303,19 +316,17 @@ async function estadisticasGenerales() {
       Company.countDocuments({ activa: false }),
       Company.aggregate([
         { $match: { activa: true } },
-        { $group: { _id: '$ubicacion.estado', total: { $sum: 1 } } },
-        { $sort: { total: -1 } },
-        { $limit: 5 }
+        { $group: { _id: '$ubicacion.estado', total: {$sum: 1 } } },
+        { $sort: { total: -1 } },         {$limit: 5 }
       ]),
       Company.aggregate([
         { $match: { activa: true } },
         { $unwind: '$informacionEmpresa.sectoresPertenece.lista' },
-        { $group: { _id: '$informacionEmpresa.sectoresPertenece.lista', total: { $sum: 1 } } },
-        { $sort: { total: -1 } },
-        { $limit: 5 }
+        { $group: { _id: '$informacionEmpresa.sectoresPertenece.lista', total: {$sum: 1 } } },
+        { $sort: { total: -1 } },         {$limit: 5 }
       ]),
       CompanyFollowUp.countDocuments({}),
-      CompanyFollowUp.aggregate([{ $group: { _id: '$estatus', total: { $sum: 1 } } }])
+      CompanyFollowUp.aggregate([{ $group: { _id: '$estatus', total: {$sum: 1 } } }])
     ]);
 
   return {
@@ -328,8 +339,6 @@ async function estadisticasGenerales() {
     }
   };
 }
-
-// 👇 IMPLEMENTACIÓN DE LAS NUEVAS FUNCIONES 👇
 
 async function buscarUsuarios(args: any) {
   const query: any = {};
@@ -347,7 +356,7 @@ async function buscarUsuarios(args: any) {
   const limite = clamp(args.limite, 15, 50);
 
   const usuarios = await User.find(query)
-    .select('nombre email rol activo createdAt') // Excluimos el password intencionalmente
+    .select('nombre email rol activo createdAt')
     .limit(limite)
     .sort({ nombre: 1 })
     .lean();
@@ -359,11 +368,9 @@ async function buscarBitacora(args: any) {
   const pipeline: any[] = [];
   const match: any = {};
 
-  // Filtros directos sobre AuditLog
   if (args.accion) match.accion = { $regex: args.accion, $options: 'i' };
   if (args.modulo) match.modulo = { $regex: args.modulo, $options: 'i' };
 
-  // Filtro de Fechas
   if (args.fechaDesde || args.fechaHasta) {
     match.createdAt = {};
     if (args.fechaDesde) match.createdAt.$gte = new Date(`${args.fechaDesde}T00:00:00.000Z`);
@@ -372,7 +379,6 @@ async function buscarBitacora(args: any) {
 
   pipeline.push({ $match: match });
 
-  // JOIN con Usuario (para obtener el nombre de quien hizo la acción)
   pipeline.push({
     $lookup: {
       from: 'users', 
@@ -383,7 +389,6 @@ async function buscarBitacora(args: any) {
   });
   pipeline.push({ $unwind: { path: '$usuarioData', preserveNullAndEmptyArrays: true } });
 
-  // JOIN con Empresa (opcional, por si la acción fue sobre una empresa)
   pipeline.push({
     $lookup: {
       from: 'companies',
@@ -394,7 +399,6 @@ async function buscarBitacora(args: any) {
   });
   pipeline.push({ $unwind: { path: '$empresaData', preserveNullAndEmptyArrays: true } });
 
-  // Si se busca por el nombre de un usuario en particular, filtramos DESPUÉS del JOIN
   if (args.usuarioNombre) {
     pipeline.push({
       $match: { 'usuarioData.nombre': { $regex: args.usuarioNombre, $options: 'i' } }
@@ -404,7 +408,6 @@ async function buscarBitacora(args: any) {
   pipeline.push({ $sort: { createdAt: -1 } });
   pipeline.push({ $limit: clamp(args.limite, 15, 50) });
 
-  // Proyectamos los datos limpios para la IA
   pipeline.push({
     $project: {
       accion: 1,
@@ -433,8 +436,8 @@ export async function ejecutarHerramienta(nombre: string, args: any): Promise<an
     case 'estadisticas_empresas': return estadisticasEmpresas(args || {});
     case 'buscar_seguimientos': return buscarSeguimientos(args || {});
     case 'estadisticas_generales': return estadisticasGenerales();
-    case 'buscar_usuarios': return buscarUsuarios(args || {}); // 👈 Nueva Tool
-    case 'buscar_bitacora': return buscarBitacora(args || {}); // 👈 Nueva Tool
+    case 'buscar_usuarios': return buscarUsuarios(args || {});
+    case 'buscar_bitacora': return buscarBitacora(args || {});
     default: return { error: `Herramienta desconocida: ${nombre}` };
   }
 }

@@ -1,12 +1,28 @@
 // src/pages/Login.tsx
-import React, { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useContext, useEffect, useRef } from 'react';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api/axios';
 import { Lock, Mail, LogIn, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const Login = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const hasShownToast = useRef(false); // 👈 Bandera para evitar duplicados
+
+  useEffect(() => {
+    const reason = searchParams.get('reason');
+
+    if (reason && !hasShownToast.current) {
+      hasShownToast.current = true; // Marcar como ya mostrado
+      
+      toast.error(reason);
+
+      // Opcional: Limpiar los parámetros de la URL para que quede /login limpia
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,10 +38,10 @@ export const Login = () => {
 
     try {
       const response = await api.post('/auth/login', { email, password });
-      
+
       const usuario = response.data.user;
       login(usuario, response.data.token);
-      
+
       toast.success(`¡Bienvenido, ${usuario.nombre}!`);
 
       navigate('/admin');

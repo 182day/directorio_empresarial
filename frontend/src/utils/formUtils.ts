@@ -1,5 +1,15 @@
 // src/utils/formUtils.ts
 
+// Función helper para dar formato al tamaño en bytes (puedes ubicarla dentro del archivo o en formUtils.ts)
+export const formatFileSize = (bytes?: number): string => {
+    if (!bytes || isNaN(bytes)) return 'N/A';
+    if (bytes < 1024) return `${bytes} B`;
+    const k = 1024;
+    const sizes = ['KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i - 1]}`;
+};
+
 // --- EXPRESIONES REGULARES ---
 export const RFC_REGEX = /^([A-ZÑ&]{3,4})([0-9]{2})(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])([A-Z0-9]{3})$/i;
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

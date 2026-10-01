@@ -1,20 +1,23 @@
 // src/pages/UsersPage.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react'; // 👈 Se agrega useContext
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
 import { UserForm } from '../components/UserForm';
 import { useUserStore } from '../stores/useUserStore';
+import { AuthContext } from '../context/AuthContext'; // 👈 Se importa AuthContext
 import { type User, type UserFormData } from '../interfaces/user.interface';
 import { Plus, Pencil, Trash2, Search, X, CheckCircle2, XCircle } from 'lucide-react';
 
 export const UsersPage = () => {
-    const { users, loading, fetchUsers, createUser, updateUser, deleteUser } = useUserStore();
+    const { users, loading, fetchUsers, createUser, updateUser: updateInStore, deleteUser } = useUserStore();
+    const { user: authUser, updateUser: updateAuthUser } = useContext(AuthContext); // 👈 Extraemos la sesión actual
+    const currentAuthId = authUser?._id || (authUser as any)?.id;
 
     const [search, setSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
-    // Carga única inicial (si ya se cargó previamente en la app, no pedirá nada a la API)
+    // Carga única inicial
     useEffect(() => {
         fetchUsers();
     }, [fetchUsers]);
@@ -38,7 +41,19 @@ export const UsersPage = () => {
     const handleFormSubmit = async (formData: UserFormData) => {
         try {
             if (editingUser) {
-                await updateUser(editingUser._id, formData);
+                // 1. Actualiza el usuario en la lista/store global de Zustand
+                await updateInStore(editingUser._id, formData);
+
+                // 2. Si el usuario editado es el mismo que tiene la sesión activa,
+                //    actualizamos también el AuthContext para actualizar el header ("Hola, ...")
+                const currentAuthId = authUser?._id || (authUser as any)?.id;
+                if (editingUser._id === currentAuthId) {
+                    updateAuthUser({
+                        nombre: formData.nombre,
+                        email: formData.email,
+                    });
+                }
+
                 toast.success(`Usuario ${formData.nombre} actualizado correctamente.`);
             } else {
                 await createUser(formData);
@@ -109,7 +124,7 @@ export const UsersPage = () => {
 
                 <button
                     onClick={() => openModal()}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-lg"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-lg cursor-pointer"
                 >
                     <Plus className="w-4 h-4" />
                     <span>Nuevo Usuario</span>
@@ -145,7 +160,6 @@ export const UsersPage = () => {
                 <div className="bg-app-card border border-app-border rounded-xl overflow-hidden shadow-xl">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm text-app-text border-collapse">
-                            {/* Oculto en móvil (hidden), visible a partir de md (md:table-header-group) */}
                             <thead className="hidden md:table-header-group bg-app-bg text-app-muted text-xs uppercase border-b border-app-border">
                                 <tr>
                                     <th className="px-6 py-4">#</th>
@@ -157,7 +171,6 @@ export const UsersPage = () => {
                                 </tr>
                             </thead>
 
-                            {/* Celdas convertidas en bloque en móvil */}
                             <tbody className="divide-y divide-app-border/60">
                                 {filteredUsers.map((u, i) => (
                                     <tr
@@ -168,19 +181,16 @@ export const UsersPage = () => {
                                             {i + 1}
                                         </td>
 
-                                        {/* Usuario */}
                                         <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 font-medium text-app-text">
                                             <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Usuario</span>
                                             <span>{u.nombre}</span>
                                         </td>
 
-                                        {/* Correo */}
                                         <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-app-muted">
                                             <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Correo</span>
                                             <span className="truncate max-w-50 md:max-w-none">{u.email}</span>
                                         </td>
 
-                                        {/* Rol */}
                                         <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4">
                                             <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Rol</span>
                                             <span className={`px-2.5 py-1 text-xs rounded border capitalize font-medium ${getRoleBadge(u.rol)}`}>
@@ -188,7 +198,6 @@ export const UsersPage = () => {
                                             </span>
                                         </td>
 
-                                        {/* Estado */}
                                         <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4">
                                             <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Estado</span>
                                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${u.activo
@@ -213,20 +222,25 @@ export const UsersPage = () => {
                                         <td className="flex justify-between items-center md:table-cell px-2 md:px-6 py-2 md:py-4 pt-3 md:pt-4 border-t border-app-border/40 md:border-t-0 text-center whitespace-nowrap">
                                             <span className="font-semibold text-xs text-app-muted uppercase md:hidden">Acciones</span>
                                             <div className="flex items-center justify-end md:justify-center gap-2">
+                                                {/* Botón Editar (Siempre visible) */}
                                                 <button
                                                     onClick={() => openModal(u)}
-                                                    className="p-1.5 bg-app-button hover:bg-app-button-hover text-app-text rounded-md transition-colors"
+                                                    className="p-1.5 bg-app-button hover:bg-app-button-hover text-app-text rounded-md transition-colors cursor-pointer"
                                                     title="Editar Usuario"
                                                 >
                                                     <Pencil className="w-4 h-4" />
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDelete(u._id, u.nombre)}
-                                                    className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/20 transition-colors"
-                                                    title="Eliminar Usuario"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+
+                                                {/* 👈 Solo muestra el botón Eliminar si NO es el propio usuario autenticado */}
+                                                {u._id !== currentAuthId && (
+                                                    <button
+                                                        onClick={() => handleDelete(u._id, u.nombre)}
+                                                        className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/20 transition-colors cursor-pointer"
+                                                        title="Eliminar Usuario"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -243,7 +257,7 @@ export const UsersPage = () => {
                     <div className="bg-app-card border border-app-border rounded-2xl w-full max-w-lg p-6 shadow-2xl relative my-8">
                         <button
                             onClick={closeModal}
-                            className="absolute top-4 right-4 text-app-muted hover:text-app-text p-1 rounded-lg hover:bg-app-button transition-colors"
+                            className="absolute top-4 right-4 text-app-muted hover:text-app-text p-1 rounded-lg hover:bg-app-button transition-colors cursor-pointer"
                         >
                             <X className="w-5 h-5" />
                         </button>

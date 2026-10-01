@@ -9,6 +9,9 @@ interface CompanyState {
     hasFetched: boolean;
     fetchCompanies: (forceReload?: boolean) => Promise<void>;
     setCompanies: (companies: CompanyFormData[]) => void;
+    updateCompanyInStore: (updatedCompany: CompanyFormData) => void;
+    addCompanyToStore: (newCompany: CompanyFormData) => void;
+    removeCompanyFromStore: (id: string) => void;
 }
 
 export const useCompanyStore = create<CompanyState>((set, get) => ({
@@ -23,8 +26,9 @@ export const useCompanyStore = create<CompanyState>((set, get) => ({
         }
 
         try {
+            console.log('juaaaaan')
             set({ loading: true });
-            const res = await api.get('/companies'); // Sin query params de búsqueda
+            const res = await api.get('/companies');
             set({ 
                 companies: res.data, 
                 hasFetched: true 
@@ -37,4 +41,27 @@ export const useCompanyStore = create<CompanyState>((set, get) => ({
     },
 
     setCompanies: (companies) => set({ companies }),
+
+    // Actualiza los datos de una empresa específica dentro del estado local sin re-consultar todo el backend
+    updateCompanyInStore: (updatedCompany) => {
+        set((state) => ({
+            companies: state.companies.map((company) =>
+                company._id === updatedCompany._id ? updatedCompany : company
+            ),
+        }));
+    },
+
+    // Agrega una nueva empresa al estado local
+    addCompanyToStore: (newCompany) => {
+        set((state) => ({
+            companies: [newCompany, ...state.companies],
+        }));
+    },
+
+    // Remueve una empresa del estado local por su ID
+    removeCompanyFromStore: (id) => {
+        set((state) => ({
+            companies: state.companies.filter((company) => company._id !== id),
+        }));
+    },
 }));

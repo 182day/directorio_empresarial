@@ -1175,7 +1175,7 @@ export const CompaniesFollowPage: React.FC<Props> = ({ company, onClose }) => {
                                     onChange={(e) => setSortBy(e.target.value as FollowSortField | '')}
                                     className="bg-transparent text-xs sm:text-sm text-app-text font-medium focus:outline-none cursor-pointer py-1 px-1"
                                 >
-                                    <option value="" className="bg-app-card text-app-text">Sin ordenar</option>
+                                    {/* <option value="" className="bg-app-card text-app-text">Sin ordenar</option> */}
                                     {FOLLOW_SORT_OPTIONS
                                         .filter((opt) => !(company && opt.value === 'companyName'))
                                         .map((opt) => (
