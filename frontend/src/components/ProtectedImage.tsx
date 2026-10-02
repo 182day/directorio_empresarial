@@ -1,3 +1,4 @@
+// src/components/ProtectedImage.tsx
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 
@@ -58,7 +59,7 @@ export const ProtectedImage: React.FC<ProtectedImageProps> = ({ filename, alt, c
   if (loading) {
     return (
       <div className="flex items-center justify-center h-28 w-full bg-app-bg animate-pulse rounded-lg text-xs text-app-muted">
-        Cargando logotipo...
+        Cargando imagen...
       </div>
     );
   }

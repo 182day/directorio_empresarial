@@ -8,6 +8,7 @@ import companyRoutes from './routes/companyRoutes';
 import userRoutes from './routes/userRoutes';
 import auditLogRoutes from './routes/auditLogRoutes';
 import aiRoutes from './routes/aiRoutes';
+import { errorHandler } from './middlewares/errorMiddleware';
 
 dotenv.config();
 
@@ -29,6 +30,9 @@ app.use('/api/ai', aiRoutes);
 app.get('/', (req, res) => {
   res.send('API del Directorio Empresarial funcionando correctamente.');
 });
+
+// ⚠️ Middleware global de manejo de errores (siempre al final de las rutas)
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);

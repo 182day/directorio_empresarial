@@ -10,8 +10,9 @@ import { CompaniesFilterDrawer } from '../components/CompaniesFilterDrawer';
 import { Pagination } from '../components/Pagination';
 import { CompanyDetailsModal } from '../components/CompanyDetailsModal';
 import { CompaniesFollowPage } from './CompaniesFollowPage';
+import { CompanyImportModal } from '../components/CompanyImportModal';
 import {
-    Plus, Pencil, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, FileText, BarChart3,
+    Plus, Pencil, Trash2, Search, X, Table, LayoutGrid, MapPin, Globe, Eye, SlidersHorizontal, FileText, BarChart3, RefreshCw, Upload,
     Hash, Calendar, Layers, Truck, Flag, CheckSquare, Square, ListChecks, CheckCheck, ChartGantt, ArrowUp, ArrowDown, Map, ChevronDown, FileSpreadsheet
 } from 'lucide-react';
 import { saveAs } from 'file-saver';
@@ -44,6 +45,7 @@ const SECTOR_PRODUCT_KEYS = [
 
 export const CompaniesPage = () => {
     const { user } = useContext(AuthContext);
+    const isAdmin = user?.rol === 'admin';
     const canEdit = user?.rol === 'admin' || user?.rol === 'editor';
 
     // Consumir el estado y las acciones globales de Zustand
@@ -56,6 +58,9 @@ export const CompaniesPage = () => {
         removeCompanyFromStore
     } = useCompanyStore();
     const { setMapCompanies } = useMapCompaniesStore();
+
+    // Estado para controlar el modal de importación Excel
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     const [search, setSearch] = useState('');
     const [tipoVista, setTipoVista] = useState<'tabla' | 'cards'>('tabla');
@@ -609,6 +614,36 @@ export const CompaniesPage = () => {
             {/* BARRA SUPERIOR DE ACCIONES */}
             <div className="flex flex-col 2xl:flex-row items-stretch 2xl:items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3 w-full 2xl:w-auto flex-wrap">
+                    {/* Botón de Recargar */}
+                    <button
+                        onClick={async () => {
+                            const previousCount = companies.length;
+                            await fetchCompanies(true);
+                            const currentCount = useCompanyStore.getState().companies.length;
+                            const diff = currentCount - previousCount;
+
+                            if (diff > 0) {
+                                toast.success(`Consulta actualizada. Se encontraron ${diff} empresa(s) nueva(s).`);
+                            } else {
+                                toast.success('Consulta actualizada. No se encontraron registros nuevos.');
+                            }
+                        }}
+                        className="p-2 bg-app-card border border-app-border hover:bg-app-button-hover text-app-muted hover:text-app-text rounded-lg transition-colors"
+                        title="Recargar consulta actual"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+
+                    {/* Botón de Importar Excel */}
+                    {isAdmin && (
+                        <button
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="p-2 bg-app-card border border-app-border hover:bg-app-button-hover text-app-muted hover:text-app-text rounded-lg transition-colors"
+                            title="Importar catálogo desde Excel (.xlsx)"
+                        >
+                            <Upload className="w-4 h-4" />
+                        </button>
+                    )}
                     {/* Input de Búsqueda */}
                     <div className="relative flex-1 sm:w-72 min-w-50">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-app-muted" />
@@ -1537,6 +1572,13 @@ export const CompaniesPage = () => {
                     </div>
                 </div>
             )}
+
+            {/* Modal de Importación Excel */}
+            <CompanyImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onSuccess={() => fetchCompanies(true)}
+            />
         </>
     );
 };

@@ -1,3 +1,4 @@
+// src/routes/companyRoutes.ts
 import { Router } from 'express';
 import {
   getCompanies,
@@ -14,11 +15,14 @@ import {
   deleteCompanyFollowUp,
   uploadCompanyDocument,
   getCompanyDocument,
-  deleteCompanyDocument
+  deleteCompanyDocument,
+  importCompaniesExcel
 } from '../controllers/companyController';
 import { protect, optionalAuth, checkRole } from '../middlewares/authMiddleware';
 import { uploadDocument } from '../middlewares/uploadMiddleware';
+import { uploadExcel } from '../middlewares/uploadExcelMiddleware';
 import { validatePublicCompany } from '../middlewares/validators/companyValidator';
+import { validateCompanyDocument } from '../middlewares/validators/documentValidator';
 import { validateCompanyFollowUp } from '../middlewares/validators/followValidator';
 
 const router = Router();
@@ -51,8 +55,9 @@ router.post(
   '/:id/documents',
   protect,
   checkRole(['admin', 'editor']),
-  uploadDocument.single('archivo'),
-  uploadCompanyDocument
+  uploadDocument.single('archivo'), // 1. Multer procesa/valida la extensión y archivo físico
+  validateCompanyDocument,          // 2. Valida los campos del body y confirma si existió req.file
+  uploadCompanyDocument             // 3. Guarda metadata y renombra
 );
 
 // Eliminar documento por ID de empresa y ID de documento
@@ -61,6 +66,15 @@ router.delete(
   protect,
   checkRole(['admin', 'editor']),
   deleteCompanyDocument
+);
+
+// Importación de XLSX
+router.post(
+  '/import-excel',
+  protect,
+  checkRole(['admin']),
+  uploadExcel.single('archivo'),
+  importCompaniesExcel
 );
 
 // 4. Rutas Paramétricas y Protegidas de Empresas

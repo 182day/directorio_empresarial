@@ -2,7 +2,7 @@
 import { useState, useEffect, type KeyboardEvent } from 'react';
 import Swal from 'sweetalert2';
 import api from '../api/axios';
-import { CheckCircle, X, ChevronDown, Building2, MapPin, Users, Briefcase, HelpCircle, Copy, Check, ToggleLeft, ToggleRight, FileText, Plus, Minus, Trash2 } from 'lucide-react';
+import { CheckCircle, X, ChevronDown, Building2, MapPin, Users, Briefcase, HelpCircle, Copy, Check, ToggleLeft, ToggleRight, FileText, Plus, Minus, Trash2, Upload } from 'lucide-react';
 import { SectorCheckboxGroup } from './SectorCheckboxGroup';
 import {
     OPCIONES_TAMANO,
@@ -31,7 +31,14 @@ import {
     PHONE_REGEX,
     normalizeText,
     sanitizePhoneNumber,
-    formatFileSize
+    formatFileSize,
+    ALLOWED_IMAGE_EXTENSIONS,
+    ALLOWED_IMAGE_ACCEPT,
+    ALLOWED_ALL_EXTENSIONS,
+    ALLOWED_ALL_ACCEPT,
+    isImageType,
+    extSee,
+    getFileIconAndColor
 } from '../utils/formUtils';
 import { type CompanyFormData, type TipoEmpresa } from '../interfaces/company.interface';
 import { useCompanyStore } from '../stores/useCompanyStore';
@@ -172,6 +179,7 @@ export const CompanyForm = ({
         archivo: null,
         tipoDocumento: ''
     });
+    const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
     const [docErrors, setDocErrors] = useState<Record<string, boolean>>({});
 
@@ -577,6 +585,28 @@ export const CompanyForm = ({
 
     const handleDocSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!docFormData.archivo) {
+            toast.error('Por favor selecciona un archivo');
+            return;
+        }
+
+        // 1. Obtener la extensión del archivo en minúsculas
+        const fileExtension = '.' + docFormData.archivo.name.split('.').pop()?.toLowerCase();
+
+        // 2. Determinar las extensiones permitidas según el tipoDocumento
+        const isImageDoc = isImageType(docFormData.tipoDocumento);
+        const allowedExtensions = isImageDoc ? ALLOWED_IMAGE_EXTENSIONS : ALLOWED_ALL_EXTENSIONS;
+
+        // 3. Validar si la extensión es permitida
+        if (!allowedExtensions.includes(fileExtension)) {
+            if (isImageDoc) {
+                toast.error(`Para ${docFormData.tipoDocumento} solo se permiten archivos JPG, JPEG, PNG o GIF.`);
+            } else {
+                toast.error('Formato de archivo no permitido. Tipos válidos: PDF, JPG, JPEG, PNG, XLSX, XLS, CSV, GIF.');
+            }
+            return;
+        }
+
         const errors: Record<string, boolean> = {};
 
         if (!docFormData.titulo.trim()) errors.titulo = true;
@@ -597,21 +627,28 @@ export const CompanyForm = ({
 
         try {
             setLoading(true);
+            setUploadProgress(0); // Inicializamos el contador en 0%
+
             const data = new FormData();
             data.append('titulo', docFormData.titulo);
             data.append('tipoDocumento', docFormData.tipoDocumento);
             data.append('descripcion', docFormData.descripcion);
             data.append('archivo', docFormData.archivo!);
 
-            // 1. Guardamos la respuesta de la petición HTTP
+            // Guardamos la respuesta de la petición HTTP registrando el avance del upload
             const response = await api.post(`/companies/${companyId}/documents`, data, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
+                },
+                onUploadProgress: (progressEvent) => {
+                    if (progressEvent.total) {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        setUploadProgress(percentCompleted);
+                    }
                 }
             });
 
-            // 2. Actualizamos el estado local del formulario inmediatamente
-            // Si tu backend retorna la empresa completa en response.data:
+            // Actualizamos el estado local del formulario inmediatamente
             if (response.data?.documentos) {
                 setFormData((prev) => ({
                     ...prev,
@@ -624,10 +661,10 @@ export const CompanyForm = ({
                 }));
             }
 
-            // 3. Recargamos la lista global del store
+            // Recargamos la lista global del store
             await fetchCompanies(true);
 
-            // 4. Notificamos y limpiamos el formulario de documento
+            // Notificamos y limpiamos el formulario de documento
             toast.success('Documento subido correctamente.');
             setShowDocForm(false);
             setDocFormData({ titulo: '', descripcion: '', archivo: null, tipoDocumento: '' });
@@ -637,6 +674,7 @@ export const CompanyForm = ({
             toast.error(error.response?.data?.message || 'Error al subir el documento.');
         } finally {
             setLoading(false);
+            setUploadProgress(null); // Reiniciamos el estado del progreso
         }
     };
 
@@ -2099,18 +2137,106 @@ export const CompanyForm = ({
 
                                         <div className="md:col-span-2">
                                             <label className="block text-xs font-medium text-app-muted mb-1">
-                                                Archivo <span className="text-red-500">*</span> (Formatos permitidos: .pdf, .jpg, .png, .xlsx, .xls, .csv)
+                                                Archivo <span className="text-red-500">*</span> (Formatos permitidos: {
+                                                    isImageType(docFormData.tipoDocumento)
+                                                        ? ALLOWED_IMAGE_EXTENSIONS
+                                                        : ALLOWED_ALL_EXTENSIONS
+                                                })
                                             </label>
-                                            <input
-                                                type="file"
-                                                accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.csv"
-                                                onChange={(e) => handleDocChange('archivo', e.target.files?.[0] || null)}
-                                                className={`w-full bg-app-bg border rounded-lg p-2 text-xs text-app-text file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-500/10 file:text-blue-500 hover:file:bg-blue-500/20 cursor-pointer ${docErrors.archivo ? 'border-red-500 bg-red-500/5' : 'border-app-border'
+
+                                            <div
+                                                onDragOver={(e) => e.preventDefault()}
+                                                onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    const droppedFile = e.dataTransfer.files?.[0];
+                                                    if (droppedFile) {
+                                                        handleDocChange('archivo', droppedFile);
+                                                    }
+                                                }}
+                                                className={`relative border-2 border-dashed rounded-xl p-4 text-center transition-all duration-200 bg-app-bg/50 ${docErrors.archivo
+                                                    ? 'border-red-500 bg-red-500/5'
+                                                    : docFormData.archivo
+                                                        ? 'border-blue-500/50 bg-blue-500/5'
+                                                        : 'border-app-border hover:border-blue-500/50 hover:bg-app-border/10'
                                                     }`}
-                                            />
+                                            >
+                                                <input
+                                                    type="file"
+                                                    id="company-doc-file-input"
+                                                    accept={
+                                                        isImageType(docFormData.tipoDocumento)
+                                                            ? ALLOWED_IMAGE_ACCEPT
+                                                            : ALLOWED_ALL_ACCEPT
+                                                    }
+                                                    onChange={(e) => handleDocChange('archivo', e.target.files?.[0] || null)}
+                                                    className="hidden"
+                                                />
+
+                                                {docFormData.archivo ? (
+                                                    (() => {
+                                                        const { iconColorClass, IconComponent } = getFileIconAndColor(docFormData.archivo.name);
+                                                        return (
+                                                            <div className="flex items-center justify-between p-2.5 bg-app-card border border-app-border rounded-lg shadow-sm">
+                                                                <div className="flex items-center gap-3 overflow-hidden">
+                                                                    <div className={`p-2 rounded-lg shrink-0 transition-colors ${iconColorClass}`}>
+                                                                        <IconComponent className="w-5 h-5" />
+                                                                    </div>
+                                                                    <div className="text-left truncate">
+                                                                        <p className="text-xs font-semibold text-app-text truncate">
+                                                                            {docFormData.archivo.name}
+                                                                        </p>
+                                                                        <p className="text-[11px] font-mono text-app-muted">
+                                                                            {formatFileSize(docFormData.archivo.size)}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDocChange('archivo', null)}
+                                                                    className="p-1.5 text-app-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                                                                    title="Quitar archivo"
+                                                                >
+                                                                    <X className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })()
+                                                ) : (
+                                                    <label
+                                                        htmlFor="company-doc-file-input"
+                                                        className="flex flex-col items-center justify-center cursor-pointer py-3"
+                                                    >
+                                                        <div className="p-3 bg-blue-500/10 text-blue-500 rounded-full mb-2">
+                                                            <Upload className="w-6 h-6" />
+                                                        </div>
+                                                        <p className="text-xs font-medium text-app-text mb-0.5">
+                                                            <span className="text-blue-500 underline font-semibold">Haz clic para buscar</span> o arrastra y suelta tu archivo aquí
+                                                        </p>
+                                                        <p className="text-[11px] text-app-muted">
+                                                            {isImageType(docFormData.tipoDocumento)
+                                                                ? 'Soporta únicamente imágenes en formato JPG, PNG, WEBP o GIF'
+                                                                : 'Soporta documentos en formato PDF, imágenes o hojas de cálculo'}
+                                                        </p>
+                                                    </label>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-
+                                    {/* Indicador visual de porcentaje de subida (0% a 100%) */}
+                                    {uploadProgress !== null && (
+                                        <div className="w-full space-y-1.5 my-3">
+                                            <div className="flex items-center justify-between text-xs font-semibold text-app-text">
+                                                <span>Subiendo archivo...</span>
+                                                <span className="font-mono text-blue-500">{uploadProgress}%</span>
+                                            </div>
+                                            <div className="w-full bg-app-border rounded-full h-2 overflow-hidden">
+                                                <div
+                                                    className="bg-blue-600 h-2 rounded-full transition-all duration-150 ease-out"
+                                                    style={{ width: `${uploadProgress}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                     {/* AQUÍ SE ENCUENTRAN TUS BOTONES DE ACCIÓN DEL FORMULARIO */}
                                     <div className="flex justify-end gap-2 pt-2">
                                         <button
@@ -2148,46 +2274,50 @@ export const CompanyForm = ({
                                     </thead>
                                     <tbody className="divide-y divide-app-border">
                                         {formData.documentos && formData.documentos.length > 0 ? (
-                                            formData.documentos.map((doc, index) => (
-                                                <tr key={doc._id || index} className="hover:bg-app-border/20 transition-colors">
-                                                    <td className="p-2.5 font-medium">{doc.titulo}</td>
-                                                    <td className="p-2.5">
-                                                        <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                                            {doc.tipoDocumento}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-2.5 text-app-muted font-mono text-[11px]">
-                                                        {/* Reemplaza doc.tamano por la propiedad exacta de tu backend (ej. doc.size o doc.bytes) */}
-                                                        {formatFileSize((doc as any).tamano || (doc as any).size || (doc as any).bytes)}
-                                                    </td>
-                                                    <td className="p-2.5 text-app-muted max-w-xs truncate">
-                                                        {doc.descripcion || 'Sin descripción'}
-                                                    </td>
-                                                    <td className="p-2.5 text-center">
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            {doc.nombreArchivo && (
+                                            formData.documentos.map((doc, index) => {
+                                                const { iconColorClass, IconComponent } = getFileIconAndColor(doc.nombreArchivo);
+                                                return (
+                                                    <tr key={doc._id || index} className="hover:bg-app-border/20 transition-colors">
+                                                        <td className="p-2.5 font-medium">{doc.titulo}</td>
+                                                        <td className="p-2.5">
+                                                            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                                                {doc.tipoDocumento}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-2.5 text-app-muted font-mono text-[11px]">
+                                                            {/* Reemplaza doc.tamano por la propiedad exacta de tu backend (ej. doc.size o doc.bytes) */}
+                                                            {formatFileSize((doc as any).tamano || (doc as any).size || (doc as any).bytes)}
+                                                        </td>
+                                                        <td className="p-2.5 text-app-muted max-w-xs truncate">
+                                                            {doc.descripcion || 'Sin descripción'}
+                                                        </td>
+                                                        <td className="p-2.5 text-center">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                {doc.nombreArchivo && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => viewCompanyDocument(doc.nombreArchivo)}
+                                                                        title={`Ver documento (${extSee(doc.nombreArchivo).toUpperCase()})`}
+                                                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded transition-colors font-medium cursor-pointer ${iconColorClass}`}
+                                                                    >
+                                                                        <IconComponent className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                )}
+
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => viewCompanyDocument(doc.nombreArchivo)}
-                                                                    title="Ver documento"
-                                                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 transition-colors font-medium cursor-pointer"
+                                                                    onClick={() => handleDocDelete(doc._id, doc.titulo || doc.nombreArchivo)}
+                                                                    title="Eliminar documento"
+                                                                    className="p-1 rounded text-red-500 bg-red-600/10 hover:bg-red-600/20 transition-colors cursor-pointer"
                                                                 >
-                                                                    <FileText className="w-3.5 h-3.5" />
+                                                                    <Trash2 className="w-4 h-4" />
                                                                 </button>
-                                                            )}
-
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleDocDelete(doc._id, doc.titulo || doc.nombreArchivo)}
-                                                                title="Eliminar documento"
-                                                                className="p-1 rounded text-red-500 bg-red-600/10 hover:bg-red-600/20 transition-colors cursor-pointer"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            }
+                                            )
                                         ) : (
                                             <tr>
                                                 <td colSpan={5} className="p-4 text-center text-app-muted italic">

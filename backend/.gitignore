@@ -26,15 +26,23 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Subidas de archivos por usuarios (si el backend guarda imágenes/archivos localmente)
-uploads/
-public/uploads/
-
-# Archivos
+# Archivos comprimidos
 *.rar
 
-# Ignora todo dentro de la carpeta assets
-src/assets/
+# -------------------------------------------------------------
+# SUBIDAS Y ASSETS
+# -------------------------------------------------------------
 
-# Pero no ignores el archivo .gitkeep
-!src/assets/.gitkeep
+# Carpeta uploads: ignora todo excepto su .gitkeep
+src/uploads/*
+!src/uploads/.gitkeep
+
+# Carpeta assets: ignora todo el contenido de src/assets/
+src/assets/*
+
+# Excepción 1: Permite entrar a la carpeta empresas
+!src/assets/empresas/
+
+# Excepción 2: Ignora todo dentro de empresas excepto su .gitkeep
+src/assets/empresas/*
+!src/assets/empresas/.gitkeep

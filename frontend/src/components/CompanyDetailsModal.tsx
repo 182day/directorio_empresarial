@@ -9,7 +9,11 @@ import { CompaniesPDFDocument } from './CompaniesPDFDocument';
 import { SECTORES_CONFIG, type ColorTheme } from './CompanyForm';
 import { formatUrl, formatFechaLarga } from '../utils/formUtils';
 import { ProtectedImage } from './ProtectedImage';
-import { formatFileSize } from '../utils/formUtils';
+import {
+    formatFileSize,
+    extSee,
+    getFileIconAndColor
+} from '../utils/formUtils';
 
 interface CompanyDetailsModalProps {
     company: CompanyFormData | null;
@@ -38,6 +42,7 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
     const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
     // Estado para el índice del slider de fotos
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number>(0);
+    const [isTransitioning, setIsTransitioning] = useState(false);
 
     if (!isOpen || !company) return null;
 
@@ -142,13 +147,33 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
         return tipo === 'fotografía' || tipo === 'fotografia';
     }) || [];
 
-    // Handlers para navegar el slider
-    const handlePrevPhoto = () => {
-        setCurrentPhotoIndex((prev) => (prev === 0 ? fotografias.length - 1 : prev - 1));
+    {/* 2. Actualiza las funciones para cambiar de foto con animación */ }
+    const handleNextPhoto = () => {
+        if (isTransitioning || fotografias.length <= 1) return;
+        setIsTransitioning(true);
+        setTimeout(() => {
+            setCurrentPhotoIndex((prev) => (prev + 1) % fotografias.length);
+            setIsTransitioning(false);
+        }, 200); // 200ms de desvanecimiento
     };
 
-    const handleNextPhoto = () => {
-        setCurrentPhotoIndex((prev) => (prev === fotografias.length - 1 ? 0 : prev + 1));
+    // Handlers para navegar el slider
+    const handlePrevPhoto = () => {
+        if (isTransitioning || fotografias.length <= 1) return;
+        setIsTransitioning(true);
+        setTimeout(() => {
+            setCurrentPhotoIndex((prev) => (prev - 1 + fotografias.length) % fotografias.length);
+            setIsTransitioning(false);
+        }, 200);
+    };
+
+    const handleSelectPhoto = (idx: number) => {
+        if (isTransitioning || idx === currentPhotoIndex) return;
+        setIsTransitioning(true);
+        setTimeout(() => {
+            setCurrentPhotoIndex(idx);
+            setIsTransitioning(false);
+        }, 200);
     };
 
     // Buscar únicamente el primer documento tipo 'Logotipo'
@@ -530,25 +555,31 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                 )}
                             </div>
 
-                            <div className="relative bg-app-bg rounded-xl border border-app-border overflow-hidden p-2 sm:p-4 flex flex-col items-center justify-center min-h-55 sm:min-h-70 max-h-100">
-                                {/* Contenedor relativo para acotar las flechas dentro de la foto */}
-                                <div className="relative flex items-center justify-center w-full max-h-85">
-                                    {/* Imagen Principal */}
+                            <div className="relative bg-app-bg rounded-xl border border-app-border overflow-hidden p-2 sm:p-4 flex flex-col items-center justify-between h-85 sm:h-95">
+                                {/* ÁREA FIJA DE LA IMAGEN / LOADER */}
+                                <div className="relative flex items-center justify-center w-full h-65 sm:h-75 my-auto">
+
                                     {fotografias[currentPhotoIndex]?.nombreArchivo && (
-                                        <ProtectedImage
-                                            filename={fotografias[currentPhotoIndex].nombreArchivo!}
-                                            alt={fotografias[currentPhotoIndex].titulo || `Fotografía ${currentPhotoIndex + 1}`}
-                                            className="max-h-65 sm:max-h-85 w-auto max-w-full object-contain rounded-lg shadow-sm"
-                                        />
+                                        <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-lg">
+                                            <ProtectedImage
+                                                filename={fotografias[currentPhotoIndex].nombreArchivo!}
+                                                alt={fotografias[currentPhotoIndex].titulo || `Fotografía ${currentPhotoIndex + 1}`}
+                                                className={`max-h-full max-w-full object-contain rounded-lg shadow-sm transition-all duration-300 ease-in-out ${isTransitioning
+                                                    ? 'opacity-0 scale-98'
+                                                    : 'opacity-100 scale-100'
+                                                    }`}
+                                            />
+                                        </div>
                                     )}
 
-                                    {/* Botones de Navegación Lateral (ChevronLeft y ChevronRight) */}
+                                    {/* Botones de Navegación */}
                                     {fotografias.length > 1 && (
                                         <>
                                             <button
                                                 type="button"
                                                 onClick={handlePrevPhoto}
-                                                className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-all cursor-pointer shadow-md z-10"
+                                                disabled={isTransitioning}
+                                                className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/75 text-white backdrop-blur-md transition-all cursor-pointer shadow-md z-10 disabled:opacity-50"
                                                 title="Anterior"
                                             >
                                                 <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -557,7 +588,8 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                             <button
                                                 type="button"
                                                 onClick={handleNextPhoto}
-                                                className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-all cursor-pointer shadow-md z-10"
+                                                disabled={isTransitioning}
+                                                className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/75 text-white backdrop-blur-md transition-all cursor-pointer shadow-md z-10 disabled:opacity-50"
                                                 title="Siguiente"
                                             >
                                                 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -566,24 +598,29 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                     )}
                                 </div>
 
-                                {/* Título / Descripción opcional */}
-                                {fotografias[currentPhotoIndex]?.titulo && (
-                                    <p className="mt-2 text-xs text-app-muted text-center font-medium truncate max-w-full px-2">
-                                        {fotografias[currentPhotoIndex].titulo}
-                                    </p>
-                                )}
+                                {/* Título / Descripción (Altura reservada min-h) */}
+                                <div className="min-h-5 flex items-center justify-center w-full">
+                                    {fotografias[currentPhotoIndex]?.titulo ? (
+                                        <p className={`text-xs text-app-muted text-center font-medium truncate max-w-full px-2 transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'
+                                            }`}>
+                                            {fotografias[currentPhotoIndex].titulo}
+                                        </p>
+                                    ) : (
+                                        <span className="text-xs text-transparent select-none">-</span>
+                                    )}
+                                </div>
 
-                                {/* Indicadores / Puntos inferiores */}
+                                {/* Indicadores / Puntos */}
                                 {fotografias.length > 1 && (
-                                    <div className="flex items-center gap-1.5 mt-3 bg-app-card/80 px-3 py-1 rounded-full border border-app-border backdrop-blur-xs">
+                                    <div className="flex items-center gap-1.5 mt-1 bg-app-card/80 px-3 py-1 rounded-full border border-app-border backdrop-blur-xs">
                                         {fotografias.map((_, idx) => (
                                             <button
                                                 key={idx}
                                                 type="button"
-                                                onClick={() => setCurrentPhotoIndex(idx)}
-                                                className={`h-1.5 rounded-full transition-all cursor-pointer ${idx === currentPhotoIndex
-                                                        ? 'w-4 bg-blue-500'
-                                                        : 'w-1.5 bg-app-muted/40 hover:bg-app-muted'
+                                                onClick={() => handleSelectPhoto(idx)}
+                                                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${idx === currentPhotoIndex
+                                                    ? 'w-5 bg-blue-500'
+                                                    : 'w-1.5 bg-app-muted/40 hover:bg-app-muted'
                                                     }`}
                                             />
                                         ))}
@@ -609,48 +646,51 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                             const tipo = (doc.tipoDocumento || '').trim().toLowerCase();
                                             return tipo !== 'logotipo' && tipo !== 'fotografía' && tipo !== 'fotografia';
                                         })
-                                        .map((doc, idx) => (
-                                            <div
-                                                key={doc._id || idx}
-                                                className="bg-app-bg p-3 rounded-xl border border-app-border flex items-center justify-between gap-3 text-sm hover:border-app-border/80 transition-colors"
-                                            >
-                                                <div className="flex items-center gap-2.5 min-w-0">
-                                                    <div className="p-2 bg-blue-500/10 text-blue-500 dark:text-blue-400 rounded-lg shrink-0">
-                                                        <FileText className="w-4 h-4" />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="font-semibold text-app-text truncate text-xs sm:text-sm">
-                                                            {doc.titulo || doc.nombreArchivo || 'Documento sin título'}
-                                                        </p>
-                                                        <div className="flex items-center gap-2 text-[11px] text-app-muted">
-                                                            {doc.tipoDocumento && (
-                                                                <span className="font-medium text-blue-500 dark:text-blue-400">
-                                                                    {doc.tipoDocumento}
-                                                                </span>
-                                                            )}
-                                                            {doc.tamano && (
-                                                                <span>
-                                                                    {formatFileSize((doc as any).tamano || (doc as any).size || (doc as any).bytes)}
-                                                                </span>
-                                                            )}
+                                        .map((doc, idx) => {
+                                           const { iconColorClass, IconComponent } = getFileIconAndColor(doc.nombreArchivo);
+                                            return (
+                                                <div
+                                                    key={doc._id || idx}
+                                                    className="bg-app-bg p-3 rounded-xl border border-app-border flex items-center justify-between gap-3 text-sm hover:border-app-border/80 transition-colors"
+                                                >
+                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                        <div className={`p-2 rounded-lg shrink-0 ${iconColorClass}`}>
+                                                            <IconComponent className="w-4 h-4" />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="font-semibold text-app-text truncate text-xs sm:text-sm">
+                                                                {doc.titulo || doc.nombreArchivo || 'Documento sin título'}
+                                                            </p>
+                                                            <div className="flex items-center gap-2 text-[11px] text-app-muted">
+                                                                {doc.tipoDocumento && (
+                                                                    <span className="font-medium text-blue-500 dark:text-blue-400">
+                                                                        {doc.tipoDocumento}
+                                                                    </span>
+                                                                )}
+                                                                {doc.tamano && (
+                                                                    <span>
+                                                                        {formatFileSize((doc as any).tamano || (doc as any).size || (doc as any).bytes)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
 
-                                                {/* Botón Ver Documento */}
-                                                {doc.nombreArchivo && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => viewCompanyDocument(doc.nombreArchivo)}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 dark:text-blue-400 border border-blue-500/20 rounded-lg font-medium text-xs transition-colors shrink-0 cursor-pointer"
-                                                        title="Ver documento"
-                                                    >
-                                                        <ExternalLink className="w-3.5 h-3.5" />
-                                                        <span>Ver</span>
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
+                                                    {/* Botón Ver Documento */}
+                                                    {doc.nombreArchivo && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => viewCompanyDocument(doc.nombreArchivo)}
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 dark:text-blue-400 border border-blue-500/20 rounded-lg font-medium text-xs transition-colors shrink-0 cursor-pointer"
+                                                            title={`Ver documento (${extSee(doc.nombreArchivo).toUpperCase()})`}
+                                                        >
+                                                            <ExternalLink className="w-3.5 h-3.5" />
+                                                            <span>Ver</span>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )
+                                        })}
                                 </div>
                             </div>
                         )}

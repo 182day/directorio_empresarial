@@ -7,6 +7,7 @@ import { AuditLog } from '../models/AuditLog';
 import { CompanyFollowUp } from '../models/CompanyFollowUp';
 import { getClientIp } from '../utils/getClientIp';
 import { processEtiquetas } from '../utils/processTags';
+import { compressImage } from '../utils/imageOptimizer';
 import path from 'path';
 import fs from 'fs';
 
@@ -320,8 +321,8 @@ export const createCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
 
     const vinculadasArray = Array.isArray(empresasVinculadas)
       ? empresasVinculadas
-          .filter((id: string) => Types.ObjectId.isValid(id))
-          .map((id: string) => new Types.ObjectId(id))
+        .filter((id: string) => Types.ObjectId.isValid(id))
+        .map((id: string) => new Types.ObjectId(id))
       : [];
 
     const followUp = new CompanyFollowUp({
@@ -386,8 +387,8 @@ export const updateCompanyFollowUp = async (req: AuthRequest, res: Response): Pr
 
     const vinculadasArray = Array.isArray(empresasVinculadas)
       ? empresasVinculadas
-          .filter((vId: string) => Types.ObjectId.isValid(vId))
-          .map((vId: string) => new Types.ObjectId(vId))
+        .filter((vId: string) => Types.ObjectId.isValid(vId))
+        .map((vId: string) => new Types.ObjectId(vId))
       : [];
 
     const updatePayload: any = {
@@ -692,6 +693,11 @@ export const uploadCompanyDocument = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
+    // 📸 OPTIMIZACIÓN: Si es Fotografía (o Logotipo), comprimimos la imagen con Sharp antes de renombrarla
+    if (tipoDocumento === 'Fotografía' || tipoDocumento === 'Logotipo') {
+      await compressImage(file.path, 80, 1920); // Calidad al 80%, ancho máx 1920px
+    }
+
     // 2. Generar el nombre estandarizado: RFC_TipoDocumento_Contador
     const rfcLimpio = (company.rfc || 'SIN_RFC').toUpperCase().replace(/[^A-Z0-9]/g, '');
     const tipoLimpio = (tipoDocumento || 'DOC').toUpperCase().replace(/\s+/g, '_');
@@ -705,14 +711,17 @@ export const uploadCompanyDocument = async (req: AuthRequest, res: Response): Pr
     const nuevaRuta = path.join(file.destination, nuevoNombreArchivo);
     fs.renameSync(antiguaRuta, nuevaRuta);
 
+    // Obtener el tamaño final del archivo físico (especialmente importante si fue comprimido)
+    const statsFinales = fs.statSync(nuevaRuta);
+
     // 4. Estructurar el documento (guardando solo el nombre del archivo)
     const docData = {
       titulo,
       tipoDocumento,
       descripcion,
-      nombreArchivo: nuevoNombreArchivo, // 👈 Solo guardamos el nombre del archivo
+      nombreArchivo: nuevoNombreArchivo,
       mimeType: file.mimetype,
-      tamano: file.size,
+      tamano: statsFinales.size, // 👈 Se guarda el tamaño real en bytes del archivo comprimido
       fechaSubida: new Date()
     };
 
@@ -847,6 +856,61 @@ export const deleteCompanyDocument = async (req: AuthRequest, res: Response): Pr
     res.status(500).json({
       message: 'Error interno del servidor al eliminar el documento.',
       error: error?.message || error
+    });
+  }
+};
+
+// POST: Importar XLSX a la BD
+export const importCompaniesExcel = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ message: 'Debe adjuntar un archivo de Excel (.xlsx).' });
+      return;
+    }
+
+    const filePath = req.file.path;
+    const { processExcelFile } = await import('../scripts/importExcel');
+
+    // Procesar archivo Excel
+    const resultado = await processExcelFile(filePath);
+
+    // Eliminar archivo temporal tras el procesamiento
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    // 📝 Registrar Bitácora de Auditoría
+    const userId = req.user?.id || req.user?._id;
+    if (userId) {
+      await AuditLog.create({
+        accion: 'CREAR',
+        modulo: 'Empresas',
+        usuarioId: new Types.ObjectId(userId as string),
+        detalles: {
+          origen: 'Importación Masiva Excel',
+          archivoNombre: req.file.originalname,
+          registrosProcesados: resultado.total,
+          registrosInsertados: resultado.guardados,
+          registrosOmitidos: resultado.omitidos
+        },
+        ip: getClientIp(req)
+      });
+    }
+
+    res.status(200).json({
+      message: 'Importado con éxito',
+      registrosInsertados: resultado.guardados,
+      registrosOmitidos: resultado.omitidos,
+      totalProcesados: resultado.total
+    });
+  } catch (error: any) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    console.error('Error durante la importación masiva:', error);
+    res.status(500).json({
+      message: 'Error interno al procesar el archivo Excel.',
+      error: error.message || error
     });
   }
 };

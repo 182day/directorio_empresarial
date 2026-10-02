@@ -1,4 +1,10 @@
 // src/utils/formUtils.ts
+import { FileText, Image, type LucideIcon } from 'lucide-react';
+
+export interface FileIconAndColor {
+    iconColorClass: string;
+    IconComponent: LucideIcon;
+}
 
 // Función helper para dar formato al tamaño en bytes (puedes ubicarla dentro del archivo o en formUtils.ts)
 export const formatFileSize = (bytes?: number): string => {
@@ -103,4 +109,35 @@ export const formatFechaLarga = (fecha?: string | Date | null): string => {
     const mesCapitalizado = mes.charAt(0).toUpperCase() + mes.slice(1);
 
     return `${diaCapitalizado} ${dia}, ${mesCapitalizado} ${anio}`;
+};
+
+// Extensión y tipos permitidos
+export const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif'];
+export const ALLOWED_IMAGE_ACCEPT = 'image/jpeg,image/png,image/gif';
+
+export const ALLOWED_ALL_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.xlsx', '.xls', '.csv', '.gif', '.doc', '.docx', '.ppt', '.pptx']; 
+export const ALLOWED_ALL_ACCEPT = 'image/jpeg,image/png,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation';
+
+// Helper para saber si el tipo de documento requiere únicamente imágenes
+export const isImageType = (tipo?: string) => tipo === 'Logotipo' || tipo === 'Fotografía';
+
+export const extSee = (archivo?: string) => archivo?.split('.').pop()?.toLowerCase() || '';
+export const getFileIconAndColor = (fileName: string = ''): FileIconAndColor => {
+    const ext = fileName.split('.').pop()?.toLowerCase() || '';
+
+    let iconColorClass = "bg-blue-600/10 text-blue-500 hover:bg-blue-600/20";
+    let IconComponent: LucideIcon = FileText;
+
+    if (ext === 'pdf') {
+        iconColorClass = "bg-red-600/10 text-red-500 hover:bg-red-600/20";
+    } else if (['xlsx', 'xls', 'csv'].includes(ext)) {
+        iconColorClass = "bg-emerald-600/10 text-emerald-500 hover:bg-emerald-600/20";
+    } else if (['ppt', 'pptx'].includes(ext)) {
+        iconColorClass = "bg-orange-600/10 text-orange-500 hover:bg-orange-600/20";
+    } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+        iconColorClass = "bg-purple-600/10 text-purple-500 hover:bg-purple-600/20";
+        IconComponent = Image;
+    }
+
+    return { iconColorClass, IconComponent };
 };
