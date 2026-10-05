@@ -116,19 +116,24 @@ const ResizeMap = () => {
     const map = useMap();
 
     useEffect(() => {
+        const container = map.getContainer();
+        if (!container) return;
+
+        // Observer para detectar cambios de dimensión en el contenedor del mapa
+        const resizeObserver = new ResizeObserver(() => {
+            map.invalidateSize();
+        });
+
+        resizeObserver.observe(container);
+
+        // Disparo inicial tras montar el componente
         const timer = setTimeout(() => {
             map.invalidateSize();
-        }, 300);
-
-        const handleResize = () => {
-            map.invalidateSize();
-        };
-
-        window.addEventListener('resize', handleResize);
+        }, 100);
 
         return () => {
+            resizeObserver.disconnect();
             clearTimeout(timer);
-            window.removeEventListener('resize', handleResize);
         };
     }, [map]);
 

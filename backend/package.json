@@ -27,6 +27,7 @@
     "typescript": "^7.0.2"
   },
   "scripts": {
+    "predev": "npx kill-port 5000",
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js"

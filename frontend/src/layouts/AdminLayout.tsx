@@ -169,8 +169,7 @@ export const AdminLayout = () => {
                 )}
 
                 {/* Área de contenido */}
-                <main className={`flex-1 min-w-0 transition-all h-full ${isMapRoute ? 'overflow-hidden p-0' : 'px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto'
-                    }`}>
+                <main className={`flex-1 min-w-0 h-full ${isMapRoute ? 'overflow-hidden p-0 flex flex-col' : 'px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto'}`}>
                     {isMapRoute ? (
                         <Outlet />
                     ) : (
