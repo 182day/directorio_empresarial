@@ -1,4 +1,4 @@
-# 🏢 Directorio Empresarial & Panel de Gestión (Full Stack)
+# 🏢 Directorio Empresarial, GeoMap & Panel de Gestión con IA (Full Stack)
 
 <div align="center">
 
@@ -6,6 +6,7 @@
   <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/React--Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white" alt="React Leaflet" />
   <img src="https://img.shields.io/badge/Zustand-20232A?style=for-the-badge&logo=redux&logoColor=white" alt="Zustand" />
   <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js" />
   <img src="https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express" />
