@@ -232,6 +232,7 @@ export const CompanyForm = ({
             sectorMinero: { lista: [], otroEspecifique: '' },
             sectorMros: { lista: [], otroEspecifique: '' },
             principalSectorAtiende: '',
+            principalSectorAtiendeOtro: '',
             porcentajeExportaciones: 0,
             destinoExportaciones: []
         },
@@ -395,6 +396,22 @@ export const CompanyForm = ({
 
         if (val !== '' && val !== null && val !== undefined) {
             setErrors((prev) => ({ ...prev, [field]: false }));
+        }
+    };
+
+    const handleTagPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        e.preventDefault();
+        const pastedText = e.clipboardData.getData('text');
+
+        // Separa por comas o saltos de línea
+        const newTags = pastedText
+            .split(/,|\n/)
+            .map((tag) => tag.trim())
+            .filter((tag) => tag.length > 0 && !tagList.includes(tag));
+
+        if (newTags.length > 0) {
+            setTagList((prev) => [...prev, ...newTags]);
+            setTagInput(''); // Limpia el textarea
         }
     };
 
@@ -1298,6 +1315,7 @@ export const CompanyForm = ({
                                             value={tagInput}
                                             onChange={handleTagInputChange}
                                             onKeyDown={handleKeyDown}
+                                            onPaste={handleTagPaste}
                                             className="w-full bg-transparent text-sm text-app-text placeholder:text-app-muted focus:outline-none resize-y"
                                         />
                                     </div>
@@ -1827,6 +1845,12 @@ export const CompanyForm = ({
                                     </option>
                                 ))}
                             </select>
+                            {formData.informacionEmpresa.principalSectorAtiendeOtro && (
+                                <p className="text-xxs">
+                                    <strong className="text-app-muted">Sector Principal (Google Forms):</strong>{' '}
+                                    {formData.informacionEmpresa.principalSectorAtiendeOtro}
+                                </p>
+                            )}
                         </div>
 
                         <div>

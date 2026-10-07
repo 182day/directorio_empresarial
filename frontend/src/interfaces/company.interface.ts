@@ -121,6 +121,7 @@ export interface CompanyFormData {
       otroEspecifique?: string;
     };
     principalSectorAtiende: string;
+    principalSectorAtiendeOtro: string;
     porcentajeExportaciones: number | '';
     destinoExportaciones: string[];
   };

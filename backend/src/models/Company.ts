@@ -201,6 +201,7 @@ const CompanySchema = new Schema<ICompany>(
       sectorMros: { type: EspecialidadSectorSchema },
       sectorMinero: { type: EspecialidadSectorSchema },
       principalSectorAtiende: { type: String, default: '', trim: true },
+      principalSectorAtiendeOtro: { type: String, default: '', trim: true },
       porcentajeExportaciones: { type: Number, default: 0, min: 0, max: 100 },
       destinoExportaciones: [{ type: String, trim: true }]
     },

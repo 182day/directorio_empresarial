@@ -52,10 +52,12 @@ catalogo_empresas/
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── uploads/                         # Directorio para archivos temporales / cargados
+│   │   └── .gitkeep
 │   └── src/
 │       ├── index.ts                     # Punto de entrada del servidor Express
 │       ├── assets/                      # Recursos estáticos del servidor
 │       │   └── empresas/
+│       │       └── .gitkeep
 │       ├── config/
 │       │   └── db.ts                    # Conexión a MongoDB con Mongoose
 │       ├── controllers/                 # Lógica de negocio API REST
@@ -94,7 +96,18 @@ catalogo_empresas/
 │       └── utils/
 │           ├── getClientIp.ts           # Extracción de IP para auditoría
 │           ├── imageOptimizer.ts        # Optimización y compresión de imágenes
-│           └── processTags.ts           # Normalización de etiquetas/tags
+│           ├── processTags.ts           # Normalización de etiquetas/tags
+│           └── matchers/                # Algoritmos y catálogos de mapeo para importación
+│               ├── apoyosMatcher.ts
+│               ├── certificacionesMatcher.ts
+│               ├── countryMatcher.ts
+│               ├── locationMatcher.ts
+│               ├── principalSectorMatcher.ts
+│               ├── sectoresMatcher.ts
+│               └── data/
+│                   ├── companyCatalog.ts
+│                   ├── countryCatalog.ts
+│                   └── locationCatalog.ts
 │
 ├── frontend/
 │   ├── .env
@@ -126,18 +139,18 @@ catalogo_empresas/
 │       │   ├── CompaniesGraphics.tsx
 │       │   ├── CompaniesPDFDocument.tsx
 │       │   ├── CompaniesSheetExcel.ts
-│       │   ├── CompanyDetailsModal.tsx
-│       │   ├── CompanyFollowForm.tsx
-│       │   ├── CompanyForm.tsx
+│       │   ├── CompanyDetailsModal.tsx  # Componente para ver los detalles e información de la empresa
+│       │   ├── CompanyFollowForm.tsx    # Formulario de registro de seguimiento de empresas
+│       │   ├── CompanyForm.tsx          # Formulario de registro de empresas
 │       │   ├── CompanyImportModal.tsx   # Modal para importación masiva en Excel
 │       │   ├── CompanySheetPDFDocument.tsx
 │       │   ├── LayerFilterMap.tsx       # Filtro de capas cartográficas
-│       │   ├── Pagination.tsx
+│       │   ├── Pagination.tsx           # Controles de paginación y navegación de listas
 │       │   ├── ProtectedImage.tsx       # Componente de imagen con protección de acceso
-│       │   ├── ProtectedRoute.tsx
+│       │   ├── ProtectedRoute.tsx       # Componente de protección de acceso a rutas
 │       │   ├── SectorCheckboxGroup.tsx
-│       │   ├── Sidebar.tsx
-│       │   └── UserForm.tsx
+│       │   ├── Sidebar.tsx              # Menú de navegación del sitio
+│       │   └── UserForm.tsx             # Formulario de registro de usuarios
 │       ├── context/
 │       │   ├── AuthContext.tsx
 │       │   └── ThemeContext.tsx
@@ -149,12 +162,18 @@ catalogo_empresas/
 │       │   ├── mapCatalog.ts
 │       │   └── layers/                  # Capas GeoJSON para renderizado espacial
 │       │       ├── .gitkeep
+│       │       ├── ageb.json
+│       │       ├── agua.json
+│       │       ├── calles.json
+│       │       ├── carreteras.json
 │       │       ├── estado.json
+│       │       ├── localidades.json
 │       │       ├── municipios.json
 │       │       ├── republica.json
+│       │       └── sip.json
 │       ├── helpers/
 │       │   └── documentHelper.ts
-│       ├── interfaces/                  # Contratos de tipos estricto en TypeScript
+│       ├── interfaces/                  # Contratos de tipos estrictos en TypeScript
 │       │   ├── company.interface.ts
 │       │   ├── follow.interface.ts
 │       │   └── user.interface.ts

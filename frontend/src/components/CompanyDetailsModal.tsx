@@ -449,6 +449,12 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                 <p><strong className="text-app-muted">Productos que fabrica:</strong> {informacionEmpresa.productosFabrica || 'N/A'}</p>
                                 <p><strong className="text-app-muted">Principales Clientes:</strong> {informacionEmpresa.principalesClientes || 'N/A'}</p>
                                 <p><strong className="text-app-muted">Sector Principal:</strong> {informacionEmpresa.principalSectorAtiende || 'N/A'}</p>
+                                {informacionEmpresa.principalSectorAtiendeOtro && (
+                                    <p className="text-xxs">
+                                        <strong className="text-app-muted">Sector Principal (Google Forms):</strong>{' '}
+                                        {informacionEmpresa.principalSectorAtiendeOtro}
+                                    </p>
+                                )}
 
                                 {informacionEmpresa.sectoresPertenece?.lista && informacionEmpresa.sectoresPertenece.lista.length > 0 && (
                                     <div>
@@ -647,7 +653,7 @@ export const CompanyDetailsModal: React.FC<CompanyDetailsModalProps> = ({ compan
                                             return tipo !== 'logotipo' && tipo !== 'fotografía' && tipo !== 'fotografia';
                                         })
                                         .map((doc, idx) => {
-                                           const { iconColorClass, IconComponent } = getFileIconAndColor(doc.nombreArchivo);
+                                            const { iconColorClass, IconComponent } = getFileIconAndColor(doc.nombreArchivo);
                                             return (
                                                 <div
                                                     key={doc._id || idx}
